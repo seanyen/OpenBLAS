@@ -1,0 +1,7 @@
+steps:
+- script: |
+    call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+    mkdir out
+    cd out
+    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=c:/opt/rosdeps/x64 -DCMAKE_PREFIX_PATH=c:/opt/rosdeps/x64 -G "NMake Makefiles" ..
+    nmake install
