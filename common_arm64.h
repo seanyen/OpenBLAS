@@ -33,13 +33,18 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_ARM64
 #define COMMON_ARM64
 
+#ifdef C_MSVC
+#include <intrin.h>
+#define MB __dmb(_ARM64_BARRIER_ISH)
+#define WMB __dmb(_ARM64_BARRIER_ISHST)
+#define RMB __dmb(_ARM64_BARRIER_ISHLD)
+#else
 #define MB   __asm__ __volatile__ ("dmb  ish" : : : "memory")
 #define WMB  __asm__ __volatile__ ("dmb  ishst" : : : "memory")
 #define RMB  __asm__ __volatile__ ("dmb  ishld" : : : "memory")
+#endif
 
-#define INLINE inline
-
-#if defined( F_INTERFACE_FLANG) || defined(F_INTERFACE_PGI)
+#if defined( F_INTERFACE_FLANG) || (defined(F_INTERFACE_PGI) && (defined(__NVCOMPILER) && (__NVCOMPILER_MAJOR__ < 23 || (__NVCOMPILER_MAJOR__ == 23 && __NVCOMPILER_MINOR__ < 9))))
 #define RETURN_BY_STACK
 #else
 #define RETURN_BY_COMPLEX
@@ -48,11 +53,28 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ASSEMBLER
 
 
-static void __inline blas_lock(volatile BLASULONG *address){
+#ifndef NO_AFFINITY
+static __inline int WhereAmI(void){
+  uint64_t ret;
+  __asm__ volatile (
+       "         mrs x0, mpidr_el1 \n"
+       "         and x0, x0, 0xff  \n"
+                 :"=r" (ret)
+                 :: "memory"
+               );
+  ret +=1;
+  if ((int)ret <0) ret = 0;
+  return (int)ret;
+}
+#endif
+
+#ifndef BLAS_LOCK_DEFINED
+static __inline void blas_lock(volatile BLASULONG *address){
 
   BLASULONG ret;
 
   do {
+    #ifndef C_MSVC
     __asm__ __volatile__(
 			 "mov	x4, #1							\n\t"
 			 "sevl								\n\t"
@@ -70,23 +92,36 @@ static void __inline blas_lock(volatile BLASULONG *address){
 
 
     );
-
+    #else
+      while (*address) {YIELDING;}
+      ret=InterlockedExchange64((volatile LONG64 *)(address), 1);
+    #endif
 
   } while (ret);
 
 }
 
 #define BLAS_LOCK_DEFINED
+#endif
 
 #if !defined(OS_DARWIN) && !defined (OS_ANDROID)
 static __inline BLASULONG rpcc(void){
+  #ifdef C_MSVC
+    const int64_t pmccntr_el0 = (((3 & 1) << 14) |  // op0
+        ((3 & 7) << 11) |  // op1
+        ((9 & 15) << 7) |  // crn
+        ((13 & 15) << 3) | // crm
+        ((0 & 7) << 0));   // op2
+    return _ReadStatusReg(pmccntr_el0);
+  #else
   BLASULONG ret = 0;
   blasint shift;
- 
-  __asm__ __volatile__ ("isb; mrs %0,cntvct_el0":"=r"(ret));
-  __asm__ __volatile__ ("mrs %0,cntfrq_el0; clz %w0, %w0":"=&r"(shift));
+
+  __asm__ __volatile__ ("isb\n\tmrs %0,cntvct_el0":"=r"(ret));
+  __asm__ __volatile__ ("mrs %x0,cntfrq_el0\n\tclz %w0, %w0":"=&r"(shift));
 
   return ret << shift;
+  #endif
 }
 
 #define RPCC_DEFINED
@@ -120,7 +155,7 @@ static inline int blas_quickdivide(blasint x, blasint y){
 	.text ;
 	.p2align 2 ;
 	.global	REALNAME ;
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(_WIN32)
 	.type	REALNAME, %function ;
 #endif
 REALNAME:
@@ -142,7 +177,11 @@ REALNAME:
 #define HUGE_PAGESIZE   ( 4 << 20)
 
 #ifndef BUFFERSIZE
+#if defined(NEOVERSEN1) || defined(NEOVERSEN2) || defined(NEOVERSEV1) || defined(A64FX) || defined(ARMV8SVE) || defined(ARMV9SME)
+#define BUFFER_SIZE     (32 << 22)
+#else
 #define BUFFER_SIZE     (32 << 20)
+#endif
 #else
 #define BUFFER_SIZE	(32 << BUFFERSIZE)
 #endif

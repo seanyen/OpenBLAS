@@ -33,6 +33,18 @@
 TOPSRCDIR = ../..
 include $(TOPSRCDIR)/make.inc
 
+ifeq ($(C_LAPACK), 1)
+.SUFFIXES:
+.SUFFIXES: .c .o
+.c.o:
+	$(CC) $(filter-out -fvisibility=hidden, $(CFLAGS)) -c -o $@ $<
+else
+.SUFFIXES:
+.SUFFIXES: .f .o
+.f.o:
+	$(FC) $(FFLAGS) -c -o $@ $<
+endif
+
 ifneq "$(or $(BUILD_SINGLE),$(BUILD_COMPLEX))" ""
 SCATGEN = slatm1.o slatm7.o slaran.o slarnd.o
 endif
@@ -66,6 +78,7 @@ ZMATGEN = zlatms.o zlatme.o zlatmr.o zlatmt.o \
 endif
 
 .PHONY: all
+.NOTPARALLEL:
 all: $(TMGLIB)
 
 ALLOBJ = $(SMATGEN) $(CMATGEN) $(SCATGEN) $(DMATGEN) $(ZMATGEN) \
@@ -92,6 +105,7 @@ complex16: $(ZMATGEN) $(DZATGEN)
 	$(AR) $(ARFLAGS) $(TMGLIB) $^
 	$(RANLIB) $(TMGLIB)
 
+ifdef FRC
 $(SCATGEN): $(FRC)
 $(SMATGEN): $(FRC)
 $(CMATGEN): $(FRC)
@@ -101,6 +115,7 @@ $(ZMATGEN): $(FRC)
 
 FRC:
 	@FRC=$(FRC)
+endif
 
 .PHONY: clean cleanobj cleanlib
 clean: cleanobj cleanlib
@@ -109,9 +124,18 @@ cleanobj:
 cleanlib:
 	rm -f $(TMGLIB)
 
+ifneq ($(C_LAPACK), 1)
 ifeq ($(filter $(BUILD_SINGLE) $(BUILD_COMPLEX),1),)
 slaran.o: slaran.f ; $(FC) $(FFLAGS_NOOPT) -c -o $@ $<
 endif
 ifeq ($(filter $(BUILD_DOUBLE) $(BUILD_COMPLEX16),1),)
 dlaran.o: dlaran.f ; $(FC) $(FFLAGS_NOOPT) -c -o $@ $<
+endif
+else
+ifeq ($(filter $(BUILD_SINGLE) $(BUILD_COMPLEX),1),)
+slaran.o: slaran.c ; $(CC) $(filter-out -fvisibility=hidden, $(CFLAGS)) -O0 -c -o $@ $<
+endif
+ifeq ($(filter $(BUILD_DOUBLE) $(BUILD_COMPLEX16),1),)
+dlaran.o: dlaran.c ; $(CC) $(filter-out -fvisibility=hidden, $(CFLAGS) -O0 -c -o $@ $<
+endif
 endif

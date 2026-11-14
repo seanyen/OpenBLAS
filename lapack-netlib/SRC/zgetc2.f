@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download ZGETC2 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zgetc2.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zgetc2.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -98,9 +96,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
-*> \ingroup complex16GEauxiliary
+*> \ingroup getc2
 *
 *> \par Contributors:
 *  ==================
@@ -110,11 +106,11 @@
 *
 *  =====================================================================
       SUBROUTINE ZGETC2( N, A, LDA, IPIV, JPIV, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK auxiliary routine (version 3.8.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, N
@@ -135,7 +131,7 @@
       DOUBLE PRECISION   BIGNUM, EPS, SMIN, SMLNUM, XMAX
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           ZGERU, ZSWAP, DLABAD
+      EXTERNAL           ZGERU, ZSWAP
 *     ..
 *     .. External Functions ..
       DOUBLE PRECISION   DLAMCH
@@ -158,7 +154,6 @@
       EPS = DLAMCH( 'P' )
       SMLNUM = DLAMCH( 'S' ) / EPS
       BIGNUM = ONE / SMLNUM
-      CALL DLABAD( SMLNUM, BIGNUM )
 *
 *     Handle the case N=1 by itself
 *
@@ -180,8 +175,8 @@
 *        Find max element in matrix A
 *
          XMAX = ZERO
-         DO 20 IP = I, N
-            DO 10 JP = I, N
+         DO 20 JP = I, N
+            DO 10 IP = I, N
                IF( ABS( A( IP, JP ) ).GE.XMAX ) THEN
                   XMAX = ABS( A( IP, JP ) )
                   IPV = IP

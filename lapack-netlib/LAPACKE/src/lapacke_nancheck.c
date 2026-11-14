@@ -28,7 +28,6 @@
 *****************************************************************************
 * Contents: Native C interface to control NaN checking
 * Author: Intel Corporation
-* Generated July, 2017
 *****************************************************************************/
 
 #include "lapacke_utils.h"
@@ -40,7 +39,7 @@ void LAPACKE_set_nancheck( int flag )
     nancheck_flag = ( flag ) ? 1 : 0;
 }
 
-int LAPACKE_get_nancheck( )
+int LAPACKE_get_nancheck( void )
 {
     char* env;
     if ( nancheck_flag != -1 ) {

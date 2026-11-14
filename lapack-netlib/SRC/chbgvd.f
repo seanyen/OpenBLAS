@@ -46,12 +46,6 @@
 *> and banded, and B is also positive definite.  If eigenvectors are
 *> desired, it uses a divide and conquer algorithm.
 *>
-*> The divide and conquer algorithm makes very mild assumptions about
-*> floating point arithmetic. It will work on machines with a guard
-*> digit in add/subtract, or on those binary machines without guard
-*> digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
-*> Cray-2. It could conceivably fail on hexadecimal or decimal machines
-*> without guard digits, but we know of none.
 *> \endverbatim
 *
 *  Arguments:
@@ -238,9 +232,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
-*> \ingroup complexOTHEReigen
+*> \ingroup hbgvd
 *
 *> \par Contributors:
 *  ==================
@@ -252,10 +244,9 @@
      $                   Z, LDZ, WORK, LWORK, RWORK, LRWORK, IWORK,
      $                   LIWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBZ, UPLO
@@ -284,7 +275,8 @@
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      EXTERNAL           LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SSTERF, XERBLA, CGEMM, CHBGST, CHBTRD, CLACPY,
@@ -331,7 +323,7 @@
       END IF
 *
       IF( INFO.EQ.0 ) THEN
-         WORK( 1 ) = LWMIN
+         WORK( 1 ) = SROUNDUP_LWORK(LWMIN)
          RWORK( 1 ) = LRWMIN
          IWORK( 1 ) = LIWMIN
 *
@@ -397,7 +389,7 @@
          CALL CLACPY( 'A', N, N, WORK( INDWK2 ), N, Z, LDZ )
       END IF
 *
-      WORK( 1 ) = LWMIN
+      WORK( 1 ) = SROUNDUP_LWORK(LWMIN)
       RWORK( 1 ) = LRWMIN
       IWORK( 1 ) = LIWMIN
       RETURN

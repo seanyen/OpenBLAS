@@ -39,6 +39,24 @@ typedef unsigned long BLASULONG;
 typedef uint16_t bfloat16;
 #endif
 
+#if defined(__GNUC__) && (__GNUC__ > 12)
+#if defined(OPENBLAS_ARCH_POWER) || defined(OPENBLAS_ARCH_LOONGARCH64)
+typedef bfloat16 hfloat16;
+#else
+#define __STDC_WANT_IEC_60559_TYPES_EXT__
+#include <float.h>
+#ifdef FLT16_MAX
+typedef _Float16 hfloat16;
+#else
+#include <stdint.h>
+typedef uint16_t hfloat16;
+#endif
+#endif
+#else
+#include <stdint.h>
+typedef uint16_t hfloat16;
+#endif
+
 #ifdef OPENBLAS_USE64BITINT
 typedef BLASLONG blasint;
 #else
@@ -99,5 +117,8 @@ typedef int blasint;
 
 /* Inclusion of Linux-specific header is needed for definition of cpu_set_t. */
 #ifdef OPENBLAS_OS_LINUX
+#ifndef _GNU_SOURCE
+ #define _GNU_SOURCE
+#endif
 #include <sched.h>
 #endif

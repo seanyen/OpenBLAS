@@ -215,7 +215,8 @@
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
-*>          The dimension of the array WORK.
+*>          The dimension of the array WORK. LWORK >= MAX(1,2*N)
+*>          For good performance, LWORK must generally be larger.
 *>
 *>          If LWORK = -1, then a workspace query is assumed; the routine
 *>          only calculates the optimal size of the WORK array, returns
@@ -243,7 +244,7 @@
 *>                The QZ iteration failed.  (A,B) are not in Schur
 *>                form, but ALPHA(j) and BETA(j) should be correct for
 *>                j=INFO+1,...,N.
-*>          > N:  =N+1: other than QZ iteration failed in ZHGEQZ
+*>          > N:  =N+1: other than QZ iteration failed in ZLAQZ0
 *>                =N+2: after reordering, roundoff changed values of
 *>                      some complex eigenvalues so that leading
 *>                      eigenvalues in the Generalized Schur form no
@@ -260,19 +261,16 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date January 2015
-*
-*> \ingroup complex16GEeigen
+*> \ingroup gges3
 *
 *  =====================================================================
       SUBROUTINE ZGGES3( JOBVSL, JOBVSR, SORT, SELCTG, N, A, LDA, B,
      $                   LDB, SDIM, ALPHA, BETA, VSL, LDVSL, VSR, LDVSR,
      $                   WORK, LWORK, RWORK, BWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.6.1) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     January 2015
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBVSL, JOBVSR, SORT
@@ -303,7 +301,8 @@
       LOGICAL            CURSL, ILASCL, ILBSCL, ILVSL, ILVSR, LASTSL,
      $                   LQUERY, WANTST
       INTEGER            I, ICOLS, IERR, IHI, IJOBVL, IJOBVR, ILEFT,
-     $                   ILO, IRIGHT, IROWS, IRWRK, ITAU, IWRK, LWKOPT
+     $                   ILO, IRIGHT, IROWS, IRWRK, ITAU, IWRK, LWKOPT,
+     $                   LWKMIN
       DOUBLE PRECISION   ANRM, ANRMTO, BIGNUM, BNRM, BNRMTO, EPS, PVSL,
      $                   PVSR, SMLNUM
 *     ..
@@ -312,9 +311,8 @@
       DOUBLE PRECISION   DIF( 2 )
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           DLABAD, XERBLA, ZGEQRF, ZGGBAK, ZGGBAL, ZGGHD3,
-     $                   ZHGEQZ, ZLACPY, ZLASCL, ZLASET, ZTGSEN, ZUNGQR,
-     $                   ZUNMQR
+      EXTERNAL           XERBLA, ZGEQRF, ZGGBAK, ZGGBAL, ZGGHD3, ZLAQZ0,
+     $                   ZLACPY, ZLASCL, ZLASET, ZTGSEN, ZUNGQR, ZUNMQR
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
@@ -356,6 +354,8 @@
 *
       INFO = 0
       LQUERY = ( LWORK.EQ.-1 )
+      LWKMIN = MAX( 1, 2*N )
+*
       IF( IJOBVL.LE.0 ) THEN
          INFO = -1
       ELSE IF( IJOBVR.LE.0 ) THEN
@@ -372,7 +372,7 @@
          INFO = -14
       ELSE IF( LDVSR.LT.1 .OR. ( ILVSR .AND. LDVSR.LT.N ) ) THEN
          INFO = -16
-      ELSE IF( LWORK.LT.MAX( 1, 2*N ) .AND. .NOT.LQUERY ) THEN
+      ELSE IF( LWORK.LT.LWKMIN .AND. .NOT.LQUERY ) THEN
          INFO = -18
       END IF
 *
@@ -380,28 +380,32 @@
 *
       IF( INFO.EQ.0 ) THEN
          CALL ZGEQRF( N, N, B, LDB, WORK, WORK, -1, IERR )
-         LWKOPT = MAX( 1,  N + INT ( WORK( 1 ) ) )
+         LWKOPT = MAX( LWKMIN,  N + INT( WORK( 1 ) ) )
          CALL ZUNMQR( 'L', 'C', N, N, N, B, LDB, WORK, A, LDA, WORK,
      $                -1, IERR )
-         LWKOPT = MAX( LWKOPT, N + INT ( WORK( 1 ) ) )
+         LWKOPT = MAX( LWKOPT, N + INT( WORK( 1 ) ) )
          IF( ILVSL ) THEN
             CALL ZUNGQR( N, N, N, VSL, LDVSL, WORK, WORK, -1, IERR )
             LWKOPT = MAX( LWKOPT, N + INT ( WORK( 1 ) ) )
          END IF
          CALL ZGGHD3( JOBVSL, JOBVSR, N, 1, N, A, LDA, B, LDB, VSL,
      $                LDVSL, VSR, LDVSR, WORK, -1, IERR )
-         LWKOPT = MAX( LWKOPT, N + INT ( WORK( 1 ) ) )
-         CALL ZHGEQZ( 'S', JOBVSL, JOBVSR, N, 1, N, A, LDA, B, LDB,
+         LWKOPT = MAX( LWKOPT, N + INT( WORK( 1 ) ) )
+         CALL ZLAQZ0( 'S', JOBVSL, JOBVSR, N, 1, N, A, LDA, B, LDB,
      $                ALPHA, BETA, VSL, LDVSL, VSR, LDVSR, WORK, -1,
-     $                RWORK, IERR )
-         LWKOPT = MAX( LWKOPT, INT ( WORK( 1 ) ) )
+     $                RWORK, 0, IERR )
+         LWKOPT = MAX( LWKOPT, INT( WORK( 1 ) ) )
          IF( WANTST ) THEN
             CALL ZTGSEN( 0, ILVSL, ILVSR, BWORK, N, A, LDA, B, LDB,
      $                   ALPHA, BETA, VSL, LDVSL, VSR, LDVSR, SDIM,
      $                   PVSL, PVSR, DIF, WORK, -1, IDUM, 1, IERR )
-            LWKOPT = MAX( LWKOPT, INT ( WORK( 1 ) ) )
+            LWKOPT = MAX( LWKOPT, INT( WORK( 1 ) ) )
          END IF
-         WORK( 1 ) = DCMPLX( LWKOPT )
+         IF( N.EQ.0 ) THEN
+            WORK( 1 ) = 1
+         ELSE
+            WORK( 1 ) = DCMPLX( LWKOPT )
+         END IF
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -423,7 +427,6 @@
       EPS = DLAMCH( 'P' )
       SMLNUM = DLAMCH( 'S' )
       BIGNUM = ONE / SMLNUM
-      CALL DLABAD( SMLNUM, BIGNUM )
       SMLNUM = SQRT( SMLNUM ) / EPS
       BIGNUM = ONE / SMLNUM
 *
@@ -507,9 +510,9 @@
 *     Perform QZ algorithm, computing Schur vectors if desired
 *
       IWRK = ITAU
-      CALL ZHGEQZ( 'S', JOBVSL, JOBVSR, N, ILO, IHI, A, LDA, B, LDB,
+      CALL ZLAQZ0( 'S', JOBVSL, JOBVSR, N, ILO, IHI, A, LDA, B, LDB,
      $             ALPHA, BETA, VSL, LDVSL, VSR, LDVSR, WORK( IWRK ),
-     $             LWORK+1-IWRK, RWORK( IRWRK ), IERR )
+     $             LWORK+1-IWRK, RWORK( IRWRK ), 0, IERR )
       IF( IERR.NE.0 ) THEN
          IF( IERR.GT.0 .AND. IERR.LE.N ) THEN
             INFO = IERR

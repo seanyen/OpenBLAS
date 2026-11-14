@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2011-2014, The OpenBLAS Project
+Copyright (c) 2011-2022, The OpenBLAS Project
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -13,9 +13,9 @@ met:
       notice, this list of conditions and the following disclaimer in
       the documentation and/or other materials provided with the
       distribution.
-   3. Neither the name of the OpenBLAS project nor the names of 
-      its contributors may be used to endorse or promote products 
-      derived from this software without specific prior written 
+   3. Neither the name of the OpenBLAS project nor the names of
+      its contributors may be used to endorse or promote products
+      derived from this software without specific prior written
       permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -70,16 +70,81 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#define CPU_UNKNOWN     0
-#define CPU_C910V       1
+#define CPU_GENERIC         0
+#define CPU_C910V           1
+#define CPU_x280            2
+#define CPU_RISCV64_ZVL256B 3
+#define CPU_RISCV64_ZVL128B 4
+#define CPU_U74             5
 
 static char *cpuname[] = {
-  "UNKOWN",
-  "C910V"
+  "RISCV64_GENERIC",
+  "C910V",
+  "x280",
+  "CPU_RISCV64_ZVL256B",
+  "CPU_RISCV64_ZVL128B",
+  "U74"
+};
+
+static char *cpuname_lower[] = {
+  "riscv64_generic",
+  "c910v",
+  "x280",
+  "riscv64_zvl256b",
+  "riscv64_zvl128b",
+  "u74"
 };
 
 int detect(void){
-    return CPU_UNKNOWN;
+#ifdef __linux
+  FILE *infile;
+  char buffer[512],isa_buffer[512],model_buffer[512], uarch_buffer[512];
+  const char* check_c910_str = "T-HEAD C910";
+  const char* check_u74_str = "sifive,u74";
+  char *pmodel = NULL, *pisa = NULL, *puarch = NULL;
+
+  infile = fopen("/proc/cpuinfo", "r");
+  if (!infile)
+    return CPU_GENERIC;
+  while (fgets(buffer, sizeof(buffer), infile)){
+    if(!strncmp(buffer, "model name", 10)){
+      strcpy(model_buffer, buffer);
+      pmodel = strchr(model_buffer, ':');
+      if (pmodel)
+        pmodel++;
+    }
+
+    if(!strncmp(buffer, "uarch", 5)){
+      strcpy(uarch_buffer, buffer);
+      puarch = strchr(uarch_buffer, ':');
+      if (puarch)
+        puarch++;
+    }
+
+    if(!strncmp(buffer, "isa", 3)){
+      strcpy(isa_buffer, buffer);
+      pisa = strchr(isa_buffer, '4');
+      if (pisa)
+        pisa++;
+    }
+  }
+
+  fclose(infile);
+
+  if ((!pmodel && !puarch) || !pisa)
+   return(CPU_GENERIC);
+
+  if (pmodel) {
+    if (strstr(pmodel, check_c910_str) && strchr(pisa, 'v'))
+      return CPU_C910V;
+  } else if (puarch) {
+    if (strstr(puarch, check_u74_str) && !strchr(pisa, 'v'))
+      return CPU_U74;
+  }
+  return CPU_GENERIC;
+#endif
+
+  return CPU_GENERIC;
 }
 
 char *get_corename(void){
@@ -91,6 +156,7 @@ void get_architecture(void){
 }
 
 void get_subarchitecture(void){
+  printf("%s",cpuname[detect()]);
 }
 
 void get_subdirname(void){
@@ -98,7 +164,7 @@ void get_subdirname(void){
 }
 
 void get_cpuconfig(void){
-  printf("#define UNKNOWN\n");
+  printf("#define %s\n", cpuname[detect()]);
   printf("#define L1_DATA_SIZE 65536\n");
   printf("#define L1_DATA_LINESIZE 32\n");
   printf("#define L2_SIZE 512488\n");
@@ -109,5 +175,5 @@ void get_cpuconfig(void){
 }
 
 void get_libname(void){
-  printf("riscv64\n");
+  printf("%s", cpuname_lower[detect()]);
 }

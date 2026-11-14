@@ -335,9 +335,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date April 2012
-*
-*> \ingroup complexGEeigen
+*> \ingroup ggevx
 *
 *> \par Further Details:
 *  =====================
@@ -374,10 +372,9 @@
      $                   LSCALE, RSCALE, ABNRM, BBNRM, RCONDE, RCONDV,
      $                   WORK, LWORK, RWORK, IWORK, BWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     April 2012
 *
 *     .. Scalar Arguments ..
       CHARACTER          BALANC, JOBVL, JOBVR, SENSE
@@ -419,13 +416,13 @@
 *     .. External Subroutines ..
       EXTERNAL           CGEQRF, CGGBAK, CGGBAL, CGGHRD, CHGEQZ, CLACPY,
      $                   CLASCL, CLASET, CTGEVC, CTGSNA, CUNGQR, CUNMQR,
-     $                   SLABAD, SLASCL, XERBLA
+     $                   SLASCL, XERBLA
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      REAL               CLANGE, SLAMCH
-      EXTERNAL           LSAME, ILAENV, CLANGE, SLAMCH
+      REAL               CLANGE, SLAMCH, SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, CLANGE, SLAMCH, SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, AIMAG, MAX, REAL, SQRT
@@ -524,7 +521,7 @@
      $                       N*ILAENV( 1, 'CUNGQR', ' ', N, 1, N, 0 ) )
             END IF
          END IF
-         WORK( 1 ) = MAXWRK
+         WORK( 1 ) = SROUNDUP_LWORK(MAXWRK)
 *
          IF( LWORK.LT.MINWRK .AND. .NOT.LQUERY ) THEN
             INFO = -25
@@ -548,7 +545,6 @@
       EPS = SLAMCH( 'P' )
       SMLNUM = SLAMCH( 'S' )
       BIGNUM = ONE / SMLNUM
-      CALL SLABAD( SMLNUM, BIGNUM )
       SMLNUM = SQRT( SMLNUM ) / EPS
       BIGNUM = ONE / SMLNUM
 *
@@ -710,8 +706,8 @@
 *
          IF( .NOT.WANTSN ) THEN
 *
-*           compute eigenvectors (STGEVC) and estimate condition
-*           numbers (STGSNA). Note that the definition of the condition
+*           compute eigenvectors (CTGEVC) and estimate condition
+*           numbers (CTGSNA). Note that the definition of the condition
 *           number is not invariant under transformation (u,v) to
 *           (Q*u, Z*v), where (u,v) are eigenvectors of the generalized
 *           Schur form (S,T), Q and Z are orthogonal matrices. In order
@@ -796,7 +792,7 @@
       IF( ILBSCL )
      $   CALL CLASCL( 'G', 0, 0, BNRMTO, BNRM, N, 1, BETA, N, IERR )
 *
-      WORK( 1 ) = MAXWRK
+      WORK( 1 ) = SROUNDUP_LWORK(MAXWRK)
       RETURN
 *
 *     End of CGGEVX

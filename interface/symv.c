@@ -51,6 +51,8 @@
 #define ERROR_NAME "SSYMV "
 #endif
 
+OPENBLAS_EXPORT
+
 #ifndef CBLAS
 
 void NAME(char *UPLO, blasint *N, FLOAT  *ALPHA, FLOAT *a, blasint *LDA,
@@ -178,8 +180,16 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, blasint n, FLOAT alpha,
   if (incy < 0 ) y -= (n - 1) * incy;
 
   buffer = (FLOAT *)blas_memory_alloc(1);
+  if (!buffer) {
+    info = -999;
+    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
+    return;
+  }
 
 #ifdef SMP
+  if (n <200)
+	  nthreads=1;
+  else
   nthreads = num_cpu_avail(2);
 
   if (nthreads == 1) {

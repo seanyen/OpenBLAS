@@ -28,7 +28,6 @@
 ******************************************************************************
 * Contents: Native C interface to LAPACK utility function
 * Author: Intel Corporation
-* Created in February, 2010
 *****************************************************************************/
 #include "lapacke_utils.h"
 
@@ -151,7 +150,7 @@ lapack_logical LAPACKE_dtf_nancheck( int matrix_layout, char transr,
         }
     } else {
         /* Non-unit case - just check whole array for NaNs. */
-        len = n*(n+1)/2;
+        len = (lapack_int)(((size_t)n*(n+1))/2);
         return LAPACKE_dge_nancheck( LAPACK_COL_MAJOR, len, 1, a, len );
     }
 }

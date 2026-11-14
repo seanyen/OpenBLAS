@@ -60,7 +60,8 @@ static blasint (*trtrs_parallel[])(blas_arg_t *, BLASLONG *, BLASLONG *, FLOAT *
 };
 #endif
 
-int NAME(char *UPLO, char* TRANS, char* DIAG, blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA,
+OPENBLAS_EXPORT
+void NAME(char *UPLO, char* TRANS, char* DIAG, blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA,
   FLOAT *b, blasint *ldB, blasint *Info){
 
     char uplo_arg = *UPLO;
@@ -95,10 +96,12 @@ int NAME(char *UPLO, char* TRANS, char* DIAG, blasint *N, blasint *NRHS, FLOAT *
   if (trans_arg == 'R') trans = 0;
   if (trans_arg == 'C') trans = 1;
 
+  TOUPPER(uplo_arg);
   uplo = -1;
   if (uplo_arg == 'U') uplo = 0;
   if (uplo_arg == 'L') uplo = 1;
 
+  TOUPPER(diag_arg);
   diag = -1;
   if (diag_arg == 'U') diag = 0;
   if (diag_arg == 'N') diag = 1;
@@ -114,7 +117,7 @@ int NAME(char *UPLO, char* TRANS, char* DIAG, blasint *N, blasint *NRHS, FLOAT *
   if (info != 0) {
     BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME) - 1);
     *Info = - info;
-    return 0;
+    return;
   }
 
   args.alpha = NULL;
@@ -122,12 +125,12 @@ int NAME(char *UPLO, char* TRANS, char* DIAG, blasint *N, blasint *NRHS, FLOAT *
 
   *Info = 0;
 
-  if (args.m == 0) return 0;
+  if (args.m == 0) return;
 
   if (diag) {
     if (AMIN_K(args.m, args.a, args.lda + 1) == ZERO) {
       *Info = IAMIN_K(args.m, args.a, args.lda + 1);
-      return 0;
+      return;
     }
   }
 
@@ -145,7 +148,11 @@ int NAME(char *UPLO, char* TRANS, char* DIAG, blasint *N, blasint *NRHS, FLOAT *
 
 #ifdef SMP
   args.common = NULL;
-  args.nthreads = num_cpu_avail(4);
+  if (args.m < 64) {
+    args.nthreads = 1;
+  } else {
+    args.nthreads = num_cpu_avail(4);
+  }
 
   if (args.nthreads == 1) {
 #endif
@@ -166,6 +173,6 @@ int NAME(char *UPLO, char* TRANS, char* DIAG, blasint *N, blasint *NRHS, FLOAT *
 
   IDEBUG_END;
 
-  return 0;
+  return;
 
 }

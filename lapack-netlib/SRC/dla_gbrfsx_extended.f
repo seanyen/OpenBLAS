@@ -55,7 +55,7 @@
 *> In addition to normwise error bound, the code provides maximum
 *> componentwise error bound if possible. See comments for ERR_BNDS_NORM
 *> and ERR_BNDS_COMP for details of the error bounds. Note that this
-*> subroutine is only resonsible for setting the second fields of
+*> subroutine is only responsible for setting the second fields of
 *> ERR_BNDS_NORM and ERR_BNDS_COMP.
 *> \endverbatim
 *
@@ -369,7 +369,7 @@
 *>          DZ_UB is DOUBLE PRECISION
 *>     Determines when to start considering componentwise convergence.
 *>     Componentwise convergence is only considered after each component
-*>     of the solution Y is stable, which we definte as the relative
+*>     of the solution Y is stable, which we define as the relative
 *>     change in each component being less than DZ_UB. The default value
 *>     is 0.25, requiring the first bit to be stable. See LAWN 165 for
 *>     more details.
@@ -398,8 +398,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2017
-*
 *> \ingroup doubleGBcomputational
 *
 *  =====================================================================
@@ -411,10 +409,9 @@
      $                                Y_TAIL, RCOND, ITHRESH, RTHRESH,
      $                                DZ_UB, IGNORE_CWISE, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2017
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDAB, LDAFB, LDB, LDY, N, KL, KU, NRHS,
@@ -648,7 +645,7 @@
             PREVNORMDX = NORMDX
             PREV_DZ_Z = DZ_Z
 *
-*           Update soluton.
+*           Update solution.
 *
             IF (Y_PREC_STATE .LT. EXTRA_Y) THEN
                CALL DAXPY( N, 1.0D+0, DY, 1, Y(1,J), 1 )
@@ -704,4 +701,7 @@
       END DO
 *
       RETURN
+*
+*     End of DLA_GBRFSX_EXTENDED
+*
       END

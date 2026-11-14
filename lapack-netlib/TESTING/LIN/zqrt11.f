@@ -91,17 +91,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup complex16_lin
 *
 *  =====================================================================
       DOUBLE PRECISION FUNCTION ZQRT11( M, K, A, LDA, TAU, WORK, LWORK )
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            K, LDA, LWORK, M
@@ -161,9 +158,9 @@
       CALL ZUNM2R( 'Left', 'Conjugate transpose', M, M, K, A, LDA, TAU,
      $             WORK, M, WORK( M*M+1 ), INFO )
 *
-      DO 10 J = 1, M
+      DO J = 1, M
          WORK( ( J-1 )*M+J ) = WORK( ( J-1 )*M+J ) - ONE
-   10 CONTINUE
+      END DO
 *
       ZQRT11 = ZLANGE( 'One-norm', M, M, WORK, M, RDUMMY ) /
      $         ( DBLE( M )*DLAMCH( 'Epsilon' ) )

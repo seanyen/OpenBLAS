@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download CGERQ2 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/cgerq2.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/cgerq2.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -98,9 +96,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexGEcomputational
+*> \ingroup gerq2
 *
 *> \par Further Details:
 *  =====================
@@ -122,11 +118,11 @@
 *>
 *  =====================================================================
       SUBROUTINE CGERQ2( M, N, A, LDA, TAU, WORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, M, N
@@ -137,16 +133,11 @@
 *
 *  =====================================================================
 *
-*     .. Parameters ..
-      COMPLEX            ONE
-      PARAMETER          ( ONE = ( 1.0E+0, 0.0E+0 ) )
-*     ..
 *     .. Local Scalars ..
       INTEGER            I, K
-      COMPLEX            ALPHA
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           CLACGV, CLARF, CLARFG, XERBLA
+      EXTERNAL           CLACGV, CLARF1L, CLARFG, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, MIN
@@ -176,16 +167,13 @@
 *        A(m-k+i,1:n-k+i-1)
 *
          CALL CLACGV( N-K+I, A( M-K+I, 1 ), LDA )
-         ALPHA = A( M-K+I, N-K+I )
-         CALL CLARFG( N-K+I, ALPHA, A( M-K+I, 1 ), LDA,
+         CALL CLARFG( N-K+I, A( M-K+I, N-K+I ), A( M-K+I, 1 ), LDA,
      $                TAU( I ) )
 *
 *        Apply H(i) to A(1:m-k+i-1,1:n-k+i) from the right
 *
-         A( M-K+I, N-K+I ) = ONE
-         CALL CLARF( 'Right', M-K+I-1, N-K+I, A( M-K+I, 1 ), LDA,
-     $               TAU( I ), A, LDA, WORK )
-         A( M-K+I, N-K+I ) = ALPHA
+         CALL CLARF1L( 'Right', M-K+I-1, N-K+I, A( M-K+I, 1 ), LDA,
+     $                 TAU( I ), A, LDA, WORK )
          CALL CLACGV( N-K+I-1, A( M-K+I, 1 ), LDA )
    10 CONTINUE
       RETURN

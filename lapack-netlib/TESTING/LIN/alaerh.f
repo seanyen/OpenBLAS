@@ -139,18 +139,16 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup aux_lin
 *
 *  =====================================================================
       SUBROUTINE ALAERH( PATH, SUBNAM, INFO, INFOE, OPTS, M, N, KL, KU,
      $                   N5, IMAT, NFAIL, NERRS, NOUT )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*3        PATH
@@ -801,6 +799,30 @@
      $     SUBNAM(1:LEN_TRIM( SUBNAM )), INFO, M, N, IMAT
          END IF
 *
+      ELSE IF( LSAMEN( 2, P2, 'QK' ) ) THEN
+*
+*        xQK:  truncated QR factorization with pivoting
+*
+         IF( LSAMEN( 7, SUBNAM( 2: 8 ), 'GEQP3RK' )  ) THEN
+            WRITE( NOUT, FMT = 9930 )
+     $     SUBNAM(1:LEN_TRIM( SUBNAM )), INFO, M, N, KL, N5, IMAT
+         ELSE IF( LSAMEN( 5, SUBNAM( 2: 6 ), 'LATMS' ) ) THEN
+            WRITE( NOUT, FMT = 9978 )
+     $     SUBNAM(1:LEN_TRIM( SUBNAM )), INFO, M, N, IMAT
+         END IF
+*
+      ELSE IF( LSAMEN( 2, P2, 'CX' ) ) THEN
+*
+*        xCX:  CX decomposition
+*
+         IF( LSAMEN( 7, SUBNAM( 2: 8 ), 'GECXX' )  ) THEN
+            WRITE( NOUT, FMT = 9930 )
+     $     SUBNAM(1:LEN_TRIM( SUBNAM )), INFO, M, N, KL, N5, IMAT
+         ELSE IF( LSAMEN( 5, SUBNAM( 2: 6 ), 'LATMS' ) ) THEN
+            WRITE( NOUT, FMT = 9978 )
+     $     SUBNAM(1:LEN_TRIM( SUBNAM )), INFO, M, N, IMAT
+         END IF
+*
       ELSE IF( LSAMEN( 2, P2, 'LQ' ) ) THEN
 *
 *        xLQ:  LQ factorization
@@ -1150,6 +1172,11 @@
 *     What we do next
 *
  9949 FORMAT( ' ==> Doing only the condition estimate for this case' )
+*
+*     SUBNAM, INFO, M, N, NX, NB, IMAT
+*
+ 9930 FORMAT( ' *** Error code from ', A, '=', I5, / ' ==> M =', I5,
+     $      ', N =', I5, ', NX =', I5, ', NB =', I4, ', type ', I2 )
 *
       RETURN
 *

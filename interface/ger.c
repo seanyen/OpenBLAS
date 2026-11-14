@@ -66,6 +66,7 @@
 #define GER_THREAD	sger_thread
 #endif
 
+OPENBLAS_EXPORT
 
 #ifndef CBLAS
 
@@ -164,6 +165,11 @@ void CNAME(enum CBLAS_ORDER order,
   if (m == 0 || n == 0) return;
   if (alpha == 0.) return;
 
+  if (incx == 1 && incy == 1 && 1L*m*n <= 2048 *GEMM_MULTITHREAD_THRESHOLD) {
+    GER(m, n, 0, alpha, x, incx, y, incy, a, lda, NULL);
+    return;
+  }  
+
   IDEBUG_START;
 
   FUNCTION_PROFILE_START();
@@ -175,8 +181,10 @@ void CNAME(enum CBLAS_ORDER order,
 
 #ifdef SMPTEST
   // Threshold chosen so that speed-up is > 1 on a Xeon E5-2630
-  if(1L * m * n > 2048L * GEMM_MULTITHREAD_THRESHOLD)
+  if(1L * m * n > 20480L * GEMM_MULTITHREAD_THRESHOLD)
     nthreads = num_cpu_avail(2);
+  else if(1L * m * n > 2048L * GEMM_MULTITHREAD_THRESHOLD)
+	  nthreads = MIN(3,num_cpu_avail(2));
   else
     nthreads = 1;
 

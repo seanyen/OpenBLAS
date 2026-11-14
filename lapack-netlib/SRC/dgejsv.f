@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download DGEJSV + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dgejsv.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dgejsv.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -21,9 +19,9 @@
 *       SUBROUTINE DGEJSV( JOBA, JOBU, JOBV, JOBR, JOBT, JOBP,
 *                          M, N, A, LDA, SVA, U, LDU, V, LDV,
 *                          WORK, LWORK, IWORK, INFO )
+*       IMPLICIT NONE
 *
 *       .. Scalar Arguments ..
-*       IMPLICIT    NONE
 *       INTEGER     INFO, LDA, LDU, LDV, LWORK, M, N
 *       ..
 *       .. Array Arguments ..
@@ -224,7 +222,7 @@
 *>
 *> \param[out] U
 *> \verbatim
-*>          U is DOUBLE PRECISION array, dimension ( LDU, N )
+*>          U is DOUBLE PRECISION array, dimension ( LDU, N ) or ( LDU, M )
 *>          If JOBU = 'U', then U contains on exit the M-by-N matrix of
 *>                         the left singular vectors.
 *>          If JOBU = 'F', then U contains on exit the M-by-M matrix of
@@ -253,7 +251,7 @@
 *>          If JOBV = 'V', 'J' then V contains on exit the N-by-N matrix of
 *>                         the right singular vectors;
 *>          If JOBV = 'W', AND (JOBU = 'U' AND JOBT = 'T' AND M = N),
-*>                         then V is used as workspace if the pprocedure
+*>                         then V is used as workspace if the procedure
 *>                         replaces A with A^t. In that case, [U] is computed
 *>                         in V as right singular vectors of A^t and then
 *>                         copied back to the U array. This 'W' option is just
@@ -271,7 +269,7 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>          WORK is DOUBLE PRECISION array, dimension (LWORK)
+*>          WORK is DOUBLE PRECISION array, dimension (MAX(7,LWORK))
 *>          On exit, if N > 0 .AND. M > 0 (else not referenced),
 *>          WORK(1) = SCALE = WORK(2) / WORK(1) is the scaling factor such
 *>                    that SCALE*SVA(1:N) are the computed singular values
@@ -289,7 +287,7 @@
 *>                    singular values might be lost.
 *>
 *>          If full SVD is needed, the following two condition numbers are
-*>          useful for the analysis of the algorithm. They are provied for
+*>          useful for the analysis of the algorithm. They are provided for
 *>          a developer/implementer who is familiar with the details of
 *>          the method.
 *>
@@ -362,7 +360,7 @@
 *>
 *> \param[out] IWORK
 *> \verbatim
-*>          IWORK is INTEGER array, dimension (M+3*N).
+*>          IWORK is INTEGER array, dimension (MAX(3,M+3*N)).
 *>          On exit,
 *>          IWORK(1) = the numerical rank determined after the initial
 *>                     QR factorization with pivoting. See the descriptions
@@ -391,9 +389,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
-*> \ingroup doubleGEsing
+*> \ingroup gejsv
 *
 *> \par Further Details:
 *  =====================
@@ -475,14 +471,13 @@
       SUBROUTINE DGEJSV( JOBA, JOBU, JOBV, JOBR, JOBT, JOBP,
      $                   M, N, A, LDA, SVA, U, LDU, V, LDV,
      $                   WORK, LWORK, IWORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
-      IMPLICIT    NONE
       INTEGER     INFO, LDA, LDU, LDV, LWORK, M, N
 *     ..
 *     .. Array Arguments ..
@@ -501,7 +496,7 @@
 *     .. Local Scalars ..
       DOUBLE PRECISION AAPP, AAQQ, AATMAX, AATMIN, BIG, BIG1, COND_OK,
      $        CONDR1, CONDR2, ENTRA,  ENTRAT, EPSLN,  MAXPRJ, SCALEM,
-     $        SCONDA, SFMIN,  SMALL,  TEMP1,  USCAL1, USCAL2, XSC
+     $        SCONDA, SFMIN,  SMALL,  TEMP1,  USCAL1, USCAL2, XSC, TBIG
       INTEGER IERR,   N1,     NR,     NUMRANK,        p, q,   WARNING
       LOGICAL ALMORT, DEFR,   ERREST, GOSCAL, JRACC,  KILL,   LSVEC,
      $        L2ABER, L2KILL, L2PERT, L2RANK, L2TRAN,
@@ -517,7 +512,8 @@
       EXTERNAL  IDAMAX, LSAME, DLAMCH, DNRM2
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL  DCOPY,  DGELQF, DGEQP3, DGEQRF, DLACPY, DLASCL,
+      EXTERNAL  DCOPY,  DGELQF, DGEQP3, DGEQRF, DLACPY,
+     $                   DLASCL,
      $          DLASET, DLASSQ, DLASWP, DORGQR, DORMLQ,
      $          DORMQR, DPOCON, DSCAL,  DSWAP,  DTRSM,  XERBLA
 *
@@ -632,7 +628,9 @@
             RETURN
          END IF
          AAQQ = DSQRT(AAQQ)
-         IF ( ( AAPP .LT. (BIG / AAQQ) ) .AND. NOSCAL  ) THEN
+         TBIG = BIG
+         IF( AAQQ.GT.ONE ) TBIG = BIG / AAQQ
+         IF ( ( AAPP .LT. TBIG ) .AND. NOSCAL  ) THEN
             SVA(p)  = AAPP * AAQQ
          ELSE
             NOSCAL  = .FALSE.
@@ -695,15 +693,20 @@
             CALL DLACPY( 'A', M, 1, A, LDA, U, LDU )
 *           computing all M left singular vectors of the M x 1 matrix
             IF ( N1 .NE. N  ) THEN
-               CALL DGEQRF( M, N, U,LDU, WORK, WORK(N+1),LWORK-N,IERR )
-               CALL DORGQR( M,N1,1, U,LDU,WORK,WORK(N+1),LWORK-N,IERR )
+               CALL DGEQRF( M, N, U,LDU, WORK, WORK(N+1),LWORK-N,
+     $                      IERR )
+               CALL DORGQR( M,N1,1, U,LDU,WORK,WORK(N+1),LWORK-N,
+     $                      IERR )
                CALL DCOPY( M, A(1,1), 1, U(1,1), 1 )
             END IF
          END IF
          IF ( RSVEC ) THEN
              V(1,1) = ONE
          END IF
-         IF ( SVA(1) .LT. (BIG*SCALEM) ) THEN
+         TBIG = BIG
+         IF ( SCALEM .EQ. ZERO ) SCALEM = ONE
+         IF ( SCALEM .LT. ONE) TBIG = BIG*SCALEM
+         IF ( SVA(1) .LT. TBIG ) THEN
             SVA(1)  = SVA(1) / SCALEM
             SCALEM  = ONE
          END IF
@@ -932,7 +935,7 @@
 *     (eg speed by replacing global with restricted window pivoting, such
 *     as in SGEQPX from TOMS # 782). Good results will be obtained using
 *     SGEQPX with properly (!) chosen numerical parameters.
-*     Any improvement of DGEQP3 improves overal performance of DGEJSV.
+*     Any improvement of DGEQP3 improves overall performance of DGEJSV.
 *
 *     A * P1 = Q1 * [ R1^t 0]^t:
       DO 1963 p = 1, N
@@ -1118,7 +1121,8 @@
  1949             CONTINUE
  1947          CONTINUE
             ELSE
-               CALL DLASET( 'U', NR-1, NR-1, ZERO, ZERO, A(1,2), LDA )
+               CALL DLASET( 'U', NR-1, NR-1, ZERO, ZERO, A(1,2),
+     $                      LDA )
             END IF
 *
 *           .. and one-sided Jacobi rotations are started on a lower
@@ -1142,7 +1146,8 @@
             DO 1998 p = 1, NR
                CALL DCOPY( N-p+1, A(p,p), LDA, V(p,p), 1 )
  1998       CONTINUE
-            CALL DLASET( 'Upper', NR-1, NR-1, ZERO, ZERO, V(1,2), LDV )
+            CALL DLASET( 'Upper', NR-1, NR-1, ZERO, ZERO, V(1,2),
+     $                   LDV )
 *
             CALL DGESVJ( 'L','U','N', N, NR, V,LDV, SVA, NR, A,LDA,
      $                  WORK, LWORK, INFO )
@@ -1154,25 +1159,32 @@
 *        .. two more QR factorizations ( one QRF is not enough, two require
 *        accumulated product of Jacobi rotations, three are perfect )
 *
-            CALL DLASET( 'Lower', NR-1, NR-1, ZERO, ZERO, A(2,1), LDA )
-            CALL DGELQF( NR, N, A, LDA, WORK, WORK(N+1), LWORK-N, IERR)
+            CALL DLASET( 'Lower', NR-1, NR-1, ZERO, ZERO, A(2,1),
+     $                   LDA )
+            CALL DGELQF( NR, N, A, LDA, WORK, WORK(N+1), LWORK-N,
+     $                   IERR)
             CALL DLACPY( 'Lower', NR, NR, A, LDA, V, LDV )
-            CALL DLASET( 'Upper', NR-1, NR-1, ZERO, ZERO, V(1,2), LDV )
+            CALL DLASET( 'Upper', NR-1, NR-1, ZERO, ZERO, V(1,2),
+     $                   LDV )
             CALL DGEQRF( NR, NR, V, LDV, WORK(N+1), WORK(2*N+1),
      $                   LWORK-2*N, IERR )
             DO 8998 p = 1, NR
                CALL DCOPY( NR-p+1, V(p,p), LDV, V(p,p), 1 )
  8998       CONTINUE
-            CALL DLASET( 'Upper', NR-1, NR-1, ZERO, ZERO, V(1,2), LDV )
+            CALL DLASET( 'Upper', NR-1, NR-1, ZERO, ZERO, V(1,2),
+     $                   LDV )
 *
             CALL DGESVJ( 'Lower', 'U','N', NR, NR, V,LDV, SVA, NR, U,
-     $                  LDU, WORK(N+1), LWORK, INFO )
+     $                  LDU, WORK(N+1), LWORK-N, INFO )
             SCALEM  = WORK(N+1)
             NUMRANK = IDNINT(WORK(N+2))
             IF ( NR .LT. N ) THEN
-               CALL DLASET( 'A',N-NR, NR, ZERO,ZERO, V(NR+1,1),   LDV )
-               CALL DLASET( 'A',NR, N-NR, ZERO,ZERO, V(1,NR+1),   LDV )
-               CALL DLASET( 'A',N-NR,N-NR,ZERO,ONE, V(NR+1,NR+1), LDV )
+               CALL DLASET( 'A',N-NR, NR, ZERO,ZERO, V(NR+1,1),
+     $                      LDV )
+               CALL DLASET( 'A',NR, N-NR, ZERO,ZERO, V(1,NR+1),
+     $                      LDV )
+               CALL DLASET( 'A',N-NR,N-NR,ZERO,ONE, V(NR+1,NR+1),
+     $                      LDV )
             END IF
 *
          CALL DORMLQ( 'Left', 'Transpose', N, N, NR, A, LDA, WORK,
@@ -1216,8 +1228,10 @@
          IF ( NR .LT. M ) THEN
             CALL DLASET( 'A',  M-NR, NR,ZERO, ZERO, U(NR+1,1), LDU )
             IF ( NR .LT. N1 ) THEN
-               CALL DLASET( 'A',NR, N1-NR, ZERO, ZERO, U(1,NR+1), LDU )
-               CALL DLASET( 'A',M-NR,N1-NR,ZERO,ONE,U(NR+1,NR+1), LDU )
+               CALL DLASET( 'A',NR, N1-NR, ZERO, ZERO, U(1,NR+1),
+     $                      LDU )
+               CALL DLASET( 'A',M-NR,N1-NR,ZERO,ONE,U(NR+1,NR+1),
+     $                      LDU )
             END IF
          END IF
 *
@@ -1279,7 +1293,8 @@
  2968             CONTINUE
  2969          CONTINUE
             ELSE
-               CALL DLASET( 'U', NR-1, NR-1, ZERO, ZERO, V(1,2), LDV )
+               CALL DLASET( 'U', NR-1, NR-1, ZERO, ZERO, V(1,2),
+     $                      LDV )
             END IF
 *
 *           Estimate the row scaled condition number of R1
@@ -1389,7 +1404,7 @@
                IF ( CONDR2 .GE. COND_OK ) THEN
 *                 .. save the Householder vectors used for Q3
 *                 (this overwrites the copy of R2, as it will not be
-*                 needed in this branch, but it does not overwritte the
+*                 needed in this branch, but it does not overwrite the
 *                 Huseholder vectors of Q2.).
                   CALL DLACPY( 'U', NR, NR, V, LDV, WORK(2*N+1), N )
 *                 .. and the rest of the information on Q3 is in
@@ -1412,7 +1427,7 @@
             END IF
 *
 *        Second preconditioning finished; continue with Jacobi SVD
-*        The input matrix is lower trinagular.
+*        The input matrix is lower triangular.
 *
 *        Recover the right singular vectors as solution of a well
 *        conditioned triangular matrix equation.
@@ -1435,7 +1450,8 @@
 *                 equation is Q2*V2 = the product of the Jacobi rotations
 *                 used in DGESVJ, premultiplied with the orthogonal matrix
 *                 from the second QR factorization.
-                  CALL DTRSM( 'L','U','N','N', NR,NR,ONE, A,LDA, V,LDV )
+                  CALL DTRSM( 'L','U','N','N', NR,NR,ONE, A,LDA, V,
+     $                        LDV )
                ELSE
 *                 .. R1 is well conditioned, but non-square. Transpose(R2)
 *                 is inverted to get the product of the Jacobi rotations
@@ -1446,7 +1462,8 @@
                   IF ( NR .LT. N ) THEN
                     CALL DLASET('A',N-NR,NR,ZERO,ZERO,V(NR+1,1),LDV)
                     CALL DLASET('A',NR,N-NR,ZERO,ZERO,V(1,NR+1),LDV)
-                    CALL DLASET('A',N-NR,N-NR,ZERO,ONE,V(NR+1,NR+1),LDV)
+                    CALL DLASET('A',N-NR,N-NR,ZERO,ONE,V(NR+1,NR+1),
+     $                           LDV)
                   END IF
                   CALL DORMQR('L','N',N,N,NR,WORK(2*N+1),N,WORK(N+1),
      $                 V,LDV,WORK(2*N+N*NR+NR+1),LWORK-2*N-N*NR-NR,IERR)
@@ -1457,10 +1474,11 @@
 * :)           .. the input matrix A is very likely a relative of
 *              the Kahan matrix :)
 *              The matrix R2 is inverted. The solution of the matrix equation
-*              is Q3^T*V3 = the product of the Jacobi rotations (appplied to
+*              is Q3^T*V3 = the product of the Jacobi rotations (applied to
 *              the lower triangular L3 from the LQ factorization of
 *              R2=L3*Q3), pre-multiplied with the transposed Q3.
-               CALL DGESVJ( 'L', 'U', 'N', NR, NR, V, LDV, SVA, NR, U,
+               CALL DGESVJ( 'L', 'U', 'N', NR, NR, V, LDV, SVA, NR,
+     $                      U,
      $              LDU, WORK(2*N+N*NR+NR+1), LWORK-2*N-N*NR-NR, INFO )
                SCALEM  = WORK(2*N+N*NR+NR+1)
                NUMRANK = IDNINT(WORK(2*N+N*NR+NR+2))
@@ -1468,7 +1486,8 @@
                   CALL DCOPY( NR, V(1,p), 1, U(1,p), 1 )
                   CALL DSCAL( NR, SVA(p),    U(1,p), 1 )
  3870          CONTINUE
-               CALL DTRSM('L','U','N','N',NR,NR,ONE,WORK(2*N+1),N,U,LDU)
+               CALL DTRSM('L','U','N','N',NR,NR,ONE,WORK(2*N+1),N,U,
+     $                     LDU)
 *              .. apply the permutation from the second QR factorization
                DO 873 q = 1, NR
                   DO 872 p = 1, NR
@@ -1481,7 +1500,8 @@
                IF ( NR .LT. N ) THEN
                   CALL DLASET( 'A',N-NR,NR,ZERO,ZERO,V(NR+1,1),LDV )
                   CALL DLASET( 'A',NR,N-NR,ZERO,ZERO,V(1,NR+1),LDV )
-                  CALL DLASET( 'A',N-NR,N-NR,ZERO,ONE,V(NR+1,NR+1),LDV )
+                  CALL DLASET( 'A',N-NR,N-NR,ZERO,ONE,V(NR+1,NR+1),
+     $                         LDV )
                END IF
                CALL DORMQR( 'L','N',N,N,NR,WORK(2*N+1),N,WORK(N+1),
      $              V,LDV,WORK(2*N+N*NR+NR+1),LWORK-2*N-N*NR-NR,IERR )
@@ -1497,14 +1517,16 @@
 *              defense ensures that DGEJSV completes the task.
 *              Compute the full SVD of L3 using DGESVJ with explicit
 *              accumulation of Jacobi rotations.
-               CALL DGESVJ( 'L', 'U', 'V', NR, NR, V, LDV, SVA, NR, U,
+               CALL DGESVJ( 'L', 'U', 'V', NR, NR, V, LDV, SVA, NR,
+     $                      U,
      $              LDU, WORK(2*N+N*NR+NR+1), LWORK-2*N-N*NR-NR, INFO )
                SCALEM  = WORK(2*N+N*NR+NR+1)
                NUMRANK = IDNINT(WORK(2*N+N*NR+NR+2))
                IF ( NR .LT. N ) THEN
                   CALL DLASET( 'A',N-NR,NR,ZERO,ZERO,V(NR+1,1),LDV )
                   CALL DLASET( 'A',NR,N-NR,ZERO,ZERO,V(1,NR+1),LDV )
-                  CALL DLASET( 'A',N-NR,N-NR,ZERO,ONE,V(NR+1,NR+1),LDV )
+                  CALL DLASET( 'A',N-NR,N-NR,ZERO,ONE,V(NR+1,NR+1),
+     $                         LDV )
                END IF
                CALL DORMQR( 'L','N',N,N,NR,WORK(2*N+1),N,WORK(N+1),
      $              V,LDV,WORK(2*N+N*NR+NR+1),LWORK-2*N-N*NR-NR,IERR )
@@ -1542,10 +1564,12 @@
 *           At this moment, V contains the right singular vectors of A.
 *           Next, assemble the left singular vector matrix U (M x N).
             IF ( NR .LT. M ) THEN
-               CALL DLASET( 'A', M-NR, NR, ZERO, ZERO, U(NR+1,1), LDU )
+               CALL DLASET( 'A', M-NR, NR, ZERO, ZERO, U(NR+1,1),
+     $                      LDU )
                IF ( NR .LT. N1 ) THEN
                   CALL DLASET('A',NR,N1-NR,ZERO,ZERO,U(1,NR+1),LDU)
-                  CALL DLASET('A',M-NR,N1-NR,ZERO,ONE,U(NR+1,NR+1),LDU)
+                  CALL DLASET('A',M-NR,N1-NR,ZERO,ONE,U(NR+1,NR+1),
+     $                         LDU)
                END IF
             END IF
 *
@@ -1614,8 +1638,10 @@
             IF ( N .LT. M ) THEN
                CALL DLASET( 'A',  M-N, N, ZERO, ZERO, U(N+1,1), LDU )
                IF ( N .LT. N1 ) THEN
-                  CALL DLASET( 'A',N,  N1-N, ZERO, ZERO,  U(1,N+1),LDU )
-                  CALL DLASET( 'A',M-N,N1-N, ZERO, ONE,U(N+1,N+1),LDU )
+                  CALL DLASET( 'A',N,  N1-N, ZERO, ZERO,  U(1,N+1),
+     $                         LDU )
+                  CALL DLASET( 'A',M-N,N1-N, ZERO, ONE,U(N+1,N+1),
+     $                         LDU )
                END IF
             END IF
             CALL DORMQR( 'Left', 'No Tr', M, N1, N, A, LDA, WORK, U,
@@ -1722,8 +1748,10 @@
          IF ( NR .LT. M ) THEN
             CALL DLASET( 'A',  M-NR, NR, ZERO, ZERO, U(NR+1,1), LDU )
             IF ( NR .LT. N1 ) THEN
-               CALL DLASET( 'A',NR,  N1-NR, ZERO, ZERO,  U(1,NR+1),LDU )
-               CALL DLASET( 'A',M-NR,N1-NR, ZERO, ONE,U(NR+1,NR+1),LDU )
+               CALL DLASET( 'A',NR,  N1-NR, ZERO, ZERO,  U(1,NR+1),
+     $                      LDU )
+               CALL DLASET( 'A',M-NR,N1-NR, ZERO, ONE,U(NR+1,NR+1),
+     $                      LDU )
             END IF
          END IF
 *
@@ -1748,7 +1776,8 @@
 *     Undo scaling, if necessary (and possible)
 *
       IF ( USCAL2 .LE. (BIG/SVA(1))*USCAL1 ) THEN
-         CALL DLASCL( 'G', 0, 0, USCAL1, USCAL2, NR, 1, SVA, N, IERR )
+         CALL DLASCL( 'G', 0, 0, USCAL1, USCAL2, NR, 1, SVA, N,
+     $                IERR )
          USCAL1 = ONE
          USCAL2 = ONE
       END IF

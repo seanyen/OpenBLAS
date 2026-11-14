@@ -5,12 +5,6 @@ endif
 TOPDIR	= ..
 include $(TOPDIR)/Makefile.system
 
-ifeq ($(ARCH), power)
-ifeq ($(C_COMPILER), CLANG)
- override CFLAGS += -fno-integrated-as
-endif
-endif
-
 AVX2OPT = 
 ifeq ($(C_COMPILER), GCC)
 # AVX2 support was added in 4.7.0
@@ -23,17 +17,56 @@ ifeq ($(C_COMPILER), CLANG)
 # Any clang posing as gcc 4.2 should be new enough (3.4 or later)
   GCCVERSIONCHECK := $(GCCVERSIONGT4)$(GCCVERSIONGTEQ4)$(GCCMINORVERSIONGTEQ2)
   ifeq ($(GCCVERSIONCHECK), $(filter $(GCCVERSIONCHECK), 011 110 111))
-   AVX2OPT = -mavx2
+   AVX2OPT = -mavx2 -mfma
   endif
 endif
 ifdef NO_AVX2
  AVX2OPT=
 endif
 
+
 ifdef TARGET_CORE
-ifeq ($(TARGET_CORE), COOPERLAKE)
+ifeq ($(TARGET_CORE), ARMV9SME)
+ override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE) -march=armv9-a+sve2+sme+sme-f64f64
+ ifdef OS_WINDOWS
+ ifeq ($(C_COMPILER), CLANG)
+   override CFLAGS += --aarch64-stack-hazard-size=0
+ endif
+ endif
+endif
+ifeq ($(TARGET_CORE), VORTEXM4)
+  ifeq ($(C_COMPILER), GCC)
+    override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE) -UHAVE_SME -march=armv8.4-a
+  else
+    override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE) -march=armv8.4-a+sme+sme-f64f64
+#   ifneq ($(APPLECLANG),1)
+#     override LDFLAGS += -lclang_rt_builtins-aarch64
+#   endif
+    ifdef OS_WINDOWS
+      ifeq ($(C_COMPILER), CLANG)
+        override CFLAGS += --aarch64-stack-hazard-size=0
+      endif
+    endif
+  endif
+endif
+ifeq ($(TARGET_CORE), SAPPHIRERAPIDS)
  override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE)
- ifeq ($(GCCVERSIONGTEQ10), 1) 
+ ifeq (1, $(filter 1,$(GCCVERSIONGTEQ11) $(CLANGVERSIONGTEQ12)))
+  override CFLAGS += -march=sapphirerapids
+ else 
+  override CFLAGS += -march=skylake-avx512 -mavx512f
+ endif 
+ ifeq ($(OSNAME), CYGWIN_NT)
+  override CFLAGS += -fno-asynchronous-unwind-tables
+ endif
+ ifeq ($(OSNAME), WINNT)
+  ifeq ($(C_COMPILER), GCC)
+   override CFLAGS += -fno-asynchronous-unwind-tables
+  endif
+ endif
+else ifeq ($(TARGET_CORE), COOPERLAKE)
+ override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE)
+ ifeq (1, $(filter 1,$(GCCVERSIONGTEQ10) $(CLANGVERSIONGTEQ9)))
   override CFLAGS += -march=cooperlake
  else 
   override CFLAGS += -march=skylake-avx512 -mavx512f
@@ -58,8 +91,16 @@ else ifeq ($(TARGET_CORE), SKYLAKEX)
  endif
 else ifeq ($(TARGET_CORE), HASWELL)
  override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE) $(AVX2OPT)
+else ifeq ($(TARGET_CORE), ZEN)
+ override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE) $(AVX2OPT)
 else ifeq ($(TARGET_CORE), LOONGSON3R4)
  override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE) $(MSA_FLAGS)
+else ifneq ($(filter NEOVERSEN2 NEOVERSEV1 ARMV8SVE A64FX, $(TARGET_CORE)),)
+ ifeq ($(C_COMPILER), PGI)
+  override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE) -Msve_intrinsics
+ else
+  override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE) -march=armv8.4-a+sve+bf16
+ endif
 else
  override CFLAGS += -DBUILD_KERNEL -DTABLE_NAME=gotoblas_$(TARGET_CORE)
 endif

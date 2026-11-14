@@ -41,12 +41,6 @@
 *> a complex Hermitian band matrix A.  If eigenvectors are desired, it
 *> uses a divide and conquer algorithm.
 *>
-*> The divide and conquer algorithm makes very mild assumptions about
-*> floating point arithmetic. It will work on machines with a guard
-*> digit in add/subtract, or on those binary machines without guard
-*> digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
-*> Cray-2. It could conceivably fail on hexadecimal or decimal machines
-*> without guard digits, but we know of none.
 *> \endverbatim
 *
 *  Arguments:
@@ -207,18 +201,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexOTHEReigen
+*> \ingroup hbevd
 *
 *  =====================================================================
       SUBROUTINE CHBEVD( JOBZ, UPLO, N, KD, AB, LDAB, W, Z, LDZ, WORK,
      $                   LWORK, RWORK, LRWORK, IWORK, LIWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBZ, UPLO
@@ -248,8 +239,8 @@
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      REAL               CLANHB, SLAMCH
-      EXTERNAL           LSAME, CLANHB, SLAMCH
+      REAL               CLANHB, SLAMCH, SROUNDUP_LWORK
+      EXTERNAL           LSAME, CLANHB, SLAMCH, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CGEMM, CHBTRD, CLACPY, CLASCL, CSTEDC, SSCAL,
@@ -297,7 +288,7 @@
       END IF
 *
       IF( INFO.EQ.0 ) THEN
-         WORK( 1 ) = LWMIN
+         WORK( 1 ) = SROUNDUP_LWORK(LWMIN)
          RWORK( 1 ) = LRWMIN
          IWORK( 1 ) = LIWMIN
 *
@@ -323,7 +314,7 @@
      $   RETURN
 *
       IF( N.EQ.1 ) THEN
-         W( 1 ) = AB( 1, 1 )
+         W( 1 ) = REAL( AB( 1, 1 ) )
          IF( WANTZ )
      $      Z( 1, 1 ) = CONE
          RETURN
@@ -391,7 +382,7 @@
          CALL SSCAL( IMAX, ONE / SIGMA, W, 1 )
       END IF
 *
-      WORK( 1 ) = LWMIN
+      WORK( 1 ) = SROUNDUP_LWORK(LWMIN)
       RWORK( 1 ) = LRWMIN
       IWORK( 1 ) = LIWMIN
       RETURN

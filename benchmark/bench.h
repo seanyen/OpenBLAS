@@ -74,10 +74,27 @@ static void *huge_malloc(BLASLONG size){
 
 #endif
 
+/* Benchmarks should allocate with cacheline (often 64 bytes) alignment
+   to avoid unreliable results. This technique, storing the allocated
+   pointer value just before the aligned memory, doesn't require
+   C11's aligned_alloc for compatibility with older compilers. */
+static void *aligned_alloc_cacheline(size_t n)
+{
+  void *p = malloc((size_t)(void *) + n + L1_DATA_LINESIZE - 1);
+  if (p) {
+    void **newp = (void **)
+      (((uintptr_t)p + L1_DATA_LINESIZE) & (uintptr_t)-L1_DATA_LINESIZE);
+    newp[-1] = p;
+    p = newp;
+  }
+  return p;
+}
+#define malloc aligned_alloc_cacheline
+#define free(p) free((p) ? ((void **)(p))[-1] : (p))
+
 #if defined(__WIN32__) || defined(__WIN64__) || !defined(_POSIX_TIMERS)
   struct timeval start, stop;
 #elif defined(__APPLE__)
- mach_timebase_info_data_t info;
  uint64_t start = 0, stop = 0;
 #else
   struct timespec start = { 0, 0 }, stop = { 0, 0 };
@@ -88,8 +105,7 @@ double getsec()
 #if defined(__WIN32__) || defined(__WIN64__) || !defined(_POSIX_TIMERS)
     return (double)(stop.tv_sec - start.tv_sec) + (double)((stop.tv_usec - start.tv_usec)) * 1.e-6;
 #elif defined(__APPLE__)
-    mach_timebase_info(&info);
-    return (double)(((stop - start) * info.numer)/info.denom) * 1.e-9;
+    return (double)(stop - start) * 1.e-9;
 #else
     return (double)(stop.tv_sec - start.tv_sec) + (double)((stop.tv_nsec - start.tv_nsec)) * 1.e-9;
 #endif

@@ -26,216 +26,108 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *****************************************************************************/
 
 #include "common.h"
-#include <math.h>
-#include <float.h>
 
-#if !defined(DOUBLE)
-#define RVV_EFLOAT RVV_E32
-#define RVV_M RVV_M8
-#define FLOAT_V_T float32xm8_t
-#define VLEV_FLOAT vlev_float32xm8
-#define VLSEV_FLOAT vlsev_float32xm8
-#define VFREDMINVS_FLOAT vfredminvs_float32xm8
-#define MASK_T e32xm8_t
-#define VMFLTVF_FLOAT vmfltvf_e32xm8_float32xm8
-#define VFMVVF_FLOAT vfmvvf_float32xm8
-#define VFRSUBVF_MASK_FLOAT vfrsubvf_mask_float32xm8
-#define VFMINVV_FLOAT vfminvv_float32xm8
+#ifdef RISCV64_ZVL256B
+#       define LMUL m2
+#       if defined(DOUBLE)
+#               define ELEN 64
+#               define ABS fabs
+#       else
+#               define ELEN 32
+#               define ABS fabsf
+#       endif
 #else
-#define RVV_EFLOAT RVV_E64
-#define RVV_M RVV_M8
-#define FLOAT_V_T float64xm8_t
-#define VLEV_FLOAT vlev_float64xm8
-#define VLSEV_FLOAT vlsev_float64xm8
-#define VFREDMINVS_FLOAT vfredminvs_float64xm8
-#define MASK_T e64xm8_t
-#define VMFLTVF_FLOAT vmfltvf_e64xm8_float64xm8
-#define VFMVVF_FLOAT vfmvvf_float64xm8
-#define VFRSUBVF_MASK_FLOAT vfrsubvf_mask_float64xm8
-#define VFMINVV_FLOAT vfminvv_float64xm8
+#       define LMUL m8
+#       if defined(DOUBLE)
+#               define ELEN 64
+#               define ABS fabs
+#       else
+#               define ELEN 32
+#               define ABS fabsf
+#       endif
 #endif
+
+#define _
+#define JOIN2_X(x, y) x ## y
+#define JOIN2(x, y) JOIN2_X(x, y)
+#define JOIN(v, w, x, y, z) JOIN2( JOIN2( JOIN2( JOIN2( v, w ), x), y), z)
+
+#define VSETVL          JOIN(RISCV_RVV(vsetvl),    _e,     ELEN,   LMUL,   _)
+#define FLOAT_V_T       JOIN(vfloat,            ELEN,   LMUL,   _t,     _)
+#define FLOAT_V_T_M1    JOIN(vfloat,            ELEN,   m1,     _t,     _)
+#define VLEV_FLOAT      JOIN(RISCV_RVV(vle),       ELEN,   _v_f,   ELEN,   LMUL)
+#define VLSEV_FLOAT     JOIN(RISCV_RVV(vlse),      ELEN,   _v_f,   ELEN,   LMUL)
+#ifdef RISCV_0p10_INTRINSICS
+#define VFREDMINVS_FLOAT(va, vb, gvl) JOIN(RISCV_RVV(vfredmin_vs_f),  ELEN,   LMUL,   _f, JOIN2( ELEN,   m1))(v_res, va, vb, gvl)
+#else
+#define VFREDMINVS_FLOAT JOIN(RISCV_RVV(vfredmin_vs_f),  ELEN,   LMUL,   _f, JOIN2( ELEN,   m1))
+#endif
+#define VFABS_FLOAT     JOIN(RISCV_RVV(vfabs),      _v_f,  ELEN,   LMUL,   _)
+#define VFMVVF_FLOAT    JOIN(RISCV_RVV(vfmv),      _v_f_f  ELEN,   LMUL,   _)
+#define VFMVVF_FLOAT_M1 JOIN(RISCV_RVV(vfmv),      _v_f_f, ELEN,   m1,     _)
 
 FLOAT CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x)
 {
-	BLASLONG i=0, j=0;
-	if (n <= 0 || inc_x <= 0) return(0.0);
-	FLOAT minf=FLT_MAX;
-        unsigned int gvl = 0;
-        FLOAT_V_T v0, v1, v_min;
+        BLASLONG i=0, j=0;
+        BLASLONG ix=0;
+        FLOAT minf=0.0;
+        if (n <= 0 || inc_x <= 0) return(minf);
 
-        MASK_T mask0, mask1;
-	FLOAT zero = 0.0;
+        minf = ABS(*x);
+        x += inc_x;
+        --n;
+        if (n == 0) return(minf);
+
+        unsigned int gvl = 0;
+        FLOAT_V_T v0, v1;
+        FLOAT_V_T_M1 v_res;
+        v_res = VFMVVF_FLOAT_M1(minf, 1);
+
         if(inc_x == 1){
-                gvl = vsetvli(n, RVV_EFLOAT, RVV_M);
+                gvl = VSETVL(n);
                 if(gvl <= n/2){
-                        v_min = VFMVVF_FLOAT(FLT_MAX, gvl);
                         for(i=0,j=0; i<n/(gvl*2); i++){
                                 v0 = VLEV_FLOAT(&x[j], gvl);
-                                mask0 = VMFLTVF_FLOAT(v0, 0, gvl);
-                                //v0 = VFRSUBVF_MASK_FLOAT(v0, 0, mask0, gvl);
-#if defined(DOUBLE)
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e64,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v0)
-        :"v"(mask0), "f"(zero), "r"(gvl)
-        :"v0");
-#else
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e32,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v0)
-        :"v"(mask0), "f"(zero), "r"(gvl)
-        :"v0");
-#endif
-                                v_min = VFMINVV_FLOAT(v_min, v0, gvl);
-
                                 v1 = VLEV_FLOAT(&x[j+gvl], gvl);
-                                mask1 = VMFLTVF_FLOAT(v1, 0, gvl);
-                                //v1 = VFRSUBVF_MASK_FLOAT(v1, 0, mask1, gvl);
-#if defined(DOUBLE)
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e64,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v1)
-        :"v"(mask1), "f"(zero), "r"(gvl)
-        :"v0");
-#else
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e32,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v1)
-        :"v"(mask1), "f"(zero), "r"(gvl)
-        :"v0");
-#endif
-
-                                v_min = VFMINVV_FLOAT(v_min, v1, gvl);
+                                v0 = VFABS_FLOAT(v0, gvl);
+                                v1 = VFABS_FLOAT(v1, gvl);
+                                v_res = VFREDMINVS_FLOAT(v0, v_res, gvl);
+                                v_res = VFREDMINVS_FLOAT(v1, v_res, gvl);
                                 j += gvl*2;
                         }
-                        v1 = VFMVVF_FLOAT(FLT_MAX, gvl);
-                        v0 = VFREDMINVS_FLOAT(v_min, v1, gvl);
-                        minf = v0[0];
                 }
                 for(;j<n;){
-                        gvl = vsetvli(n-j, RVV_EFLOAT, RVV_M);
+                        gvl = VSETVL(n-j);
                         v0 = VLEV_FLOAT(&x[j], gvl);
-                        mask0 = VMFLTVF_FLOAT(v0, 0, gvl);
-                        //v0 = VFRSUBVF_MASK_FLOAT(v0, 0, mask0, gvl);
-#if defined(DOUBLE)
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e64,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v0)
-        :"v"(mask0), "f"(zero), "r"(gvl)
-        :"v0");
-#else
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e32,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v0)
-        :"v"(mask0), "f"(zero), "r"(gvl)
-        :"v0");
-#endif
-                        v1 = VFMVVF_FLOAT(FLT_MAX, gvl);
-                        v0 = VFREDMINVS_FLOAT(v0, v1, gvl);
-                        if(v0[0] < minf)
-                                minf = v0[0];
+                        v0 = VFABS_FLOAT(v0, gvl);
+                        v_res = VFREDMINVS_FLOAT(v0, v_res, gvl);
                         j += gvl;
                 }
         }else{
-                gvl = vsetvli(n, RVV_EFLOAT, RVV_M);
+                gvl = VSETVL(n);
                 BLASLONG stride_x = inc_x * sizeof(FLOAT);
                 if(gvl <= n/2){
-                        BLASLONG idx = 0, inc_xv = inc_x * gvl;
-                        v_min = VFMVVF_FLOAT(FLT_MAX, gvl);
+                        BLASLONG inc_xv = inc_x * gvl;
                         for(i=0,j=0; i<n/(gvl*2); i++){
-                                v0 = VLSEV_FLOAT(&x[idx], stride_x, gvl);
-                                mask0 = VMFLTVF_FLOAT(v0, 0, gvl);
-                                //v0 = VFRSUBVF_MASK_FLOAT(v0, 0, mask0, gvl);
-#if defined(DOUBLE)
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e64,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v0)
-        :"v"(mask0), "f"(zero), "r"(gvl)
-        :"v0");
-#else
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e32,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v0)
-        :"v"(mask0), "f"(zero), "r"(gvl)
-        :"v0");
-#endif
-                                v_min = VFMINVV_FLOAT(v_min, v0, gvl);
-
-                                v1 = VLSEV_FLOAT(&x[idx+inc_xv], stride_x, gvl);
-                                mask1 = VMFLTVF_FLOAT(v1, 0, gvl);
-                                //v1 = VFRSUBVF_MASK_FLOAT(v1, 0, mask1, gvl);
-#if defined(DOUBLE)
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e64,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v1)
-        :"v"(mask1), "f"(zero), "r"(gvl)
-        :"v0");
-#else
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e32,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v1)
-        :"v"(mask1), "f"(zero), "r"(gvl)
-        :"v0");
-#endif
-
-                                v_min = VFMINVV_FLOAT(v_min, v1, gvl);
+                                v0 = VLSEV_FLOAT(&x[ix], stride_x, gvl);
+                                v1 = VLSEV_FLOAT(&x[ix+inc_xv], stride_x, gvl);
+                                v0 = VFABS_FLOAT(v0, gvl);
+                                v1 = VFABS_FLOAT(v1, gvl);
+                                v_res = VFREDMINVS_FLOAT(v0, v_res, gvl);
+                                v_res = VFREDMINVS_FLOAT(v1, v_res, gvl);
                                 j += gvl*2;
-                                idx += inc_xv*2;
+                                ix += inc_xv*2;
                         }
-                        v1 = VFMVVF_FLOAT(FLT_MAX, gvl);
-                        v0 = VFREDMINVS_FLOAT(v_min, v1, gvl);
-                        minf = v0[0];
                 }
                 for(;j<n;){
-                        gvl = vsetvli(n-j, RVV_EFLOAT, RVV_M);
+                        gvl = VSETVL(n-j);
                         v0 = VLSEV_FLOAT(&x[j*inc_x], stride_x, gvl);
-                        mask0 = VMFLTVF_FLOAT(v0, 0, gvl);
-                        //v0 = VFRSUBVF_MASK_FLOAT(v0, 0, mask0, gvl);
-#if defined(DOUBLE)
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e64,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v0)
-        :"v"(mask0), "f"(zero), "r"(gvl)
-        :"v0");
-#else
-asm volatile(
-        "vor.vv     v0, %1, %1\n\t"
-        "vsetvli    x0, %3, e32,m8 \n\t"
-        "vfrsub.vf  %0, %0, %2, v0.t \n\t"
-        :"+v"(v0)
-        :"v"(mask0), "f"(zero), "r"(gvl)
-        :"v0");
-#endif
-                        v1 = VFMVVF_FLOAT(FLT_MAX, gvl);
-                        v0 = VFREDMINVS_FLOAT(v0, v1, gvl);
-                        if(v0[0] < minf)
-                                minf = v0[0];
+                        v0 = VFABS_FLOAT(v0, gvl);
+                        v_res = VFREDMINVS_FLOAT(v0, v_res, gvl);
                         j += gvl;
                 }
         }
-	return(minf);
+
+        minf = EXTRACT_FLOAT(v_res);
+        return(minf);
 }
-
-

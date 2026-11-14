@@ -21,10 +21,10 @@
 *>
 *> \verbatim
 *>
-*> DERRST tests the error exits for DSYTRD, DORGTR, DORMTR, DSPTRD,
-*> DOPGTR, DOPMTR, DSTEQR, SSTERF, SSTEBZ, SSTEIN, DPTEQR, DSBTRD,
-*> DSYEV, SSYEVX, SSYEVD, DSBEV, SSBEVX, SSBEVD,
-*> DSPEV, SSPEVX, SSPEVD, DSTEV, SSTEVX, SSTEVD, and SSTEDC.
+*> DERRST tests the error exits for DSYTRD, DSYTD2, DORGTR, DORMTR, DSPTRD,
+*> DOPGTR, DOPMTR, DSTEQR, DSTERF, DSTEBZ, DSTEIN, DPTEQR, DSBTRD,
+*> DSYEV, DSYEVX, DSYEVD, DSBEV, DSBEVX, DSBEVD,
+*> DSPEV, DSPEVX, DSPEVD, DSTEV, DSTEVX, DSTEVD, and DSTEDC.
 *> DSYEVD_2STAGE, DSYEVR_2STAGE, DSYEVX_2STAGE,
 *> DSYEV_2STAGE, DSBEV_2STAGE, DSBEVD_2STAGE,
 *> DSBEVX_2STAGE, DSYTRD_2STAGE, DSYTRD_SY2SB,
@@ -54,17 +54,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup double_eig
 *
 *  =====================================================================
       SUBROUTINE DERRST( PATH, NUNIT )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*3        PATH
@@ -88,6 +86,7 @@
      $                   E( NMAX ), Q( NMAX, NMAX ), R( NMAX ),
      $                   TAU( NMAX ), W( LW ), X( NMAX ),
      $                   Z( NMAX, NMAX )
+      DOUBLE PRECISION   RINF, RZERO
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAMEN
@@ -98,7 +97,7 @@
      $                   DSBEV, DSBEVD, DSBEVX, DSBTRD, DSPEV, DSPEVD,
      $                   DSPEVX, DSPTRD, DSTEBZ, DSTEDC, DSTEIN, DSTEQR,
      $                   DSTERF, DSTEV, DSTEVD, DSTEVR, DSTEVX, DSYEV,
-     $                   DSYEVD, DSYEVR, DSYEVX, DSYTRD,
+     $                   DSYEVD, DSYEVR, DSYEVX, DSYTRD, DSYTD2,
      $                   DSYEVD_2STAGE, DSYEVR_2STAGE, DSYEVX_2STAGE,
      $                   DSYEV_2STAGE, DSBEV_2STAGE, DSBEVD_2STAGE,
      $                   DSBEVX_2STAGE, DSYTRD_2STAGE, DSYTRD_SY2SB,
@@ -159,6 +158,20 @@
          CALL DSYTRD( 'U', 0, A, 1, D, E, TAU, W, 0, INFO )
          CALL CHKXER( 'DSYTRD', INFOT, NOUT, LERR, OK )
          NT = NT + 4
+*
+*        DSYTD2
+*
+         SRNAMT = 'DSYTD2'
+         INFOT = 1
+         CALL DSYTD2( '/', 0, A, 1, D, E, TAU, INFO )
+         CALL CHKXER( 'DSYTD2', INFOT, NOUT, LERR, OK )
+         INFOT = 2
+         CALL DSYTD2( 'U', -1, A, 1, D, E, TAU, INFO )
+         CALL CHKXER( 'DSYTD2', INFOT, NOUT, LERR, OK )
+         INFOT = 4
+         CALL DSYTD2( 'U', 2, A, 1, D, E, TAU, INFO )
+         CALL CHKXER( 'DSYTD2', INFOT, NOUT, LERR, OK )
+         NT = NT + 3
 *
 *        DSYTRD_2STAGE
 *
@@ -426,6 +439,49 @@
          CALL DSTEIN( 2, D, E, 0, X, I1, I2, Z, 1, W, IW, I3, INFO )
          CALL CHKXER( 'DSTEIN', INFOT, NOUT, LERR, OK )
          NT = NT + 4
+*
+*        A matrix that holds an infinity must come back from the
+*        drivers that scale it, instead of reaching XERBLA with a
+*        scale factor of zero.
+*
+         RZERO = 0.0D0
+         RINF = 1.0D0 / RZERO
+         DO 50 J = 1, NMAX
+            D( J ) = DBLE( J )
+            E( J ) = 1.0D0 / DBLE( J+1 )
+            DO 40 I = 1, NMAX
+               A( I, J ) = RZERO
+   40       CONTINUE
+            A( J, J ) = D( J )
+   50    CONTINUE
+         D( 1 ) = RINF
+         A( 1, 1 ) = RINF
+         E( NMAX ) = RZERO
+         A( 1, 2 ) = E( 1 )
+         A( 2, 3 ) = E( 2 )
+         SRNAMT = 'DSTEVX'
+         INFOT = 0
+         LERR = .FALSE.
+         CALL DSTEVX( 'V', 'V', NMAX, D, E, RZERO, 1.0D0, 1, NMAX,
+     $                RZERO, M, X, Z, NMAX, W, IW, I3, INFO )
+         IF( LERR ) THEN
+            WRITE( NOUT, FMT = 9997 )'DSTEVX'
+            OK = .FALSE.
+         END IF
+         D( 1 ) = RINF
+         E( 1 ) = 1.0D0 / DBLE( 2 )
+         E( 2 ) = 1.0D0 / DBLE( 3 )
+         E( NMAX ) = RZERO
+         SRNAMT = 'DSYEVX'
+         INFOT = 0
+         LERR = .FALSE.
+         CALL DSYEVX( 'V', 'V', 'U', NMAX, A, NMAX, RZERO, 1.0D0, 1,
+     $                NMAX, RZERO, M, X, Z, NMAX, W, LW, IW, I3, INFO )
+         IF( LERR ) THEN
+            WRITE( NOUT, FMT = 9997 )'DSYEVX'
+            OK = .FALSE.
+         END IF
+         NT = NT + 2
 *
 *        DSTEQR
 *
@@ -724,12 +780,12 @@
          CALL CHKXER( 'DSYEVR', INFOT, NOUT, LERR, OK )
          INFOT = 18
          CALL DSYEVR( 'V', 'I', 'U', 1, A, 1, 0.0D0, 0.0D0, 1, 1, 0.0D0,
-     $                M, R, Z, 1, IW, Q, 26*N-1, IW( 2*N+1 ), 10*N,
+     $                M, R, Z, 1, IW, Q, 0, IW( 2*N+1 ), 10*N,
      $                INFO )
          CALL CHKXER( 'DSYEVR', INFOT, NOUT, LERR, OK )
          INFOT = 20
          CALL DSYEVR( 'V', 'I', 'U', 1, A, 1, 0.0D0, 0.0D0, 1, 1, 0.0D0,
-     $                M, R, Z, 1, IW, Q, 26*N, IW( 2*N+1 ), 10*N-1,
+     $                M, R, Z, 1, IW, Q, 26*N, IW( 2*N+1 ), 0,
      $                INFO )
          CALL CHKXER( 'DSYEVR', INFOT, NOUT, LERR, OK )
          NT = NT + 11
@@ -1415,6 +1471,8 @@
      $      ' (', I3, ' tests done)' )
  9998 FORMAT( ' *** ', A3, ' routines failed the tests of the error ',
      $      'exits ***' )
+ 9997 FORMAT( ' *** ', A6, ' called XERBLA for a matrix with an ',
+     $      'infinity ***' )
 *
       RETURN
 *

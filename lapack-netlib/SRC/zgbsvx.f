@@ -322,7 +322,7 @@
 *>
 *> \param[out] RWORK
 *> \verbatim
-*>          RWORK is DOUBLE PRECISION array, dimension (N)
+*>          RWORK is DOUBLE PRECISION array, dimension (MAX(1,N))
 *>          On exit, RWORK(1) contains the reciprocal pivot growth
 *>          factor norm(A)/norm(U). The "max absolute element" norm is
 *>          used. If RWORK(1) is much less than 1, then the stability
@@ -361,8 +361,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date April 2012
-*
 *> \ingroup complex16GBsolve
 *
 *  =====================================================================
@@ -370,10 +368,9 @@
      $                   LDAFB, IPIV, EQUED, R, C, B, LDB, X, LDX,
      $                   RCOND, FERR, BERR, WORK, RWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     April 2012
 *
 *     .. Scalar Arguments ..
       CHARACTER          EQUED, FACT, TRANS

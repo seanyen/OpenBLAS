@@ -1,0 +1,31 @@
+pipeline {
+    agent none
+    stages {
+        stage('GCC build') {
+            agent {
+                docker {
+                    image 'osuosl/ubuntu-ppc64le:18.04' // gcc 7, gfortran 7
+                }
+            }
+            steps {
+                checkout scm
+                sh 'sudo apt update'
+                sh 'sudo apt install gfortran -y'
+                sh 'make MAKE_NB_JOBS=2 clean && make MAKE_NB_JOBS=2'
+            }
+        }
+        stage('Clang build') {
+            agent {
+                docker {
+                    image 'osuosl/ubuntu-ppc64le:20.04' // clang 10, gfortran 9
+                }
+            }
+            steps {
+                checkout scm
+                sh 'sudo apt update'
+                sh 'sudo apt install -y clang gfortran'
+                sh 'make MAKE_NB_JOBS=2 clean && make CC=clang MAKE_NB_JOBS=2'
+            }
+        }
+    }
+}

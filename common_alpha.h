@@ -43,9 +43,10 @@
 
 #define MB  asm("mb")
 #define WMB asm("wmb")
-#define RMB asm("rmb")
+#define RMB asm("mb")
 
-static void __inline blas_lock(unsigned long *address){
+#ifndef BLAS_LOCK_DEFINED
+static __inline void blas_lock(unsigned long *address){
 #ifndef __DECC
   unsigned long tmp1, tmp2;
   asm volatile(
@@ -78,6 +79,7 @@ static void __inline blas_lock(unsigned long *address){
 #endif
 }
 #define BLAS_LOCK_DEFINED
+#endif
 
 static __inline unsigned int rpcc(void){
 
@@ -134,6 +136,16 @@ static __inline int blas_quickdivide(unsigned int x, unsigned int y){
 #endif
 
 #define PROLOGUE \
+	.arch ev6; \
+	.set noat; \
+	.set noreorder; \
+.text; \
+	.align 5; \
+	.globl REALNAME; \
+	.ent REALNAME; \
+REALNAME:
+
+#define PROLOGUE_EXPORT \
 	.arch ev6; \
 	.set noat; \
 	.set noreorder; \

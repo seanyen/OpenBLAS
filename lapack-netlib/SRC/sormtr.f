@@ -164,18 +164,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realOTHERcomputational
+*> \ingroup unmtr
 *
 *  =====================================================================
       SUBROUTINE SORMTR( SIDE, UPLO, TRANS, M, N, A, LDA, TAU, C, LDC,
      $                   WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          SIDE, TRANS, UPLO
@@ -195,7 +192,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           ILAENV, LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, LSAME, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SORMQL, SORMQR, XERBLA
@@ -216,10 +214,10 @@
 *
       IF( LEFT ) THEN
          NQ = M
-         NW = N
+         NW = MAX( 1, N )
       ELSE
          NQ = N
-         NW = M
+         NW = MAX( 1, M )
       END IF
       IF( .NOT.LEFT .AND. .NOT.LSAME( SIDE, 'R' ) ) THEN
          INFO = -1
@@ -236,7 +234,7 @@
          INFO = -7
       ELSE IF( LDC.LT.MAX( 1, M ) ) THEN
          INFO = -10
-      ELSE IF( LWORK.LT.MAX( 1, NW ) .AND. .NOT.LQUERY ) THEN
+      ELSE IF( LWORK.LT.NW .AND. .NOT.LQUERY ) THEN
          INFO = -12
       END IF
 *
@@ -258,8 +256,8 @@
      $                      -1 )
             END IF
          END IF
-         LWKOPT = MAX( 1, NW )*NB
-         WORK( 1 ) = LWKOPT
+         LWKOPT = NW*NB
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -304,7 +302,7 @@
          CALL SORMQR( SIDE, TRANS, MI, NI, NQ-1, A( 2, 1 ), LDA, TAU,
      $                C( I1, I2 ), LDC, WORK, LWORK, IINFO )
       END IF
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       RETURN
 *
 *     End of SORMTR

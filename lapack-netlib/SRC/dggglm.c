@@ -1,0 +1,740 @@
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <complex.h>
+#ifdef complex
+#undef complex
+#endif
+#ifdef I
+#undef I
+#endif
+
+#if defined(_WIN64)
+typedef long long BLASLONG;
+typedef unsigned long long BLASULONG;
+#else
+typedef long BLASLONG;
+typedef unsigned long BLASULONG;
+#endif
+
+#ifdef LAPACK_ILP64
+typedef BLASLONG blasint;
+#if defined(_WIN64)
+#define blasabs(x) llabs(x)
+#else
+#define blasabs(x) labs(x)
+#endif
+#else
+typedef int blasint;
+#define blasabs(x) abs(x)
+#endif
+
+typedef blasint integer;
+
+typedef unsigned int uinteger;
+typedef char *address;
+typedef short int shortint;
+typedef float real;
+typedef double doublereal;
+typedef struct { real r, i; } complex;
+typedef struct { doublereal r, i; } doublecomplex;
+typedef blasint logical;
+
+typedef char logical1;
+typedef char integer1;
+
+#define TRUE_ (1)
+#define FALSE_ (0)
+
+/* Extern is for use with -E */
+#ifndef Extern
+#define Extern extern
+#endif
+
+/* I/O stuff */
+
+typedef int flag;
+typedef int ftnlen;
+typedef int ftnint;
+
+/*external read, write*/
+typedef struct
+{	flag cierr;
+	ftnint ciunit;
+	flag ciend;
+	char *cifmt;
+	ftnint cirec;
+} cilist;
+
+/*internal read, write*/
+typedef struct
+{	flag icierr;
+	char *iciunit;
+	flag iciend;
+	char *icifmt;
+	ftnint icirlen;
+	ftnint icirnum;
+} icilist;
+
+/*open*/
+typedef struct
+{	flag oerr;
+	ftnint ounit;
+	char *ofnm;
+	ftnlen ofnmlen;
+	char *osta;
+	char *oacc;
+	char *ofm;
+	ftnint orl;
+	char *oblnk;
+} olist;
+
+/*close*/
+typedef struct
+{	flag cerr;
+	ftnint cunit;
+	char *csta;
+} cllist;
+
+/*rewind, backspace, endfile*/
+typedef struct
+{	flag aerr;
+	ftnint aunit;
+} alist;
+
+/* inquire */
+typedef struct
+{	flag inerr;
+	ftnint inunit;
+	char *infile;
+	ftnlen infilen;
+	ftnint	*inex;	/*parameters in standard's order*/
+	ftnint	*inopen;
+	ftnint	*innum;
+	ftnint	*innamed;
+	char	*inname;
+	ftnlen	innamlen;
+	char	*inacc;
+	ftnlen	inacclen;
+	char	*inseq;
+	ftnlen	inseqlen;
+	char 	*indir;
+	ftnlen	indirlen;
+	char	*infmt;
+	ftnlen	infmtlen;
+	char	*inform;
+	ftnint	informlen;
+	char	*inunf;
+	ftnlen	inunflen;
+	ftnint	*inrecl;
+	ftnint	*innrec;
+	char	*inblank;
+	ftnlen	inblanklen;
+} inlist;
+
+#define VOID void
+
+union Multitype {	/* for multiple entry points */
+	integer1 g;
+	shortint h;
+	integer i;
+	/* longint j; */
+	real r;
+	doublereal d;
+	complex c;
+	doublecomplex z;
+	};
+
+typedef union Multitype Multitype;
+
+struct Vardesc {	/* for Namelist */
+	char *name;
+	char *addr;
+	ftnlen *dims;
+	int  type;
+	};
+typedef struct Vardesc Vardesc;
+
+struct Namelist {
+	char *name;
+	Vardesc **vars;
+	int nvars;
+	};
+typedef struct Namelist Namelist;
+
+#define abs(x) ((x) >= 0 ? (x) : -(x))
+#define dabs(x) (fabs(x))
+#define f2cmin(a,b) ((a) <= (b) ? (a) : (b))
+#define f2cmax(a,b) ((a) >= (b) ? (a) : (b))
+#define dmin(a,b) (f2cmin(a,b))
+#define dmax(a,b) (f2cmax(a,b))
+#define bit_test(a,b)	((a) >> (b) & 1)
+#define bit_clear(a,b)	((a) & ~((uinteger)1 << (b)))
+#define bit_set(a,b)	((a) |  ((uinteger)1 << (b)))
+
+#define abort_() { sig_die("Fortran abort routine called", 1); }
+#define d_abs(x) (fabs(*(x)))
+#define d_acos(x) (acos(*(x)))
+#define d_asin(x) (asin(*(x)))
+#define d_atan(x) (atan(*(x)))
+#define d_atn2(x, y) (atan2(*(x),*(y)))
+#define d_cos(x) (cos(*(x)))
+#define d_cosh(x) (cosh(*(x)))
+#define d_dim(__a, __b) ( *(__a) > *(__b) ? *(__a) - *(__b) : 0.0 )
+#define d_exp(x) (exp(*(x)))
+#define d_int(__x) (*(__x)>0 ? floor(*(__x)) : -floor(- *(__x)))
+#define r_int(__x) (*(__x)>0 ? floor(*(__x)) : -floor(- *(__x)))
+#define d_lg10(x) ( 0.43429448190325182765 * log(*(x)) )
+#define r_lg10(x) ( 0.43429448190325182765 * log(*(x)) )
+#define d_log(x) (log(*(x)))
+#define d_mod(x, y) (fmod(*(x), *(y)))
+#define u_nint(__x) ((__x)>=0 ? floor((__x) + .5) : -floor(.5 - (__x)))
+#define d_nint(x) u_nint(*(x))
+#define u_sign(__a,__b) ((__b) >= 0 ? ((__a) >= 0 ? (__a) : -(__a)) : -((__a) >= 0 ? (__a) : -(__a)))
+#define d_sign(a,b) u_sign(*(a),*(b))
+#define r_sign(a,b) u_sign(*(a),*(b))
+#define d_sin(x) (sin(*(x)))
+#define d_sinh(x) (sinh(*(x)))
+#define d_sqrt(x) (sqrt(*(x)))
+#define d_tan(x) (tan(*(x)))
+#define d_tanh(x) (tanh(*(x)))
+#define i_abs(x) abs(*(x))
+#define i_dnnt(x) ((integer)u_nint(*(x)))
+#define i_len(s, n) (n)
+#define i_nint(x) ((integer)u_nint(*(x)))
+#define i_sign(a,b) ((integer)u_sign((integer)*(a),(integer)*(b)))
+#define pow_dd(ap, bp) ( pow(*(ap), *(bp)))
+#define pow_si(B,E) spow_ui(*(B),*(E))
+#define pow_ri(B,E) spow_ui(*(B),*(E))
+#define pow_di(B,E) dpow_ui(*(B),*(E))
+#define s_cat(lpp, rpp, rnp, np, llp) { 	ftnlen i, nc, ll; char *f__rp, *lp; 	ll = (llp); lp = (lpp); 	for(i=0; i < (int)*(np); ++i) {         	nc = ll; 	        if((rnp)[i] < nc) nc = (rnp)[i]; 	        ll -= nc;         	f__rp = (rpp)[i]; 	        while(--nc >= 0) *lp++ = *(f__rp)++;         } 	while(--ll >= 0) *lp++ = ' '; }
+#define s_cmp(a,b,c,d) ((integer)strncmp((a),(b),f2cmin((c),(d))))
+#define s_copy(A,B,C,D) { int __i,__m; for (__i=0, __m=f2cmin((C),(D)); __i<__m && (B)[__i] != 0; ++__i) (A)[__i] = (B)[__i]; }
+#define sig_die(s, kill) { exit(1); }
+#define s_stop(s, n) {exit(0);}
+#define myexit_() break;
+#define mycycle() continue;
+#define myceiling(w) {ceil(w)}
+#define myexp_(w) my_expfunc(w)
+static int my_expfunc(double *x) {int e; (void)frexp(*x,&e); return e;}
+static double myscale_(double *w, integer *i) {double myscale=*w*pow(2.,*(double*)i); return(myscale);}
+static double myhuge_(double *w) {return(HUGE_VAL);}
+
+
+//#define mymaxloc_(w,s,e,n) {if (sizeof(*(w)) == sizeof(double)) dmaxloc_((w),*(s),*(e),n); else dmaxloc_((w),*(s),*(e),n);}
+#define mymaxloc(w,s,e,n) {dmaxloc_(w,*(s),*(e),n)}
+
+/*  -- translated by f2c (version 20000121).
+   You must link the resulting object file with the libraries:
+	-lf2c -lm   (in that order)
+*/
+
+
+/* Table of constant values */
+
+static integer c__1 = 1;
+static integer c_n1 = -1;
+static doublereal c_b24 = 0.;
+static integer c__0 = 0;
+static doublereal c_b28 = 1.;
+static doublereal c_b53 = -1.;
+
+/* > \brief \b DGGGLM */
+
+/*  =========== DOCUMENTATION =========== */
+
+/* Online html documentation available at */
+/*            http://www.netlib.org/lapack/explore-html/ */
+
+/* > Download DGGGLM + dependencies */
+/* > <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dggglm.
+f"> */
+/* > [TGZ]</a> */
+/* > <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dggglm.
+f"> */
+/* > [ZIP]</a> */
+/* > <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dggglm.
+f"> */
+/* > [TXT]</a> */
+
+/*  Definition: */
+/*  =========== */
+
+/*       SUBROUTINE DGGGLM( N, M, P, A, LDA, B, LDB, D, X, Y, WORK, LWORK, */
+/*                          INFO ) */
+
+/*       INTEGER            INFO, LDA, LDB, LWORK, M, N, P */
+/*       DOUBLE PRECISION   A( LDA, * ), B( LDB, * ), D( * ), WORK( * ), */
+/*      $                   X( * ), Y( * ) */
+
+
+/* > \par Purpose: */
+/*  ============= */
+/* > */
+/* > \verbatim */
+/* > */
+/* > DGGGLM solves a general Gauss-Markov linear model (GLM) problem: */
+/* > */
+/* >         minimize || y ||_2   subject to   d = A*x + B*y */
+/* >             x */
+/* > */
+/* > where A is an N-by-M matrix, B is an N-by-P matrix, and d is a */
+/* > given N-vector. It is assumed that M <= N <= M+P, and */
+/* > */
+/* >            rank(A) = M    and    rank( A B ) = N. */
+/* > */
+/* > Under these assumptions, the constrained equation is always */
+/* > consistent, and there is a unique solution x and a minimal 2-norm */
+/* > solution y, which is obtained using a generalized QR factorization */
+/* > of the matrices (A, B) given by */
+/* > */
+/* >    A = Q*(R),   B = Q*T*Z. */
+/* >          (0) */
+/* > */
+/* > In particular, if matrix B is square nonsingular, then the problem */
+/* > GLM is equivalent to the following weighted linear least squares */
+/* > problem */
+/* > */
+/* >              minimize || inv(B)*(d-A*x) ||_2 */
+/* >                  x */
+/* > */
+/* > where inv(B) denotes the inverse of B. */
+/* > */
+/* > Callers of this subroutine should note that the singularity/rank-deficiency checks */
+/* > implemented in this subroutine are rudimentary. The DTRTRS subroutine called by this */
+/* > subroutine only signals a failure due to singularity if the problem is exactly singular. */
+/* > */
+/* > It is conceivable for one (or more) of the factors involved in the generalized QR */
+/* > factorization of the pair (A, B) to be subnormally close to singularity without this */
+/* > subroutine signalling an error. The solutions computed for such almost-rank-deficient */
+/* > problems may be less accurate due to a loss of numerical precision. */
+/* > */
+/* > \endverbatim */
+
+/*  Arguments: */
+/*  ========== */
+
+/* > \param[in] N */
+/* > \verbatim */
+/* >          N is INTEGER */
+/* >          The number of rows of the matrices A and B.  N >= 0. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] M */
+/* > \verbatim */
+/* >          M is INTEGER */
+/* >          The number of columns of the matrix A.  0 <= M <= N. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] P */
+/* > \verbatim */
+/* >          P is INTEGER */
+/* >          The number of columns of the matrix B.  P >= N-M. */
+/* > \endverbatim */
+/* > */
+/* > \param[in,out] A */
+/* > \verbatim */
+/* >          A is DOUBLE PRECISION array, dimension (LDA,M) */
+/* >          On entry, the N-by-M matrix A. */
+/* >          On exit, the upper triangular part of the array A contains */
+/* >          the M-by-M upper triangular matrix R. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] LDA */
+/* > \verbatim */
+/* >          LDA is INTEGER */
+/* >          The leading dimension of the array A. LDA >= f2cmax(1,N). */
+/* > \endverbatim */
+/* > */
+/* > \param[in,out] B */
+/* > \verbatim */
+/* >          B is DOUBLE PRECISION array, dimension (LDB,P) */
+/* >          On entry, the N-by-P matrix B. */
+/* >          On exit, if N <= P, the upper triangle of the subarray */
+/* >          B(1:N,P-N+1:P) contains the N-by-N upper triangular matrix T; */
+/* >          if N > P, the elements on and above the (N-P)th subdiagonal */
+/* >          contain the N-by-P upper trapezoidal matrix T. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] LDB */
+/* > \verbatim */
+/* >          LDB is INTEGER */
+/* >          The leading dimension of the array B. LDB >= f2cmax(1,N). */
+/* > \endverbatim */
+/* > */
+/* > \param[in,out] D */
+/* > \verbatim */
+/* >          D is DOUBLE PRECISION array, dimension (N) */
+/* >          On entry, D is the left hand side of the GLM equation. */
+/* >          On exit, D is destroyed. */
+/* > \endverbatim */
+/* > */
+/* > \param[out] X */
+/* > \verbatim */
+/* >          X is DOUBLE PRECISION array, dimension (M) */
+/* > \endverbatim */
+/* > */
+/* > \param[out] Y */
+/* > \verbatim */
+/* >          Y is DOUBLE PRECISION array, dimension (P) */
+/* > */
+/* >          On exit, X and Y are the solutions of the GLM problem. */
+/* > \endverbatim */
+/* > */
+/* > \param[out] WORK */
+/* > \verbatim */
+/* >          WORK is DOUBLE PRECISION array, dimension (MAX(1,LWORK)) */
+/* >          On exit, if INFO = 0, WORK(1) returns the optimal LWORK. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] LWORK */
+/* > \verbatim */
+/* >          LWORK is INTEGER */
+/* >          The dimension of the array WORK. LWORK >= f2cmax(1,N+M+P). */
+/* >          For optimum performance, LWORK >= M+f2cmin(N,P)+f2cmax(N,P)*NB, */
+/* >          where NB is an upper bound for the optimal blocksizes for */
+/* >          DGEQRF, SGERQF, DORMQR and SORMRQ. */
+/* > */
+/* >          If LWORK = -1, then a workspace query is assumed; the routine */
+/* >          only calculates the optimal size of the WORK array, returns */
+/* >          this value as the first entry of the WORK array, and no error */
+/* >          message related to LWORK is issued by XERBLA. */
+/* > \endverbatim */
+/* > */
+/* > \param[out] INFO */
+/* > \verbatim */
+/* >          INFO is INTEGER */
+/* >          = 0:  successful exit. */
+/* >          < 0:  if INFO = -i, the i-th argument had an illegal value. */
+/* >          = 1:  the upper triangular factor R associated with A in the */
+/* >                generalized QR factorization of the pair (A, B) is exactly */
+/* >                singular, so that rank(A) < M; the least squares */
+/* >                solution could not be computed. */
+/* >          = 2:  the bottom (N-M) by (N-M) part of the upper trapezoidal */
+/* >                factor T associated with B in the generalized QR */
+/* >                factorization of the pair (A, B) is exactly singular, so that */
+/* >                rank( A B ) < N; the least squares solution could not */
+/* >                be computed. */
+/* > \endverbatim */
+
+/*  Authors: */
+/*  ======== */
+
+/* > \author Univ. of Tennessee */
+/* > \author Univ. of California Berkeley */
+/* > \author Univ. of Colorado Denver */
+/* > \author NAG Ltd. */
+
+/* > \ingroup ggglm */
+
+/*  ===================================================================== */
+/* Subroutine */ void dggglm_(integer *n, integer *m, integer *p, doublereal *
+	a, integer *lda, doublereal *b, integer *ldb, doublereal *d__, 
+	doublereal *x, doublereal *y, doublereal *work, integer *lwork, 
+	integer *info)
+{
+    /* System generated locals */
+    integer a_dim1, a_offset, b_dim1, b_offset, i__1, i__2, i__3, i__4;
+    real r__1, r__2;
+
+    /* Local variables */
+    integer i__, ia, ib, ka, id, kb, kd, nb, np, nb1, nb2, nb3, nb4, ibig;
+    doublereal anrm, bnrm, dnrm;
+    integer isml, lopt;
+    extern /* Subroutine */ void dscal_(integer *, real *, doublereal *, 
+	    integer *), dgemv_(char *, integer *, integer *, doublereal *, 
+	    doublereal *, integer *, doublereal *, integer *, doublereal *, 
+	    doublereal *, integer *), dcopy_(integer *, doublereal *, 
+	    integer *, doublereal *, integer *);
+    doublereal rwork[1];
+    extern doublereal dlamch_(char *), dlange_(char *, integer *, 
+	    integer *, doublereal *, integer *, doublereal *);
+    extern /* Subroutine */ void dlascl_(char *, integer *, integer *, real *, 
+	    real *, integer *, integer *, doublereal *, integer *, integer *),
+	    dggqrf_(integer *, integer *, integer *, doublereal *, 
+	    integer *, doublereal *, doublereal *, integer *, doublereal *, 
+	    doublereal *, integer *, integer *), xerbla_(char *, integer *, ftnlen);
+    extern integer ilaenv_(integer *, char *, char *, integer *, integer *, 
+	    integer *, integer *, ftnlen, ftnlen);
+    doublereal bignum;
+    integer lwkmin;
+    extern /* Subroutine */ void dormqr_(char *, char *, integer *, integer *, 
+	    integer *, doublereal *, integer *, doublereal *, doublereal *, 
+	    integer *, doublereal *, integer *, integer *), 
+	    dormrq_(char *, char *, integer *, integer *, integer *, 
+	    doublereal *, integer *, doublereal *, doublereal *, integer *, 
+	    doublereal *, integer *, integer *);
+    doublereal smlnum;
+    integer lwkopt;
+    logical lquery;
+    extern /* Subroutine */ void dtrtrs_(char *, char *, char *, integer *, 
+	    integer *, doublereal *, integer *, doublereal *, integer *, 
+	    integer *);
+
+
+/*  -- LAPACK driver routine -- */
+/*  -- LAPACK is a software package provided by Univ. of Tennessee,    -- */
+/*  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..-- */
+
+
+/*  =================================================================== */
+
+
+/*     Test the input parameters */
+
+    /* Parameter adjustments */
+    a_dim1 = *lda;
+    a_offset = 1 + a_dim1;
+    a -= a_offset;
+    b_dim1 = *ldb;
+    b_offset = 1 + b_dim1;
+    b -= b_offset;
+    --d__;
+    --x;
+    --y;
+    --work;
+
+    /* Function Body */
+    *info = 0;
+    np = f2cmin(*n,*p);
+    lquery = *lwork == -1;
+    if (*n < 0) {
+	*info = -1;
+    } else if (*m < 0 || *m > *n) {
+	*info = -2;
+    } else if (*p < 0 || *p < *n - *m) {
+	*info = -3;
+    } else if (*lda < f2cmax(1,*n)) {
+	*info = -5;
+    } else if (*ldb < f2cmax(1,*n)) {
+	*info = -7;
+    }
+
+/*     Calculate workspace */
+
+    if (*info == 0) {
+	if (*n == 0) {
+	    lwkmin = 1;
+	    lwkopt = 1;
+	} else {
+	    nb1 = ilaenv_(&c__1, "DGEQRF", " ", n, m, &c_n1, &c_n1, (ftnlen)6,
+		     (ftnlen)1);
+	    nb2 = ilaenv_(&c__1, "DGERQF", " ", n, m, &c_n1, &c_n1, (ftnlen)6,
+		     (ftnlen)1);
+	    nb3 = ilaenv_(&c__1, "DORMQR", " ", n, m, p, &c_n1, (ftnlen)6, (
+		    ftnlen)1);
+	    nb4 = ilaenv_(&c__1, "DORMRQ", " ", n, m, p, &c_n1, (ftnlen)6, (
+		    ftnlen)1);
+/* Computing MAX */
+	    i__1 = f2cmax(nb1,nb2), i__1 = f2cmax(i__1,nb3);
+	    nb = f2cmax(i__1,nb4);
+	    lwkmin = *m + *n + *p;
+	    lwkopt = *m + np + f2cmax(*n,*p) * nb;
+	}
+	work[1] = (doublereal) lwkopt;
+
+	if (*lwork < lwkmin && ! lquery) {
+	    *info = -12;
+	}
+    }
+
+    if (*info != 0) {
+	i__1 = -(*info);
+	xerbla_("DGGGLM", &i__1, (ftnlen)6);
+	return;
+    } else if (lquery) {
+	return;
+    }
+
+/*     Quick return if possible */
+
+    if (*n == 0) {
+	i__1 = *m;
+	for (i__ = 1; i__ <= i__1; ++i__) {
+	    x[i__] = 0.;
+	}
+	i__1 = *p;
+	for (i__ = 1; i__ <= i__1; ++i__) {
+	    y[i__] = 0.;
+	}
+	return;
+    }
+
+/*     Get machine parameters */
+
+    smlnum = dlamch_("S") / dlamch_("P");
+    bignum = 1. / smlnum;
+    isml = myexp_(&smlnum);
+    ibig = myexp_(&bignum) - 1;
+
+/*     Scale A, B and d independently by powers of two 2**KA, 2**KB and */
+/*     2**KD so that their largest entries lie in [SMLNUM,BIGNUM), the */
+/*     values whose MYEXP lies in [ISML,IBIG].  x is then scaled by */
+/*     2**(KD-KA) and y by 2**(KD-KB).  Scaling by a power of two is */
+/*     exact.  A norm that is zero, infinite or NaN takes no part. */
+/*     DLASCL is called with both endpoints at or above one so that */
+/*     forming the factor raises no underflow. */
+
+    anrm = dlange_("M", n, m, &a[a_offset], lda, rwork);
+    ka = 0;
+    if (anrm > 0. && anrm <= myhuge_(&c_b24)) {
+	ia = myexp_(&anrm);
+	if (ia < isml) {
+	    ka = isml - ia;
+	} else if (ia > ibig) {
+	    ka = ibig - ia;
+	}
+    }
+    if (ka != 0) {
+/* Computing MAX */
+	i__2 = -ka;
+	i__1 = f2cmax(i__2,0);
+	r__1 = myscale_(&c_b28, &i__1);
+	i__3 = f2cmax(ka,0);
+	r__2 = myscale_(&c_b28, &i__3);
+	dlascl_("G", &c__0, &c__0, &r__1, &r__2, n, m, &a[a_offset], lda, 
+		info);
+    }
+
+    bnrm = dlange_("M", n, p, &b[b_offset], ldb, rwork);
+    kb = 0;
+    if (bnrm > 0. && bnrm <= myhuge_(&c_b24)) {
+	ib = myexp_(&bnrm);
+	if (ib < isml) {
+	    kb = isml - ib;
+	} else if (ib > ibig) {
+	    kb = ibig - ib;
+	}
+    }
+    if (kb != 0) {
+/* Computing MAX */
+	i__2 = -kb;
+	i__1 = f2cmax(i__2,0);
+	r__1 = myscale_(&c_b28, &i__1);
+	i__3 = f2cmax(kb,0);
+	r__2 = myscale_(&c_b28, &i__3);
+	dlascl_("G", &c__0, &c__0, &r__1, &r__2, n, p, &b[b_offset], ldb, 
+		info);
+    }
+
+    dnrm = dlange_("M", n, &c__1, &d__[1], n, rwork);
+    kd = 0;
+    if (dnrm > 0. && dnrm <= myhuge_(&c_b24)) {
+	id = myexp_(&dnrm);
+	if (id < isml) {
+	    kd = isml - id;
+	} else if (id > ibig) {
+	    kd = ibig - id;
+	}
+    }
+    if (kd != 0) {
+	r__1 = myscale_(&c_b28, &kd);
+	dscal_(n, &r__1, &d__[1], &c__1);
+    }
+
+/*     Compute the GQR factorization of matrices A and B: */
+
+/*          Q**T*A = ( R11 ) M,    Q**T*B*Z**T = ( T11   T12 ) M */
+/*                   (  0  ) N-M                 (  0    T22 ) N-M */
+/*                      M                         M+P-N  N-M */
+
+/*     where R11 and T22 are upper triangular, and Q and Z are */
+/*     orthogonal. */
+
+    i__1 = *lwork - *m - np;
+    dggqrf_(n, m, p, &a[a_offset], lda, &work[1], &b[b_offset], ldb, &work[*m 
+	    + 1], &work[*m + np + 1], &i__1, info);
+    lopt = (integer) work[*m + np + 1];
+
+/*     Update left-hand-side vector d = Q**T*d = ( d1 ) M */
+/*                                               ( d2 ) N-M */
+
+    i__1 = f2cmax(1,*n);
+    i__2 = *lwork - *m - np;
+    dormqr_("Left", "Transpose", n, &c__1, m, &a[a_offset], lda, &work[1], &
+	    d__[1], &i__1, &work[*m + np + 1], &i__2, info);
+/* Computing MAX */
+    i__1 = lopt, i__2 = (integer) work[*m + np + 1];
+    lopt = f2cmax(i__1,i__2);
+
+/*     Solve T22*y2 = d2 for y2 */
+
+    if (*n > *m) {
+	i__1 = *n - *m;
+	i__2 = *n - *m;
+	dtrtrs_("Upper", "No transpose", "Non unit", &i__1, &c__1, &b[*m + 1 
+		+ (*m + *p - *n + 1) * b_dim1], ldb, &d__[*m + 1], &i__2, 
+		info);
+
+	if (*info > 0) {
+	    *info = 1;
+	    return;
+	}
+
+	i__1 = *n - *m;
+	dcopy_(&i__1, &d__[*m + 1], &c__1, &y[*m + *p - *n + 1], &c__1);
+    }
+
+/*     Set y1 = 0 */
+
+    i__1 = *m + *p - *n;
+    for (i__ = 1; i__ <= i__1; ++i__) {
+	y[i__] = 0.;
+/* L10: */
+    }
+
+/*     Update d1 = d1 - T12*y2 */
+
+    i__1 = *n - *m;
+    dgemv_("No transpose", m, &i__1, &c_b53, &b[(*m + *p - *n + 1) * b_dim1 + 
+	    1], ldb, &y[*m + *p - *n + 1], &c__1, &c_b28, &d__[1], &c__1);
+
+/*     Solve triangular system: R11*x = d1 */
+
+    if (*m > 0) {
+	dtrtrs_("Upper", "No Transpose", "Non unit", m, &c__1, &a[a_offset], 
+		lda, &d__[1], m, info);
+
+	if (*info > 0) {
+	    *info = 2;
+	    return;
+	}
+
+/*        Copy D to X */
+
+	dcopy_(m, &d__[1], &c__1, &x[1], &c__1);
+    }
+
+/*     Backward transformation y = Z**T *y */
+
+/* Computing MAX */
+    i__1 = 1, i__2 = *n - *p + 1;
+    i__3 = f2cmax(1,*p);
+    i__4 = *lwork - *m - np;
+    dormrq_("Left", "Transpose", p, &c__1, &np, &b[f2cmax(i__1,i__2) + b_dim1], 
+	    ldb, &work[*m + 1], &y[1], &i__3, &work[*m + np + 1], &i__4, info);
+
+/*     Undo scaling: x carries 2**(KD-KA) and y carries 2**(KD-KB) */
+
+    if (ka != kd) {
+	i__1 = ka - kd;
+	r__1 = myscale_(&c_b28, &i__1);
+	dscal_(m, &r__1, &x[1], &c__1);
+    }
+    if (kb != kd) {
+	i__1 = kb - kd;
+	r__1 = myscale_(&c_b28, &i__1);
+	dscal_(p, &r__1, &y[1], &c__1);
+    }
+
+/* Computing MAX */
+    i__1 = lopt, i__2 = (integer) work[*m + np + 1];
+    work[1] = (doublereal) (*m + np + f2cmax(i__1,i__2));
+
+    return;
+
+/*     End of DGGGLM */
+
+} /* dggglm_ */
+

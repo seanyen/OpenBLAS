@@ -51,7 +51,7 @@ extern void goto_set_num_threads(int nthreads);
 #undef TIMING_DEBUG
 
 /* Global Parameter */
-extern int blas_cpu_number;
+extern _Atomic int blas_cpu_number;
 extern int blas_num_threads;
 extern int blas_omp_linked;
 
@@ -106,13 +106,30 @@ typedef struct blas_queue {
   blas_arg_t *args;
   void *range_m;
   void *range_n;
+
+  /*
+   * sa and sb are caller-owned inputs. worker_sb reports the sb workspace
+   * used by the threading backend for the most recent invocation.
+   * Keeping these roles separate prevents a reused queue from treating a
+   * released workspace as input to its next invocation.
+   */
   void *sa, *sb;
+  void *worker_sb;
 
   struct blas_queue *next;
 
 #if defined( __WIN32__) || defined(__CYGWIN32__) || defined(_WIN32) || defined(__CYGWIN__)
-  CRITICAL_SECTION lock;
-  HANDLE finish;
+  /*
+   * Link used exclusively by the Windows thread pool to chain the jobs that
+   * are waiting to be picked up.  It is deliberately kept separate from
+   * "next" above, which is owned (and rebuilt on every call) by whoever
+   * submitted the job: appending to the pool must never write into the
+   * queue nodes of another caller.
+   */
+  struct blas_queue *pool_next;
+   CRITICAL_SECTION lock;
+   HANDLE finish;
+  volatile int finished;
 #else
   pthread_mutex_t	 lock;
   pthread_cond_t	 finished;
@@ -135,28 +152,74 @@ typedef struct blas_queue {
 #ifdef SMP_SERVER
 
 extern int blas_server_avail;
+extern int blas_omp_number_max;
+extern int blas_omp_threads_local;
+extern int blas_is_num_threads_set_explicitly;
+
+#if defined(ARCH_ARM64) && defined(OS_DARWIN) && defined(__clang__) && (defined(VORTEXM4) || defined(DYNAMIC_ARCH)) && \
+    (!defined(BFLOAT16) || !defined(BGEMM)) && !defined(HFLOAT16)
+#include <sys/sysctl.h>
+#ifdef DYNAMIC_ARCH
+extern char *gotoblas_corename(void);
+#endif
+/* Apple M4: level-3 BLAS and LAPACK run on one SME unit per P-cluster; measured on M4 Pro only, not on M5+. */
+static __inline int sme_level3_threads(int nthreads) {
+  static int units = 0;
+#ifdef DYNAMIC_ARCH
+  if (strcmp(gotoblas_corename(), "vortexm4") != 0) return nthreads;
+#endif
+  if (units == 0) {
+    int cpus = 0, per = 0, u = 1;
+    size_t len = sizeof(int);
+    if (sysctlbyname("hw.perflevel0.physicalcpu", &cpus, &len, NULL, 0) == 0 &&
+        (len = sizeof(int), sysctlbyname("hw.perflevel0.cpusperl2", &per, &len, NULL, 0) == 0) && per > 0 &&
+        cpus / per > 1)
+      u = cpus / per;
+    units = u;
+  }
+  return nthreads < units ? nthreads : units;
+}
+#else
+#define sme_level3_threads(nthreads) (nthreads)
+#endif
 
 static __inline int num_cpu_avail(int level) {
 
 #ifdef USE_OPENMP
-	int openmp_nthreads=omp_get_max_threads();
+  /* If the user explicitly called openblas_set_num_threads(),
+     respect that setting instead of overriding it with
+     `omp_get_max_threads()` below (which is to get a default
+     in case the user hasn't made an explicit choice). */
+  if (blas_is_num_threads_set_explicitly) {
+	  if (omp_in_parallel()) return 1;
+    return level >= 3 ? sme_level3_threads(blas_cpu_number) : blas_cpu_number;
+  }
+
+int openmp_nthreads;
+	openmp_nthreads=omp_get_max_threads();
+	if (omp_in_parallel()) openmp_nthreads = blas_omp_threads_local;
 #endif
 
 #ifndef USE_OPENMP 
   if (blas_cpu_number == 1
-#endif
-#ifdef USE_OPENMP
-     if (openmp_nthreads == 1 || omp_in_parallel()
+#else
+     if (openmp_nthreads == 1 
 #endif
       ) return 1;        
 
 #ifdef USE_OPENMP
-  if (blas_cpu_number != openmp_nthreads) {
+     if (openmp_nthreads > blas_omp_number_max){
+#ifdef DEBUG
+     fprintf(stderr,"WARNING - more OpenMP threads requested (%d) than available (%d)\n",openmp_nthreads,blas_omp_number_max);
+#endif
+     openmp_nthreads = blas_omp_number_max;
+     }
+     if (blas_cpu_number != openmp_nthreads) {
 	  goto_set_num_threads(openmp_nthreads);
   }
 #endif
 
-  return blas_cpu_number;
+  return level >= 3 ? sme_level3_threads(blas_cpu_number) : blas_cpu_number;
 
 }
 
@@ -164,6 +227,7 @@ static __inline void blas_queue_init(blas_queue_t *queue){
 
   queue -> sa    = NULL;
   queue -> sb    = NULL;
+  queue -> worker_sb = NULL;
   queue-> next  = NULL;
 }
 
@@ -181,30 +245,33 @@ int exec_blas(BLASLONG num_cpu, blas_param_t *param, void *buffer);
 
 #ifndef ASSEMBLER
 
+void blas_level3_thread_enter(void);
+void blas_level3_thread_leave(void);
+
 int blas_level1_thread(int mode, BLASLONG m, BLASLONG n, BLASLONG k, void *alpha,
 		       void *a, BLASLONG lda,
 		       void *b, BLASLONG ldb,
-		       void *c, BLASLONG ldc, int (*function)(), int threads);
+		       void *c, BLASLONG ldc, int (*function)(void), int threads);
 
-int gemm_thread_m (int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(), void *, void *, BLASLONG);
+int gemm_thread_m (int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(blas_arg_t*, BLASLONG*, BLASLONG*,FLOAT *, FLOAT *, BLASLONG ), void *, void *, BLASLONG);
 
-int gemm_thread_n (int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(), void *, void *, BLASLONG);
+int gemm_thread_n (int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(blas_arg_t*, BLASLONG*, BLASLONG*,FLOAT*, FLOAT*, BLASLONG), void *, void *, BLASLONG);
 
-int gemm_thread_mn(int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(), void *, void *, BLASLONG);
+int gemm_thread_mn(int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(blas_arg_t*, BLASLONG*, BLASLONG*,FLOAT *, FLOAT *, BLASLONG), void *, void *, BLASLONG);
 
-int gemm_thread_variable(int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(), void *, void *, BLASLONG, BLASLONG);
+int gemm_thread_variable(int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(blas_arg_t*, BLASLONG*, BLASLONG*,FLOAT *, FLOAT *, BLASLONG), void *, void *, BLASLONG, BLASLONG);
 
 int trsm_thread(int mode, BLASLONG m, BLASLONG n,
 		double alpha_r, double alpha_i,
 		void *a, BLASLONG lda,
-		void *c, BLASLONG ldc, int (*function)(), void *buffer);
+		void *c, BLASLONG ldc, int (*function)(void), void *buffer);
 
-int syrk_thread(int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(), void *, void *, BLASLONG);
+int syrk_thread(int mode, blas_arg_t *, BLASLONG *, BLASLONG *, int (*function)(blas_arg_t*, BLASLONG*, BLASLONG*, FLOAT *, FLOAT *, BLASLONG), void*, void*, BLASLONG);
 
 int getrf_thread(int mode, BLASLONG m, BLASLONG n, BLASLONG k,
 		 void *offsetA, BLASLONG lda,
 		 void *offsetB, BLASLONG jb,
-		 void *ipiv, BLASLONG offset, int (*function)(), void *buffer);
+		 void *ipiv, BLASLONG offset, int (*function)(void), void *buffer);
 
 #endif  /* ENDIF ASSEMBLER */
 

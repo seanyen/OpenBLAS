@@ -49,6 +49,8 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BlasTransConj    2
 #define BlasConj         3
 
+OPENBLAS_EXPORT
+
 #ifndef CBLAS
 void NAME( char* ORDER, char* TRANS, blasint *rows, blasint *cols, FLOAT *alpha, FLOAT *a, blasint *lda, FLOAT *b, blasint *ldb)
 {
@@ -92,30 +94,32 @@ void CNAME(enum CBLAS_ORDER CORDER, enum CBLAS_TRANSPOSE CTRANS, blasint crows, 
 #endif
 	if ( order == BlasColMajor)
 	{
-        	if ( trans == BlasNoTrans      &&  *ldb < *rows ) info = 9;
-        	if ( trans == BlasConj         &&  *ldb < *rows ) info = 9;
-        	if ( trans == BlasTrans        &&  *ldb < *cols ) info = 9;
-        	if ( trans == BlasTransConj    &&  *ldb < *cols ) info = 9;
+        	if ( trans == BlasNoTrans      &&  *ldb < MAX(1,*rows) ) info = 9;
+        	if ( trans == BlasConj         &&  *ldb < MAX(1,*rows) ) info = 9;
+        	if ( trans == BlasTrans        &&  *ldb < MAX(1,*cols) ) info = 9;
+        	if ( trans == BlasTransConj    &&  *ldb < MAX(1,*cols) ) info = 9;
 	}
 	if ( order == BlasRowMajor)
 	{
-        	if ( trans == BlasNoTrans    &&  *ldb < *cols ) info = 9;
-        	if ( trans == BlasConj       &&  *ldb < *cols ) info = 9;
-        	if ( trans == BlasTrans      &&  *ldb < *rows ) info = 9;
-        	if ( trans == BlasTransConj  &&  *ldb < *rows ) info = 9;
+        	if ( trans == BlasNoTrans    &&  *ldb < MAX(1,*cols) ) info = 9;
+        	if ( trans == BlasConj       &&  *ldb < MAX(1,*cols) ) info = 9;
+        	if ( trans == BlasTrans      &&  *ldb < MAX(1,*rows) ) info = 9;
+        	if ( trans == BlasTransConj  &&  *ldb < MAX(1,*rows) ) info = 9;
 	}
 
-	if ( order == BlasColMajor &&  *lda < *rows ) info = 7;
-	if ( order == BlasRowMajor &&  *lda < *cols ) info = 7;
-	if ( *cols <= 0 ) info = 4;
-	if ( *rows <= 0 ) info = 3;
-	if ( trans < 0  ) info = 2;
-	if ( order < 0  ) info = 1;
+	if ( order == BlasColMajor &&  *lda < MAX(1,*rows) ) info = 7;
+	if ( order == BlasRowMajor &&  *lda < MAX(1,*cols) ) info = 7;
+	if ( *cols < 0 ) info = 4;
+	if ( *rows < 0 ) info = 3;
+	if ( trans < 0 ) info = 2;
+	if ( order < 0 ) info = 1;
 
 	if (info >= 0) {
     		BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
     		return;
   	}
+
+	if ((*rows == 0) || (*cols == 0)) return;
 
 	if ( order == BlasColMajor )
 	{

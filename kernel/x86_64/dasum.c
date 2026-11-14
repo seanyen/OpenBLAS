@@ -4,7 +4,7 @@
 #define ABS_K(a) ((a) > 0 ? (a) : (-(a)))
 #endif
 
-#if defined(SKYLAKEX)
+#if defined(SKYLAKEX) || defined(COOPERLAKE) || defined(SAPPHIRERAPIDS)
 #include "dasum_microk_skylakex-2.c"
 #elif defined(HASWELL) || defined(ZEN)
 #include "dasum_microk_haswell-2.c"
@@ -114,7 +114,7 @@ FLOAT CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x)
 #else
         mode = BLAS_DOUBLE | BLAS_REAL;
 #endif
-        blas_level1_thread_with_return_value(mode, n, 0, 0, &dummy_alpha, x, inc_x, NULL, 0, result, 0, (void *)asum_thread_function, nthreads);
+        blas_level1_thread_with_return_value(mode, n, 0, 0, &dummy_alpha, x, inc_x, NULL, 0, result, 0, (int (*)(void))asum_thread_function, nthreads);
         ptr = (FLOAT *)result;
         for (i = 0; i < nthreads; i++) {
             sumf += (*ptr);

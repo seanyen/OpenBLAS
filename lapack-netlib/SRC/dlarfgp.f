@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download DLARFGP + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dlarfgp.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dlarfgp.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -97,17 +95,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
-*> \ingroup doubleOTHERauxiliary
+*> \ingroup larfgp
 *
 *  =====================================================================
       SUBROUTINE DLARFGP( N, ALPHA, X, INCX, TAU )
+      IMPLICIT NONE
 *
-*  -- LAPACK auxiliary routine (version 3.8.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
 *     .. Scalar Arguments ..
       INTEGER            INCX, N
@@ -125,7 +121,7 @@
 *     ..
 *     .. Local Scalars ..
       INTEGER            J, KNT
-      DOUBLE PRECISION   BETA, BIGNUM, SAVEALPHA, SMLNUM, XNORM
+      DOUBLE PRECISION   BETA, BIGNUM, EPS, SAVEALPHA, SMLNUM, XNORM
 *     ..
 *     .. External Functions ..
       DOUBLE PRECISION   DLAMCH, DLAPY2, DNRM2
@@ -144,11 +140,12 @@
          RETURN
       END IF
 *
+      EPS = DLAMCH( 'Precision' )
       XNORM = DNRM2( N-1, X, INCX )
 *
-      IF( XNORM.EQ.ZERO ) THEN
+      IF( XNORM.LE.EPS*ABS(ALPHA) ) THEN
 *
-*        H  =  [+/-1, 0; I], sign chosen so ALPHA >= 0
+*        H  =  [+/-1, 0; I], sign chosen so ALPHA >= 0.
 *
          IF( ALPHA.GE.ZERO ) THEN
 *           When TAU.eq.ZERO, the vector is special-cased to be
@@ -223,7 +220,12 @@
 *
 *           This is the general case.
 *
-            CALL DSCAL( N-1, ONE / ALPHA, X, INCX )
+            IF( ABS( ALPHA ).LT.SMLNUM ) THEN
+               CALL DSCAL( N-1, ONE / SMLNUM, X, INCX )
+               CALL DSCAL( N-1, SMLNUM / ALPHA, X, INCX )
+            ELSE
+               CALL DSCAL( N-1, ONE / ALPHA, X, INCX )
+            END IF
 *
          END IF
 *

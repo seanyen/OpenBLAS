@@ -1,3 +1,42 @@
+/*********************************************************************/
+/* Copyright 2009, 2010 The University of Texas at Austin.           */
+/* Copyright 2025-2026 The OpenBLAS Project.                         */
+/* All rights reserved.                                              */
+/*                                                                   */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
+/*                                                                   */
+/*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
+/*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
+/*    INCLUDING, BUT  NOT LIMITED  TO, THE IMPLIED  WARRANTIES OF    */
+/*    MERCHANTABILITY  AND FITNESS FOR  A PARTICULAR  PURPOSE ARE    */
+/*    DISCLAIMED.  IN  NO EVENT SHALL THE UNIVERSITY  OF TEXAS AT    */
+/*    AUSTIN OR CONTRIBUTORS BE  LIABLE FOR ANY DIRECT, INDIRECT,    */
+/*    INCIDENTAL,  SPECIAL, EXEMPLARY,  OR  CONSEQUENTIAL DAMAGES    */
+/*    (INCLUDING, BUT  NOT LIMITED TO,  PROCUREMENT OF SUBSTITUTE    */
+/*    GOODS  OR  SERVICES; LOSS  OF  USE,  DATA,  OR PROFITS;  OR    */
+/*    BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON ANY THEORY OF    */
+/*    LIABILITY, WHETHER  IN CONTRACT, STRICT  LIABILITY, OR TORT    */
+/*    (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT    */
+/*    OF  THE  USE OF  THIS  SOFTWARE,  EVEN  IF ADVISED  OF  THE    */
+/*    POSSIBILITY OF SUCH DAMAGE.                                    */
+/*                                                                   */
+/* The views and conclusions contained in the software and           */
+/* documentation are those of the authors and should not be          */
+/* interpreted as representing official policies, either expressed   */
+/* or implied, of The University of Texas at Austin.                 */
+/*********************************************************************/
+
 #ifndef COMMON_Z_H
 #define COMMON_Z_H
 
@@ -5,12 +44,8 @@
 
 #define	ZAMAX_K			zamax_k
 #define	ZAMIN_K			zamin_k
-#define	ZMAX_K			zmax_k
-#define	ZMIN_K			zmin_k
 #define	IZAMAX_K		izamax_k
 #define	IZAMIN_K		izamin_k
-#define	IZMAX_K			izmax_k
-#define	IZMIN_K			izmin_k
 #define	ZASUM_K			zasum_k
 #define	ZAXPYU_K		zaxpy_k
 #define	ZAXPYC_K		zaxpyc_k
@@ -61,6 +96,11 @@
 #define	ZGEMM_INCOPY		zgemm_incopy
 #define	ZGEMM_ITCOPY		zgemm_itcopy
 #endif
+
+#define	ZSYMM_INCOPY	    	zsymm_incopy
+#define	ZSYMM_ITCOPY	    	zsymm_itcopy
+#define	ZTRMM_INCOPY		ztrmm_incopy
+#define	ZTRMM_ITCOPY		ztrmm_itcopy
 
 #define	ZTRMM_OUNUCOPY		ztrmm_ounucopy
 #define	ZTRMM_OUNNCOPY		ztrmm_ounncopy
@@ -119,11 +159,21 @@
 #endif
 
 #define	ZGEMM_BETA		zgemm_beta
+#define	SME_ZGEMM_KERNEL	sme_zgemm_kernel
 
 #define	ZGEMM_KERNEL_N		zgemm_kernel_n
 #define	ZGEMM_KERNEL_L		zgemm_kernel_l
 #define	ZGEMM_KERNEL_R		zgemm_kernel_r
 #define	ZGEMM_KERNEL_B		zgemm_kernel_b
+
+#define	ZSYMM_KERNEL_N		zsymm_kernel_n
+#define	ZSYMM_KERNEL_L		zsymm_kernel_l
+#define	ZSYMM_KERNEL_R		zsymm_kernel_r
+#define	ZSYMM_KERNEL_B		zsymm_kernel_b
+#define	ZTRMM_GEMM_KERNEL_N	ztrmm_gemm_kernel_n
+#define	ZTRMM_GEMM_KERNEL_L	ztrmm_gemm_kernel_l
+#define	ZTRMM_GEMM_KERNEL_R	ztrmm_gemm_kernel_r
+#define	ZTRMM_GEMM_KERNEL_B	ztrmm_gemm_kernel_b
 
 #define	ZTRMM_KERNEL_LN		ztrmm_kernel_LN
 #define	ZTRMM_KERNEL_LT		ztrmm_kernel_LT
@@ -232,16 +282,14 @@
 
 #define ZGEADD_K                zgeadd_k 
 
+#define ZGEMM_SMALL_MATRIX_PERMIT	zgemm_small_matrix_permit
+
 #else
 
 #define	ZAMAX_K			gotoblas -> zamax_k
 #define	ZAMIN_K			gotoblas -> zamin_k
-#define	ZMAX_K			gotoblas -> zmax_k
-#define	ZMIN_K			gotoblas -> zmin_k
 #define	IZAMAX_K		gotoblas -> izamax_k
 #define	IZAMIN_K		gotoblas -> izamin_k
-#define	IZMAX_K			gotoblas -> izmax_k
-#define	IZMIN_K			gotoblas -> izmin_k
 #define	ZASUM_K			gotoblas -> zasum_k
 #define	ZAXPYU_K		gotoblas -> zaxpy_k
 #define	ZAXPYC_K		gotoblas -> zaxpyc_k
@@ -318,16 +366,31 @@
 #define	ZTRMM_IUTNCOPY		gotoblas -> ztrmm_iutncopy
 #define	ZTRMM_ILNNCOPY		gotoblas -> ztrmm_ilnncopy
 #define	ZTRMM_ILTNCOPY		gotoblas -> ztrmm_iltncopy
+#define	ZSYMM_INCOPY	    	gotoblas -> zsymm_incopy
+#define	ZSYMM_ITCOPY		    gotoblas -> zsymm_itcopy
+#define	ZTRMM_INCOPY		gotoblas -> ztrmm_incopy
+#define	ZTRMM_ITCOPY		gotoblas -> ztrmm_itcopy
+
 #define	ZTRSM_IUNNCOPY		gotoblas -> ztrsm_iunncopy
 #define	ZTRSM_IUTNCOPY		gotoblas -> ztrsm_iutncopy
 #define	ZTRSM_ILNNCOPY		gotoblas -> ztrsm_ilnncopy
 #define	ZTRSM_ILTNCOPY		gotoblas -> ztrsm_iltncopy
 
 #define	ZGEMM_BETA		gotoblas -> zgemm_beta
+#define	SME_ZGEMM_KERNEL	gotoblas -> sme_zgemm_kernel
 #define	ZGEMM_KERNEL_N		gotoblas -> zgemm_kernel_n
 #define	ZGEMM_KERNEL_L		gotoblas -> zgemm_kernel_l
 #define	ZGEMM_KERNEL_R		gotoblas -> zgemm_kernel_r
 #define	ZGEMM_KERNEL_B		gotoblas -> zgemm_kernel_b
+
+#define	ZSYMM_KERNEL_N		gotoblas -> zsymm_kernel_n
+#define	ZSYMM_KERNEL_L		gotoblas -> zsymm_kernel_l
+#define	ZSYMM_KERNEL_R		gotoblas -> zsymm_kernel_r
+#define	ZSYMM_KERNEL_B		gotoblas -> zsymm_kernel_b
+#define	ZTRMM_GEMM_KERNEL_N	gotoblas -> ztrmm_gemm_kernel_n
+#define	ZTRMM_GEMM_KERNEL_L	gotoblas -> ztrmm_gemm_kernel_l
+#define	ZTRMM_GEMM_KERNEL_R	gotoblas -> ztrmm_gemm_kernel_r
+#define	ZTRMM_GEMM_KERNEL_B	gotoblas -> ztrmm_gemm_kernel_b
 
 #define	ZTRMM_KERNEL_LN		gotoblas -> ztrmm_kernel_LN
 #define	ZTRMM_KERNEL_LT		gotoblas -> ztrmm_kernel_LT
@@ -426,7 +489,50 @@
 
 #define ZGEADD_K                gotoblas -> zgeadd_k
 
+#define ZGEMM_SMALL_MATRIX_PERMIT	gotoblas -> zgemm_small_matrix_permit
+
 #endif
+
+#define ZGEMM_SMALL_KERNEL_NN		FUNC_OFFSET(zgemm_small_kernel_nn)
+#define ZGEMM_SMALL_KERNEL_NT		FUNC_OFFSET(zgemm_small_kernel_nt)
+#define ZGEMM_SMALL_KERNEL_NR		FUNC_OFFSET(zgemm_small_kernel_nr)
+#define ZGEMM_SMALL_KERNEL_NC		FUNC_OFFSET(zgemm_small_kernel_nc)
+
+#define ZGEMM_SMALL_KERNEL_TN		FUNC_OFFSET(zgemm_small_kernel_tn)
+#define ZGEMM_SMALL_KERNEL_TT		FUNC_OFFSET(zgemm_small_kernel_tt)
+#define ZGEMM_SMALL_KERNEL_TR		FUNC_OFFSET(zgemm_small_kernel_tr)
+#define ZGEMM_SMALL_KERNEL_TC		FUNC_OFFSET(zgemm_small_kernel_tc)
+
+#define ZGEMM_SMALL_KERNEL_RN		FUNC_OFFSET(zgemm_small_kernel_rn)
+#define ZGEMM_SMALL_KERNEL_RT		FUNC_OFFSET(zgemm_small_kernel_rt)
+#define ZGEMM_SMALL_KERNEL_RR		FUNC_OFFSET(zgemm_small_kernel_rr)
+#define ZGEMM_SMALL_KERNEL_RC		FUNC_OFFSET(zgemm_small_kernel_rc)
+
+#define ZGEMM_SMALL_KERNEL_CN		FUNC_OFFSET(zgemm_small_kernel_cn)
+#define ZGEMM_SMALL_KERNEL_CT		FUNC_OFFSET(zgemm_small_kernel_ct)
+#define ZGEMM_SMALL_KERNEL_CR		FUNC_OFFSET(zgemm_small_kernel_cr)
+#define ZGEMM_SMALL_KERNEL_CC		FUNC_OFFSET(zgemm_small_kernel_cc)
+
+#define ZGEMM_SMALL_KERNEL_B0_NN	FUNC_OFFSET(zgemm_small_kernel_b0_nn)
+#define ZGEMM_SMALL_KERNEL_B0_NT	FUNC_OFFSET(zgemm_small_kernel_b0_nt)
+#define ZGEMM_SMALL_KERNEL_B0_NR	FUNC_OFFSET(zgemm_small_kernel_b0_nr)
+#define ZGEMM_SMALL_KERNEL_B0_NC	FUNC_OFFSET(zgemm_small_kernel_b0_nc)
+
+#define ZGEMM_SMALL_KERNEL_B0_TN	FUNC_OFFSET(zgemm_small_kernel_b0_tn)
+#define ZGEMM_SMALL_KERNEL_B0_TT	FUNC_OFFSET(zgemm_small_kernel_b0_tt)
+#define ZGEMM_SMALL_KERNEL_B0_TR	FUNC_OFFSET(zgemm_small_kernel_b0_tr)
+#define ZGEMM_SMALL_KERNEL_B0_TC	FUNC_OFFSET(zgemm_small_kernel_b0_tc)
+
+#define ZGEMM_SMALL_KERNEL_B0_RN	FUNC_OFFSET(zgemm_small_kernel_b0_rn)
+#define ZGEMM_SMALL_KERNEL_B0_RT	FUNC_OFFSET(zgemm_small_kernel_b0_rt)
+#define ZGEMM_SMALL_KERNEL_B0_RR	FUNC_OFFSET(zgemm_small_kernel_b0_rr)
+#define ZGEMM_SMALL_KERNEL_B0_RC	FUNC_OFFSET(zgemm_small_kernel_b0_rc)
+
+#define ZGEMM_SMALL_KERNEL_B0_CN	FUNC_OFFSET(zgemm_small_kernel_b0_cn)
+#define ZGEMM_SMALL_KERNEL_B0_CT	FUNC_OFFSET(zgemm_small_kernel_b0_ct)
+#define ZGEMM_SMALL_KERNEL_B0_CR	FUNC_OFFSET(zgemm_small_kernel_b0_cr)
+#define ZGEMM_SMALL_KERNEL_B0_CC	FUNC_OFFSET(zgemm_small_kernel_b0_cc)
+
 
 #define	ZGEMM_NN		zgemm_nn
 #define	ZGEMM_CN		zgemm_cn
@@ -466,6 +572,46 @@
 
 #define	ZSYRK_KERNEL_U		zsyrk_kernel_U
 #define	ZSYRK_KERNEL_L		zsyrk_kernel_L
+
+#define	ZGEMMT_UNN		zgemmt_UNN
+#define	ZGEMMT_UNT		zgemmt_UNT
+#define	ZGEMMT_UNR		zgemmt_UNR
+#define	ZGEMMT_UNC		zgemmt_UNC
+#define	ZGEMMT_UTN		zgemmt_UTN
+#define	ZGEMMT_UTT		zgemmt_UTT
+#define	ZGEMMT_UTR		zgemmt_UTR
+#define	ZGEMMT_UTC		zgemmt_UTC
+#define	ZGEMMT_URN		zgemmt_URN
+#define	ZGEMMT_URT		zgemmt_URT
+#define	ZGEMMT_URR		zgemmt_URR
+#define	ZGEMMT_URC		zgemmt_URC
+#define	ZGEMMT_UCN		zgemmt_UCN
+#define	ZGEMMT_UCT		zgemmt_UCT
+#define	ZGEMMT_UCR		zgemmt_UCR
+#define	ZGEMMT_UCC		zgemmt_UCC
+#define	ZGEMMT_LNN		zgemmt_LNN
+#define	ZGEMMT_LNT		zgemmt_LNT
+#define	ZGEMMT_LNR		zgemmt_LNR
+#define	ZGEMMT_LNC		zgemmt_LNC
+#define	ZGEMMT_LTN		zgemmt_LTN
+#define	ZGEMMT_LTT		zgemmt_LTT
+#define	ZGEMMT_LTR		zgemmt_LTR
+#define	ZGEMMT_LTC		zgemmt_LTC
+#define	ZGEMMT_LRN		zgemmt_LRN
+#define	ZGEMMT_LRT		zgemmt_LRT
+#define	ZGEMMT_LRR		zgemmt_LRR
+#define	ZGEMMT_LRC		zgemmt_LRC
+#define	ZGEMMT_LCN		zgemmt_LCN
+#define	ZGEMMT_LCT		zgemmt_LCT
+#define	ZGEMMT_LCR		zgemmt_LCR
+#define	ZGEMMT_LCC		zgemmt_LCC
+
+#define	ZGEMMT_KERNEL_UCN	zgemmt_kernel_UCN
+#define	ZGEMMT_KERNEL_UNC	zgemmt_kernel_UNC
+#define	ZGEMMT_KERNEL_UCC	zgemmt_kernel_UCC
+#define	ZGEMMT_KERNEL_LCN	zgemmt_kernel_LCN
+#define	ZGEMMT_KERNEL_LNC	zgemmt_kernel_LNC
+#define	ZGEMMT_KERNEL_LCC	zgemmt_kernel_LCC
 
 #define	ZHERK_UN		zherk_UN
 #define	ZHERK_LN		zherk_LN

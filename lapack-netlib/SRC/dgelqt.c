@@ -1,0 +1,464 @@
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <complex.h>
+#ifdef complex
+#undef complex
+#endif
+#ifdef I
+#undef I
+#endif
+
+#if defined(_WIN64)
+typedef long long BLASLONG;
+typedef unsigned long long BLASULONG;
+#else
+typedef long BLASLONG;
+typedef unsigned long BLASULONG;
+#endif
+
+#ifdef LAPACK_ILP64
+typedef BLASLONG blasint;
+#if defined(_WIN64)
+#define blasabs(x) llabs(x)
+#else
+#define blasabs(x) labs(x)
+#endif
+#else
+typedef int blasint;
+#define blasabs(x) abs(x)
+#endif
+
+typedef blasint integer;
+
+typedef unsigned int uinteger;
+typedef char *address;
+typedef short int shortint;
+typedef float real;
+typedef double doublereal;
+typedef struct { real r, i; } complex;
+typedef struct { doublereal r, i; } doublecomplex;
+typedef blasint logical;
+
+typedef char logical1;
+typedef char integer1;
+
+#define TRUE_ (1)
+#define FALSE_ (0)
+
+/* Extern is for use with -E */
+#ifndef Extern
+#define Extern extern
+#endif
+
+/* I/O stuff */
+
+typedef int flag;
+typedef int ftnlen;
+typedef int ftnint;
+
+/*external read, write*/
+typedef struct
+{	flag cierr;
+	ftnint ciunit;
+	flag ciend;
+	char *cifmt;
+	ftnint cirec;
+} cilist;
+
+/*internal read, write*/
+typedef struct
+{	flag icierr;
+	char *iciunit;
+	flag iciend;
+	char *icifmt;
+	ftnint icirlen;
+	ftnint icirnum;
+} icilist;
+
+/*open*/
+typedef struct
+{	flag oerr;
+	ftnint ounit;
+	char *ofnm;
+	ftnlen ofnmlen;
+	char *osta;
+	char *oacc;
+	char *ofm;
+	ftnint orl;
+	char *oblnk;
+} olist;
+
+/*close*/
+typedef struct
+{	flag cerr;
+	ftnint cunit;
+	char *csta;
+} cllist;
+
+/*rewind, backspace, endfile*/
+typedef struct
+{	flag aerr;
+	ftnint aunit;
+} alist;
+
+/* inquire */
+typedef struct
+{	flag inerr;
+	ftnint inunit;
+	char *infile;
+	ftnlen infilen;
+	ftnint	*inex;	/*parameters in standard's order*/
+	ftnint	*inopen;
+	ftnint	*innum;
+	ftnint	*innamed;
+	char	*inname;
+	ftnlen	innamlen;
+	char	*inacc;
+	ftnlen	inacclen;
+	char	*inseq;
+	ftnlen	inseqlen;
+	char 	*indir;
+	ftnlen	indirlen;
+	char	*infmt;
+	ftnlen	infmtlen;
+	char	*inform;
+	ftnint	informlen;
+	char	*inunf;
+	ftnlen	inunflen;
+	ftnint	*inrecl;
+	ftnint	*innrec;
+	char	*inblank;
+	ftnlen	inblanklen;
+} inlist;
+
+#define VOID void
+
+union Multitype {	/* for multiple entry points */
+	integer1 g;
+	shortint h;
+	integer i;
+	/* longint j; */
+	real r;
+	doublereal d;
+	complex c;
+	doublecomplex z;
+	};
+
+typedef union Multitype Multitype;
+
+struct Vardesc {	/* for Namelist */
+	char *name;
+	char *addr;
+	ftnlen *dims;
+	int  type;
+	};
+typedef struct Vardesc Vardesc;
+
+struct Namelist {
+	char *name;
+	Vardesc **vars;
+	int nvars;
+	};
+typedef struct Namelist Namelist;
+
+#define abs(x) ((x) >= 0 ? (x) : -(x))
+#define dabs(x) (fabs(x))
+#define f2cmin(a,b) ((a) <= (b) ? (a) : (b))
+#define f2cmax(a,b) ((a) >= (b) ? (a) : (b))
+#define dmin(a,b) (f2cmin(a,b))
+#define dmax(a,b) (f2cmax(a,b))
+#define bit_test(a,b)	((a) >> (b) & 1)
+#define bit_clear(a,b)	((a) & ~((uinteger)1 << (b)))
+#define bit_set(a,b)	((a) |  ((uinteger)1 << (b)))
+
+#define abort_() { sig_die("Fortran abort routine called", 1); }
+#define d_abs(x) (fabs(*(x)))
+#define d_acos(x) (acos(*(x)))
+#define d_asin(x) (asin(*(x)))
+#define d_atan(x) (atan(*(x)))
+#define d_atn2(x, y) (atan2(*(x),*(y)))
+#define d_cos(x) (cos(*(x)))
+#define d_cosh(x) (cosh(*(x)))
+#define d_dim(__a, __b) ( *(__a) > *(__b) ? *(__a) - *(__b) : 0.0 )
+#define d_exp(x) (exp(*(x)))
+#define d_int(__x) (*(__x)>0 ? floor(*(__x)) : -floor(- *(__x)))
+#define r_int(__x) (*(__x)>0 ? floor(*(__x)) : -floor(- *(__x)))
+#define d_lg10(x) ( 0.43429448190325182765 * log(*(x)) )
+#define r_lg10(x) ( 0.43429448190325182765 * log(*(x)) )
+#define d_log(x) (log(*(x)))
+#define d_mod(x, y) (fmod(*(x), *(y)))
+#define u_nint(__x) ((__x)>=0 ? floor((__x) + .5) : -floor(.5 - (__x)))
+#define d_nint(x) u_nint(*(x))
+#define u_sign(__a,__b) ((__b) >= 0 ? ((__a) >= 0 ? (__a) : -(__a)) : -((__a) >= 0 ? (__a) : -(__a)))
+#define d_sign(a,b) u_sign(*(a),*(b))
+#define r_sign(a,b) u_sign(*(a),*(b))
+#define d_sin(x) (sin(*(x)))
+#define d_sinh(x) (sinh(*(x)))
+#define d_sqrt(x) (sqrt(*(x)))
+#define d_tan(x) (tan(*(x)))
+#define d_tanh(x) (tanh(*(x)))
+#define i_abs(x) abs(*(x))
+#define i_dnnt(x) ((integer)u_nint(*(x)))
+#define i_len(s, n) (n)
+#define i_nint(x) ((integer)u_nint(*(x)))
+#define i_sign(a,b) ((integer)u_sign((integer)*(a),(integer)*(b)))
+#define pow_dd(ap, bp) ( pow(*(ap), *(bp)))
+#define pow_si(B,E) spow_ui(*(B),*(E))
+#define pow_ri(B,E) spow_ui(*(B),*(E))
+#define pow_di(B,E) dpow_ui(*(B),*(E))
+#define s_cat(lpp, rpp, rnp, np, llp) { 	ftnlen i, nc, ll; char *f__rp, *lp; 	ll = (llp); lp = (lpp); 	for(i=0; i < (int)*(np); ++i) {         	nc = ll; 	        if((rnp)[i] < nc) nc = (rnp)[i]; 	        ll -= nc;         	f__rp = (rpp)[i]; 	        while(--nc >= 0) *lp++ = *(f__rp)++;         } 	while(--ll >= 0) *lp++ = ' '; }
+#define s_cmp(a,b,c,d) ((integer)strncmp((a),(b),f2cmin((c),(d))))
+#define s_copy(A,B,C,D) { int __i,__m; for (__i=0, __m=f2cmin((C),(D)); __i<__m && (B)[__i] != 0; ++__i) (A)[__i] = (B)[__i]; }
+#define sig_die(s, kill) { exit(1); }
+#define s_stop(s, n) {exit(0);}
+#define myexit_() break;
+#define mycycle() continue;
+#define myceiling(w) {ceil(w)}
+#define myhuge(w) {HUGE_VAL}
+//#define mymaxloc_(w,s,e,n) {if (sizeof(*(w)) == sizeof(double)) dmaxloc_((w),*(s),*(e),n); else dmaxloc_((w),*(s),*(e),n);}
+#define mymaxloc(w,s,e,n) {dmaxloc_(w,*(s),*(e),n)}
+
+/*  -- translated by f2c (version 20000121).
+   You must link the resulting object file with the libraries:
+	-lf2c -lm   (in that order)
+*/
+
+
+
+
+/* > \brief \b DGELQT */
+
+/*  =========== DOCUMENTATION =========== */
+
+/* Online html documentation available at */
+/*            http://www.netlib.org/lapack/explore-html/ */
+
+/* > \htmlonly */
+/* > Download DGEQRT + dependencies */
+/* > <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dgelqt.
+f"> */
+/* > [TGZ]</a> */
+/* > <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dgelqt.
+f"> */
+/* > [ZIP]</a> */
+/* > <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dgelqt.
+f"> */
+/* > [TXT]</a> */
+/* > \endhtmlonly */
+
+/*  Definition: */
+/*  =========== */
+
+/*       SUBROUTINE DGELQT( M, N, MB, A, LDA, T, LDT, WORK, INFO ) */
+
+/*       INTEGER INFO, LDA, LDT, M, N, MB */
+/*       DOUBLE PRECISION A( LDA, * ), T( LDT, * ), WORK( * ) */
+
+
+/* > \par Purpose: */
+/*  ============= */
+/* > */
+/* > \verbatim */
+/* > */
+/* > DGELQT computes a blocked LQ factorization of a real M-by-N matrix A */
+/* > using the compact WY representation of Q. */
+/* > \endverbatim */
+
+/*  Arguments: */
+/*  ========== */
+
+/* > \param[in] M */
+/* > \verbatim */
+/* >          M is INTEGER */
+/* >          The number of rows of the matrix A.  M >= 0. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] N */
+/* > \verbatim */
+/* >          N is INTEGER */
+/* >          The number of columns of the matrix A.  N >= 0. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] MB */
+/* > \verbatim */
+/* >          MB is INTEGER */
+/* >          The block size to be used in the blocked QR.  MIN(M,N) >= MB >= 1. */
+/* > \endverbatim */
+/* > */
+/* > \param[in,out] A */
+/* > \verbatim */
+/* >          A is DOUBLE PRECISION array, dimension (LDA,N) */
+/* >          On entry, the M-by-N matrix A. */
+/* >          On exit, the elements on and below the diagonal of the array */
+/* >          contain the M-by-MIN(M,N) lower trapezoidal matrix L (L is */
+/* >          lower triangular if M <= N); the elements above the diagonal */
+/* >          are the rows of V. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] LDA */
+/* > \verbatim */
+/* >          LDA is INTEGER */
+/* >          The leading dimension of the array A.  LDA >= f2cmax(1,M). */
+/* > \endverbatim */
+/* > */
+/* > \param[out] T */
+/* > \verbatim */
+/* >          T is DOUBLE PRECISION array, dimension (LDT,MIN(M,N)) */
+/* >          The upper triangular block reflectors stored in compact form */
+/* >          as a sequence of upper triangular blocks.  See below */
+/* >          for further details. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] LDT */
+/* > \verbatim */
+/* >          LDT is INTEGER */
+/* >          The leading dimension of the array T.  LDT >= MB. */
+/* > \endverbatim */
+/* > */
+/* > \param[out] WORK */
+/* > \verbatim */
+/* >          WORK is DOUBLE PRECISION array, dimension (MB*N) */
+/* > \endverbatim */
+/* > */
+/* > \param[out] INFO */
+/* > \verbatim */
+/* >          INFO is INTEGER */
+/* >          = 0:  successful exit */
+/* >          < 0:  if INFO = -i, the i-th argument had an illegal value */
+/* > \endverbatim */
+
+/*  Authors: */
+/*  ======== */
+
+/* > \author Univ. of Tennessee */
+/* > \author Univ. of California Berkeley */
+/* > \author Univ. of Colorado Denver */
+/* > \author NAG Ltd. */
+
+/* > \date November 2017 */
+
+/* > \ingroup doubleGEcomputational */
+
+/* > \par Further Details: */
+/*  ===================== */
+/* > */
+/* > \verbatim */
+/* > */
+/* >  The matrix V stores the elementary reflectors H(i) in the i-th row */
+/* >  above the diagonal. For example, if M=5 and N=3, the matrix V is */
+/* > */
+/* >               V = (  1  v1 v1 v1 v1 ) */
+/* >                   (     1  v2 v2 v2 ) */
+/* >                   (         1 v3 v3 ) */
+/* > */
+/* > */
+/* >  where the vi's represent the vectors which define H(i), which are returned */
+/* >  in the matrix A.  The 1's along the diagonal of V are not stored in A. */
+/* >  Let K=MIN(M,N).  The number of blocks is B = ceiling(K/MB), where each */
+/* >  block is of order MB except for the last block, which is of order */
+/* >  IB = K - (B-1)*MB.  For each of the B blocks, a upper triangular block */
+/* >  reflector factor is computed: T1, T2, ..., TB.  The MB-by-MB (and IB-by-IB */
+/* >  for the last block) T's are stored in the MB-by-K matrix T as */
+/* > */
+/* >               T = (T1 T2 ... TB). */
+/* > \endverbatim */
+/* > */
+/*  ===================================================================== */
+/* Subroutine */ void dgelqt_(integer *m, integer *n, integer *mb, doublereal *
+	a, integer *lda, doublereal *t, integer *ldt, doublereal *work, 
+	integer *info)
+{
+    /* System generated locals */
+    integer a_dim1, a_offset, t_dim1, t_offset, i__1, i__2, i__3, i__4, i__5;
+
+    /* Local variables */
+    integer i__, k, iinfo, ib;
+    extern /* Subroutine */ void dlarfb_(char *, char *, char *, char *, 
+	    integer *, integer *, integer *, doublereal *, integer *, 
+	    doublereal *, integer *, doublereal *, integer *, doublereal *, 
+	    integer *);
+    extern void xerbla_(char *, integer *, ftnlen);
+    extern void dgelqt3_(integer *, integer *, doublereal *, 
+	    integer *, doublereal *, integer *, integer *);
+
+
+/*  -- LAPACK computational routine (version 3.8.0) -- */
+/*  -- LAPACK is a software package provided by Univ. of Tennessee,    -- */
+/*  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..-- */
+/*     November 2017 */
+
+
+/* ===================================================================== */
+
+
+/*     Test the input arguments */
+
+    /* Parameter adjustments */
+    a_dim1 = *lda;
+    a_offset = 1 + a_dim1 * 1;
+    a -= a_offset;
+    t_dim1 = *ldt;
+    t_offset = 1 + t_dim1 * 1;
+    t -= t_offset;
+    --work;
+
+    /* Function Body */
+    *info = 0;
+    if (*m < 0) {
+	*info = -1;
+    } else if (*n < 0) {
+	*info = -2;
+    } else if (*mb < 1 || (*mb > f2cmin(*m,*n) && f2cmin(*m,*n) > 0)) {
+	*info = -3;
+    } else if (*lda < f2cmax(1,*m)) {
+	*info = -5;
+    } else if (*ldt < *mb) {
+	*info = -7;
+    }
+    if (*info != 0) {
+	i__1 = -(*info);
+	xerbla_("DGELQT", &i__1, (ftnlen)6);
+	return;
+    }
+
+/*     Quick return if possible */
+
+    k = f2cmin(*m,*n);
+    if (k == 0) {
+	return;
+    }
+
+/*     Blocked loop of length K */
+
+    i__1 = k;
+    i__2 = *mb;
+    for (i__ = 1; i__2 < 0 ? i__ >= i__1 : i__ <= i__1; i__ += i__2) {
+/* Computing MIN */
+	i__3 = k - i__ + 1;
+	ib = f2cmin(i__3,*mb);
+
+/*     Compute the LQ factorization of the current block A(I:M,I:I+IB-1) */
+
+	i__3 = *n - i__ + 1;
+	dgelqt3_(&ib, &i__3, &a[i__ + i__ * a_dim1], lda, &t[i__ * t_dim1 + 1]
+		, ldt, &iinfo);
+	if (i__ + ib <= *m) {
+
+/*     Update by applying H**T to A(I:M,I+IB:N) from the right */
+
+	    i__3 = *m - i__ - ib + 1;
+	    i__4 = *n - i__ + 1;
+	    i__5 = *m - i__ - ib + 1;
+	    dlarfb_("R", "N", "F", "R", &i__3, &i__4, &ib, &a[i__ + i__ * 
+		    a_dim1], lda, &t[i__ * t_dim1 + 1], ldt, &a[i__ + ib + 
+		    i__ * a_dim1], lda, &work[1], &i__5);
+	}
+    }
+    return;
+
+/*     End of DGELQT */
+
+} /* dgelqt_ */
+

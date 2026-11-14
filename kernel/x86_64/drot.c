@@ -169,7 +169,7 @@ static int rot_thread_function(blas_arg_t *args)
     return 0;
 }
 
-extern int blas_level1_thread(int mode, BLASLONG m, BLASLONG n, BLASLONG k, void *alpha, void *a, BLASLONG lda, void *b, BLASLONG ldb, void *c, BLASLONG ldc, int (*function)(), int nthreads);
+extern int blas_level1_thread(int mode, BLASLONG m, BLASLONG n, BLASLONG k, void *alpha, void *a, BLASLONG lda, void *b, BLASLONG ldb, void *c, BLASLONG ldc, int (*function)(void), int nthreads);
 #endif
 int CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x, FLOAT *y, BLASLONG inc_y, FLOAT c, FLOAT s)
 {
@@ -196,7 +196,7 @@ int CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x, FLOAT *y, BLASLONG inc_y, FLOAT 
 #else
 	    int mode = BLAS_SINGLE | BLAS_REAL | BLAS_PTHREAD;
 #endif
-	    blas_level1_thread(mode, n, 0, 0, alpha, x, inc_x, y, inc_y, &dummy_c, 0, (void *)rot_thread_function, nthreads);
+	    blas_level1_thread(mode, n, 0, 0, alpha, x, inc_x, y, inc_y, &dummy_c, 0, (int (*)(void))rot_thread_function, nthreads);
     }
 #else	
     rot_compute(n, x, inc_x, y, inc_y, c, s);

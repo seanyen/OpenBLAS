@@ -1,3 +1,31 @@
+###############################################################################
+# Copyright (c) 2025, The OpenBLAS Project
+# All rights reserved.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name of the OpenBLAS project nor the names of
+#    its contributors may be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE OPENBLAS PROJECT OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
+
 ##
 ## Author: Hank Anderson <hank@statease.com>
 ## Description: Ported from OpenBLAS/Makefile.prebuild
@@ -58,7 +86,7 @@ set(TARGET_CONF_TEMP "${PROJECT_BINARY_DIR}/${TARGET_CONF}.tmp")
 
 # c_check
 set(FU "")
-if (APPLE OR (MSVC AND NOT ${CMAKE_C_COMPILER_ID} MATCHES "Clang"))
+if (APPLE OR (MSVC AND NOT (${CMAKE_C_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_C_COMPILER_ID} MATCHES "IntelLLVM")))
   set(FU "_")
 endif()
 if(MINGW AND NOT MINGW64)
@@ -70,8 +98,11 @@ if (${COMPILER_ID} STREQUAL "GNU")
   set(COMPILER_ID "GCC")
 endif ()
 
-string(TOUPPER ${ARCH} UC_ARCH)
+if (HOST_OS STREQUAL "EMSCRIPTEN")
+	set (ARCH wasm)
+endif()
 
+string(TOUPPER ${ARCH} UC_ARCH)
 file(WRITE ${TARGET_CONF_TEMP}
   "#define OS_${HOST_OS}\t1\n"
   "#define ARCH_${UC_ARCH}\t1\n"
@@ -82,6 +113,10 @@ file(WRITE ${TARGET_CONF_TEMP}
 if (${HOST_OS} STREQUAL "WINDOWSSTORE")
   file(APPEND ${TARGET_CONF_TEMP}
     "#define OS_WINNT\t1\n")
+endif ()
+if (${HOST_OS} STREQUAL CYGWIN)
+  file(APPEND ${TARGET_CONF_TEMP}
+    "#define OS_CYGWIN_NT\t1\n")
 endif ()
 
 # f_check
@@ -127,6 +162,14 @@ if (DEFINED CORE AND CMAKE_CROSSCOMPILING AND NOT (${HOST_OS} STREQUAL "WINDOWSS
       "#define DLOCAL_BUFFER_SIZE\t16384\n"
       "#define CLOCAL_BUFFER_SIZE\t16384\n"
       "#define ZLOCAL_BUFFER_SIZE\t16384\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSSE3 1)
+      set(BGEMM_UNROLL_M 8)
+      set(BGEMM_UNROLL_N 4)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
       set(SGEMM_UNROLL_M 8)
       set(SGEMM_UNROLL_N 4)
       set(DGEMM_UNROLL_M 4)
@@ -139,6 +182,719 @@ if (DEFINED CORE AND CMAKE_CROSSCOMPILING AND NOT (${HOST_OS} STREQUAL "WINDOWSS
       set(CGEMM3M_UNROLL_N 4)
       set(ZGEMM3M_UNROLL_M 4)
       set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "ATOM")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t24576\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t524288\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_CMOV\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSSE3\n"
+      "#define SLOCAL_BUFFER_SIZE\t16384\n"
+      "#define DLOCAL_BUFFER_SIZE\t8192\n"
+      "#define CLOCAL_BUFFER_SIZE\t16384\n"
+      "#define ZLOCAL_BUFFER_SIZE\t8192\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSSE3 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 8)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 4)
+      set(DGEMM_UNROLL_N 2)
+      set(CGEMM_UNROLL_M 4)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 2)
+      set(ZGEMM_UNROLL_N 1)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "PRESCOTT")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t16384\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t1048576\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_CMOV\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define SLOCAL_BUFFER_SIZE\t8192\n"
+      "#define DLOCAL_BUFFER_SIZE\t8192\n"
+      "#define CLOCAL_BUFFER_SIZE\t8192\n"
+      "#define ZLOCAL_BUFFER_SIZE\t8192\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 8)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 4)
+      set(DGEMM_UNROLL_N 4)
+      set(CGEMM_UNROLL_M 4)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 2)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "NEHALEM")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t262144\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_CMOV\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define SLOCAL_BUFFER_SIZE\t65535\n"
+      "#define DLOCAL_BUFFER_SIZE\t32768\n"
+      "#define CLOCAL_BUFFER_SIZE\t65536\n"
+      "#define ZLOCAL_BUFFER_SIZE\t32768\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 4)
+      set(SGEMM_UNROLL_N 8)
+      set(DGEMM_UNROLL_M 2)
+      set(DGEMM_UNROLL_N 8)
+      set(CGEMM_UNROLL_M 2)
+      set(CGEMM_UNROLL_N 4)
+      set(ZGEMM_UNROLL_M 1)
+      set(ZGEMM_UNROLL_N 4)
+      set(CGEMM3M_UNROLL_M 4)
+      set(CGEMM3M_UNROLL_N 8)
+      set(ZGEMM3M_UNROLL_M 2)
+      set(ZGEMM3M_UNROLL_N 8)
+  elseif ("${TCORE}" STREQUAL "SANDYBRIDGE")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t262144\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_CMOV\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define HAVE_AVX\n"
+      "#define SLOCAL_BUFFER_SIZE\t24576\n"
+      "#define DLOCAL_BUFFER_SIZE\t16384\n"
+      "#define CLOCAL_BUFFER_SIZE\t32768\n"
+      "#define ZLOCAL_BUFFER_SIZE\t24576\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(HAVE_AVX 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 8)
+      set(DGEMM_UNROLL_N 4)
+      set(CGEMM_UNROLL_M 8)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 1)
+      set(ZGEMM_UNROLL_N 4)
+      set(CGEMM3M_UNROLL_M 4)
+      set(CGEMM3M_UNROLL_N 8)
+      set(ZGEMM3M_UNROLL_M 2)
+      set(ZGEMM3M_UNROLL_N 8)
+  elseif ("${TCORE}" STREQUAL "HASWELL")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t262144\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_CMOV\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define HAVE_AVX\n"
+      "#define HAVE_AVX2\n"
+      "#define HAVE_FMA3\n"
+      "#define SLOCAL_BUFFER_SIZE\t20480\n"
+      "#define DLOCAL_BUFFER_SIZE\t32768\n"
+      "#define CLOCAL_BUFFER_SIZE\t16384\n"
+      "#define ZLOCAL_BUFFER_SIZE\t12288\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(HAVE_AVX 1)
+      set(HAVE_AVX2 1)
+      set(HAVE_FMA3 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 8)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 4)
+      set(DGEMM_UNROLL_N 8)
+      set(CGEMM_UNROLL_M 8)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 4)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "SKYLAKEX")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t262144\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_CMOV\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define HAVE_AVX\n"
+      "#define HAVE_AVX2\n"
+      "#define HAVE_FMA3\n"
+      "#define HAVE_AVX512VL\n"
+      "#define SLOCAL_BUFFER_SIZE\t28672\n"
+      "#define DLOCAL_BUFFER_SIZE\t12288\n"
+      "#define CLOCAL_BUFFER_SIZE\t12288\n"
+      "#define ZLOCAL_BUFFER_SIZE\t8192\n")
+      set(HAVE_CMOV 1)
+      set(HAVE_MMX 1)
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(HAVE_AVX 1)
+      set(HAVE_AVX2 1)
+      set(HAVE_FMA3 1)
+      set(HAVE_AVX512VL 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 16)
+      set(DGEMM_UNROLL_N 2)
+      set(CGEMM_UNROLL_M 8)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 4)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "COOPERLAKE")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t262144\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_CMOV\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define HAVE_AVX\n"
+      "#define HAVE_AVX2\n"
+      "#define HAVE_FMA3\n"
+      "#define HAVE_AVX512VL\n"
+      "#define HAVE_AVX512BF16\n"
+      "#define SLOCAL_BUFFER_SIZE\t20480\n"
+      "#define DLOCAL_BUFFER_SIZE\t12288\n"
+      "#define CLOCAL_BUFFER_SIZE\t12288\n"
+      "#define ZLOCAL_BUFFER_SIZE\t8192\n")
+      set(HAVE_CMOV 1)
+      set(HAVE_MMX 1)
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(HAVE_AVX 1)
+      set(HAVE_AVX2 1)
+      set(HAVE_FMA3 1)
+      set(HAVE_AVX512VL 1)
+      set(HAVE_AVX512BF16 1)
+      set(SBGEMM_UNROLL_M 16)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 16)
+      set(DGEMM_UNROLL_N 2)
+      set(CGEMM_UNROLL_M 8)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 4)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "SAPPHIRERAPIDS")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t262144\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_CMOV\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define HAVE_AVX\n"
+      "#define HAVE_AVX2\n"
+      "#define HAVE_FMA3\n"
+      "#define HAVE_AVX512VL\n"
+      "#define HAVE_AVX512BF16\n"
+      "#define SLOCAL_BUFFER_SIZE\t20480\n"
+      "#define DLOCAL_BUFFER_SIZE\t12288\n"
+      "#define CLOCAL_BUFFER_SIZE\t12288\n"
+      "#define ZLOCAL_BUFFER_SIZE\t8192\n")
+      set(HAVE_CMOV 1)
+      set(HAVE_MMX 1)
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(HAVE_AVX 1)
+      set(HAVE_AVX2 1)
+      set(HAVE_FMA3 1)
+      set(HAVE_AVX512VL 1)
+      set(HAVE_AVX512BF16 1)
+      set(SBGEMM_UNROLL_M 32)
+      set(SBGEMM_UNROLL_N 16)
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 16)
+      set(DGEMM_UNROLL_N 2)
+      set(CGEMM_UNROLL_M 8)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 4)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "OPTERON")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t65536\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t1048576\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t32\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_3DNOW\n"
+      "#define HAVE_3DNOWEX\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define SLOCAL_BUFFER_SIZE\t15360\n"
+      "#define DLOCAL_BUFFER_SIZE\t15360\n"
+      "#define CLOCAL_BUFFER_SIZE\t15360\n"
+      "#define ZLOCAL_BUFFER_SIZE\t15360\n")
+      set(HAVE_3DNOW 1)
+      set(HAVE_3DNOWEX 1)
+      set(HAVE_MMX 1)
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 8)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 4)
+      set(DGEMM_UNROLL_N 4)
+      set(CGEMM_UNROLL_M 4)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 2)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "BARCELONA")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t524288\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSE4A\n"
+      "#define HAVE_MISALIGNSSE\n"
+      "#define HAVE_128BITFPU\n"
+      "#define HAVE_FASTMOVU\n"
+      "#define SLOCAL_BUFFER_SIZE\t14336\n"
+      "#define DLOCAL_BUFFER_SIZE\t14336\n"
+      "#define CLOCAL_BUFFER_SIZE\t14336\n"
+      "#define ZLOCAL_BUFFER_SIZE\t14336\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSE4A 1)
+      set(HAVE_MISALIGNSSE 1)
+      set(HAVE_128BITFPU 1)
+      set(HAVE_FASTMOVU 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 8)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 4)
+      set(DGEMM_UNROLL_N 4)
+      set(CGEMM_UNROLL_M 4)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 2)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "BULLDOZER")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t49152\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t1024000\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t32\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSE4A\n"
+      "#define HAVE_AVX\n"
+      "#define HAVE_MISALIGNSSE\n"
+      "#define HAVE_128BITFPU\n"
+      "#define HAVE_FASTMOVU\n"
+      "#define SLOCAL_BUFFER_SIZE\t5376\n"
+      "#define DLOCAL_BUFFER_SIZE\t5376\n"
+      "#define CLOCAL_BUFFER_SIZE\t14336\n"
+      "#define ZLOCAL_BUFFER_SIZE\t14336\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSE4A 1)
+      set(HAVE_AVX 1)
+      set(HAVE_MISALIGNSSE 1)
+      set(HAVE_128BITFPU 1)
+      set(HAVE_FASTMOVU 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 2)
+      set(DGEMM_UNROLL_M 8)
+      set(DGEMM_UNROLL_N 2)
+      set(CGEMM_UNROLL_M 2)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 2)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "PILEDRIVER")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t16384\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t2097152\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define HAVE_SSE4A\n"
+      "#define HAVE_AVX\n"
+      "#define HAVE_MISALIGNSSE\n"
+      "#define HAVE_128BITFPU\n"
+      "#define HAVE_FASTMOVU\n"
+      "#define HAVE_CFLUSH\n"
+      "#define HAVE_FMA3\n"
+      "#define SLOCAL_BUFFER_SIZE\t6144\n"
+      "#define DLOCAL_BUFFER_SIZE\t5376\n"
+      "#define CLOCAL_BUFFER_SIZE\t10752\n"
+      "#define ZLOCAL_BUFFER_SIZE\t10752\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(HAVE_SSE4A 1)
+      set(HAVE_AVX 1)
+      set(HAVE_FMA3 1)
+      set(HAVE_MISALIGNSSE 1)
+      set(HAVE_128BITFPU 1)
+      set(HAVE_FASTMOVU 1)
+      set(HAVE_CFLUSH 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 2)
+      set(DGEMM_UNROLL_M 8)
+      set(DGEMM_UNROLL_N 2)
+      set(CGEMM_UNROLL_M 4)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 2)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "STEAMROLLER")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t16384\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t2097152\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define HAVE_SSE4A\n"
+      "#define HAVE_AVX\n"
+      "#define HAVE_MISALIGNSSE\n"
+      "#define HAVE_128BITFPU\n"
+      "#define HAVE_FASTMOVU\n"
+      "#define HAVE_CFLUSH\n"
+      "#define HAVE_FMA3\n"
+      "#define SLOCAL_BUFFER_SIZE\t6144\n"
+      "#define DLOCAL_BUFFER_SIZE\t5120\n"
+      "#define CLOCAL_BUFFER_SIZE\t10240\n"
+      "#define ZLOCAL_BUFFER_SIZE\t10240\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(HAVE_SSE4A 1)
+      set(HAVE_AVX 1)
+      set(HAVE_FMA3 1)
+      set(HAVE_MISALIGNSSE 1)
+      set(HAVE_128BITFPU 1)
+      set(HAVE_FASTMOVU 1)
+      set(HAVE_CFLUSH 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 2)
+      set(DGEMM_UNROLL_M 8)
+      set(DGEMM_UNROLL_N 2)
+      set(CGEMM_UNROLL_M 4)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 2)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "EXCAVATOR")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t16384\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t2097152\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define HAVE_SSE4A\n"
+      "#define HAVE_AVX\n"
+      "#define HAVE_MISALIGNSSE\n"
+      "#define HAVE_128BITFPU\n"
+      "#define HAVE_FASTMOVU\n"
+      "#define HAVE_CFLUSH\n"
+      "#define HAVE_FMA3\n"
+      "#define SLOCAL_BUFFER_SIZE\t6144\n"
+      "#define DLOCAL_BUFFER_SIZE\t5120\n"
+      "#define CLOCAL_BUFFER_SIZE\t10240\n"
+      "#define ZLOCAL_BUFFER_SIZE\t10240\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(HAVE_SSE4A 1)
+      set(HAVE_AVX 1)
+      set(HAVE_FMA3 1)
+      set(HAVE_MISALIGNSSE 1)
+      set(HAVE_128BITFPU 1)
+      set(HAVE_FASTMOVU 1)
+      set(HAVE_CFLUSH 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 2)
+      set(DGEMM_UNROLL_M 8)
+      set(DGEMM_UNROLL_N 2)
+      set(CGEMM_UNROLL_M 4)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 2)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "ZEN")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t524288\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_MMX\n"
+      "#define HAVE_SSE\n"
+      "#define HAVE_SSE2\n"
+      "#define HAVE_SSE3\n"
+      "#define HAVE_SSE4_1\n"
+      "#define HAVE_SSE4_2\n"
+      "#define HAVE_SSE4A\n"
+      "#define HAVE_MISALIGNSSE\n"
+      "#define HAVE_128BITFPU\n"
+      "#define HAVE_FASTMOVU\n"
+      "#define HAVE_CFLUSH\n"
+      "#define HAVE_AVX\n"
+      "#define HAVE_AVX2\n"
+      "#define HAVE_FMA3\n"
+      "#define SLOCAL_BUFFER_SIZE\t20480\n"
+      "#define DLOCAL_BUFFER_SIZE\t32768\n"
+      "#define CLOCAL_BUFFER_SIZE\t16384\n"
+      "#define ZLOCAL_BUFFER_SIZE\t12288\n")
+      set(HAVE_SSE 1)
+      set(HAVE_SSE2 1)
+      set(HAVE_SSE3 1)
+      set(HAVE_SSE4_1 1)
+      set(HAVE_SSE4_2 1)
+      set(HAVE_AVX 1)
+      set(HAVE_AVX2 1)
+      set(HAVE_FMA3 1)
+      set(HAVE_SSE4A 1)
+      set(HAVE_MISALIGNSSE 1)
+      set(HAVE_128BITFPU 1)
+      set(HAVE_FASTMOVU 1)
+      set(HAVE_CFLUSH 1)
+      set(SBGEMM_UNROLL_M 8)
+      set(SBGEMM_UNROLL_N 4)
+      set(SGEMM_UNROLL_M 8)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 4)
+      set(DGEMM_UNROLL_N 8)
+      set(CGEMM_UNROLL_M 8)
+      set(CGEMM_UNROLL_N 2)
+      set(ZGEMM_UNROLL_M 4)
+      set(ZGEMM_UNROLL_N 2)
+      set(CGEMM3M_UNROLL_M 8)
+      set(CGEMM3M_UNROLL_N 4)
+      set(ZGEMM3M_UNROLL_M 4)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "ARMV5")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t65536\n"
+      "#define L1_DATA_LINESIZE\t32\n"
+      "#define L2_SIZE\t512488\n"
+      "#define L2_LINESIZE\t32\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define L2_ASSOCIATIVE\t4\n")
+    set(SGEMM_UNROLL_M 2)
+    set(SGEMM_UNROLL_N 2)
+    set(DGEMM_UNROLL_M 2)
+    set(DGEMM_UNROLL_N 2)
+    set(CGEMM_UNROLL_M 2)
+    set(CGEMM_UNROLL_N 2)
+    set(ZGEMM_UNROLL_M 2)
+    set(ZGEMM_UNROLL_N 2)
+  elseif ("${TCORE}" STREQUAL "ARMV6")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t65536\n"
+      "#define L1_DATA_LINESIZE\t32\n"
+      "#define L2_SIZE\t512488\n"
+      "#define L2_LINESIZE\t32\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define L2_ASSOCIATIVE\t4\n"
+      "#define HAVE_VFP\n")
+    set(SGEMM_UNROLL_M 4)
+    set(SGEMM_UNROLL_N 2)
+    set(DGEMM_UNROLL_M 4)
+    set(DGEMM_UNROLL_N 2)
+    set(CGEMM_UNROLL_M 2)
+    set(CGEMM_UNROLL_N 2)
+    set(ZGEMM_UNROLL_M 2)
+    set(ZGEMM_UNROLL_N 2)
   elseif ("${TCORE}" STREQUAL "ARMV7")
     file(APPEND ${TARGET_CONF_TEMP}
       "#define L1_DATA_SIZE\t65536\n"
@@ -177,7 +933,7 @@ if (DEFINED CORE AND CMAKE_CROSSCOMPILING AND NOT (${HOST_OS} STREQUAL "WINDOWSS
     set(ZGEMM_UNROLL_M 4)
     set(ZGEMM_UNROLL_N 4)
     set(SYMV_P 16)
-  elseif ("${TCORE}" STREQUAL "CORTEXA57" OR "${TCORE}" STREQUAL "CORTEXA53")
+  elseif ("${TCORE}" STREQUAL "CORTEXA57" OR "${TCORE}" STREQUAL "CORTEXA53" OR "${TCORE}" STREQUAL "CORTEXA55")
     file(APPEND ${TARGET_CONF_TEMP}
       "#define L1_CODE_SIZE\t32768\n"
       "#define L1_CODE_LINESIZE\t64\n"
@@ -195,21 +951,25 @@ if (DEFINED CORE AND CMAKE_CROSSCOMPILING AND NOT (${HOST_OS} STREQUAL "WINDOWSS
       "#define HAVE_VFP\n"
       "#define HAVE_NEON\n"
       "#define ARMV8\n")
-if ("${TCORE}" STREQUAL "CORTEXA57")     
+if ("${TCORE}" STREQUAL "CORTEXA57")
     set(SGEMM_UNROLL_M 16)
     set(SGEMM_UNROLL_N 4)
 else ()
     set(SGEMM_UNROLL_M 8)
-    set(SGEMM_UNROLL_N 8) 
+    set(SGEMM_UNROLL_N 8)
 endif ()
+if ("${TCORE}" STREQUAL "CORTEXA53")
+    set(DGEMM_UNROLL_M 4)
+else ()
     set(DGEMM_UNROLL_M 8)
+endif ()    
     set(DGEMM_UNROLL_N 4)
     set(CGEMM_UNROLL_M 8)
     set(CGEMM_UNROLL_N 4)
     set(ZGEMM_UNROLL_M 4)
     set(ZGEMM_UNROLL_N 4)
     set(SYMV_P 16)
-  elseif ("${TCORE}" STREQUAL "CORTEXA72" OR "${TCORE}" STREQUAL "CORTEXA73")
+  elseif ("${TCORE}" STREQUAL "CORTEXA72" OR "${TCORE}" STREQUAL "CORTEXA73" OR "${TCORE}" STREQUAL "CORTEXA76")
     file(APPEND ${TARGET_CONF_TEMP}
       "#define L1_CODE_SIZE\t49152\n"
       "#define L1_CODE_LINESIZE\t64\n"
@@ -243,16 +1003,72 @@ endif ()
       "#define L1_CODE_ASSOCIATIVE\t4\n"
       "#define L1_DATA_SIZE\t65536\n"
       "#define L1_DATA_LINESIZE\t64\n"
-      "#define L1_DATA_ASSOCIATIVE\t2\n"
+      "#define L1_DATA_ASSOCIATIVE\t4\n"
       "#define L2_SIZE\t1048576\n\n"
       "#define L2_LINESIZE\t64\n"
-      "#define L2_ASSOCIATIVE\t16\n"
-      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define L2_ASSOCIATIVE\t8\n"
+      "#define DTB_DEFAULT_ENTRIES\t48\n"
       "#define DTB_SIZE\t4096\n"
       "#define HAVE_VFPV4\n"
       "#define HAVE_VFPV3\n"
       "#define HAVE_VFP\n"
       "#define HAVE_NEON\n"
+      "#define ARMV8\n")
+    set(SGEMM_UNROLL_M 16)
+    set(SGEMM_UNROLL_N 4)
+    set(DGEMM_UNROLL_M 8)
+    set(DGEMM_UNROLL_N 4)
+    set(CGEMM_UNROLL_M 8)
+    set(CGEMM_UNROLL_N 4)
+    set(ZGEMM_UNROLL_M 4)
+    set(ZGEMM_UNROLL_N 4)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "NEOVERSEV1")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_CODE_SIZE\t65536\n"
+      "#define L1_CODE_LINESIZE\t64\n"
+      "#define L1_CODE_ASSOCIATIVE\t4\n"
+      "#define L1_DATA_SIZE\t65536\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L1_DATA_ASSOCIATIVE\t4\n"
+      "#define L2_SIZE\t1048576\n\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define L2_ASSOCIATIVE\t8\n"
+      "#define DTB_DEFAULT_ENTRIES\t48\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_VFPV4\n"
+      "#define HAVE_VFPV3\n"
+      "#define HAVE_VFP\n"
+      "#define HAVE_NEON\n"
+      "#define HAVE_SVE\n"
+      "#define ARMV8\n")
+    set(SGEMM_UNROLL_M 16)
+    set(SGEMM_UNROLL_N 8)
+    set(DGEMM_UNROLL_M 4)
+    set(DGEMM_UNROLL_N 8)
+    set(CGEMM_UNROLL_M 2)
+    set(CGEMM_UNROLL_N 4)
+    set(ZGEMM_UNROLL_M 2)
+    set(ZGEMM_UNROLL_N 4)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "NEOVERSEN2" OR "${TCORE}" STREQUAL "ARMV9SME")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_CODE_SIZE\t65536\n"
+      "#define L1_CODE_LINESIZE\t64\n"
+      "#define L1_CODE_ASSOCIATIVE\t4\n"
+      "#define L1_DATA_SIZE\t65536\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L1_DATA_ASSOCIATIVE\t2\n"
+      "#define L2_SIZE\t1048576\n\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define L2_ASSOCIATIVE\t8\n"
+      "#define DTB_DEFAULT_ENTRIES\t48\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_VFPV4\n"
+      "#define HAVE_VFPV3\n"
+      "#define HAVE_VFP\n"
+      "#define HAVE_NEON\n"
+      "#define HAVE_SVE\n"
       "#define ARMV8\n")
     set(SGEMM_UNROLL_M 16)
     set(SGEMM_UNROLL_N 4)
@@ -416,7 +1232,34 @@ endif ()
     set(ZGEMM_UNROLL_M 4)
     set(ZGEMM_UNROLL_N 4)
     set(SYMV_P 16)
-elseif ("${TCORE}" STREQUAL "VORTEX")
+  elseif ("${TCORE}" STREQUAL "AMPEREONE")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_CODE_SIZE\t16384\n"
+      "#define L1_CODE_LINESIZE\t64\n"
+      "#define L1_CODE_ASSOCIATIVE\t4\n"
+      "#define L1_DATA_SIZE\t65536\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L1_DATA_ASSOCIATIVE\t4\n"
+      "#define L2_SIZE\t2097152\n\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define L2_ASSOCIATIVE\t8\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_VFPV4\n"
+      "#define HAVE_VFPV3\n"
+      "#define HAVE_VFP\n"
+      "#define HAVE_NEON\n"
+      "#define ARMV8\n")
+    set(SGEMM_UNROLL_M 16)
+    set(SGEMM_UNROLL_N 4)
+    set(DGEMM_UNROLL_M 8)
+    set(DGEMM_UNROLL_N 4)
+    set(CGEMM_UNROLL_M 8)
+    set(CGEMM_UNROLL_N 4)
+    set(ZGEMM_UNROLL_M 4)
+    set(ZGEMM_UNROLL_N 4)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "VORTEX" OR "${TCORE}" STREQUAL "VORTEXM4")
     file(APPEND ${TARGET_CONF_TEMP}
       "#define ARMV8\n"
       "#define L1_CODE_SIZE\t32768\n"
@@ -430,14 +1273,107 @@ elseif ("${TCORE}" STREQUAL "VORTEX")
       "#define L2_ASSOCIATIVE\t8\n"
       "#define DTB_DEFAULT_ENTRIES\t64\n"
       "#define DTB_SIZE\t4096\n")
-    set(SGEMM_UNROLL_M 16)
-    set(SGEMM_UNROLL_N 4)
-    set(DGEMM_UNROLL_M 8)
-    set(DGEMM_UNROLL_N 4)
-    set(CGEMM_UNROLL_M 8)
+    if ("${TCORE}" STREQUAL "VORTEXM4" AND NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+      set(SGEMM_UNROLL_M 64)
+      set(SGEMM_UNROLL_N 16)
+      set(DGEMM_UNROLL_M 64)
+      set(DGEMM_UNROLL_N 8)
+      set(CGEMM_UNROLL_M 16)
+      set(CGEMM_UNROLL_N 16)
+      set(ZGEMM_UNROLL_M 16)
+      set(ZGEMM_UNROLL_N 8)
+      if (BUILD_BFLOAT16)
+        set(SBGEMM_UNROLL_M 64)
+        set(SBGEMM_UNROLL_N 16)
+      endif ()
+    else ()
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 8)
+      set(DGEMM_UNROLL_N 4)
+      set(CGEMM_UNROLL_M 8)
+      set(CGEMM_UNROLL_N 4)
+      set(ZGEMM_UNROLL_M 4)
+      set(ZGEMM_UNROLL_N 4)
+    endif ()
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "A64FX")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_CODE_SIZE\t65536\n"
+      "#define L1_CODE_LINESIZE\t256\n"
+      "#define L1_CODE_ASSOCIATIVE\t8\n"
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t256\n"
+      "#define L1_DATA_ASSOCIATIVE\t8\n"
+      "#define L2_SIZE\t8388608\n\n"
+      "#define L2_LINESIZE\t256\n"
+      "#define L2_ASSOCIATIVE\t8\n"
+      "#define L3_SIZE\t0\n\n"
+      "#define L3_LINESIZE\t0\n\n"
+      "#define L3_ASSOCIATIVE\t0\n\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define HAVE_VFPV4\n"
+      "#define HAVE_VFPV3\n"
+      "#define HAVE_VFP\n"
+      "#define HAVE_NEON\n"
+      "#define HAVE_SVE\n"
+      "#define ARMV8\n")
+    set(SGEMM_UNROLL_M 4)
+    set(SGEMM_UNROLL_N 8)
+    set(DGEMM_UNROLL_M 2)
+    set(DGEMM_UNROLL_N 8)
+    set(CGEMM_UNROLL_M 2)
     set(CGEMM_UNROLL_N 4)
-    set(ZGEMM_UNROLL_M 4)
+    set(ZGEMM_UNROLL_M 2)
     set(ZGEMM_UNROLL_N 4)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "ARMV8SVE" OR "${TCORE}" STREQUAL "CORTEXA510" OR "${TCORE}" STREQUAL "CORTEXX2" OR "${TCORE}" STREQUAL "ARMV9SME")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE\t32768\n"
+      "#define L1_DATA_LINESIZE\t64\n"
+      "#define L2_SIZE\t1048576\n"
+      "#define L2_LINESIZE\t64\n"
+      "#define DTB_DEFAULT_ENTRIES\t64\n"
+      "#define DTB_SIZE\t4096\n"
+      "#define L2_ASSOCIATIVE\t32\n"
+      "#define ARMV8\n")
+    set(SGEMM_UNROLL_M 4)
+    set(SGEMM_UNROLL_N 8)
+    set(DGEMM_UNROLL_M 4)
+    set(DGEMM_UNROLL_N 8)
+    set(CGEMM_UNROLL_M 2)
+    set(CGEMM_UNROLL_N 4)
+    set(ZGEMM_UNROLL_M 2)
+    set(ZGEMM_UNROLL_N 4)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "P5600")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L2_SIZE 1048576\n"
+      "#define DTB_SIZE 4096\n"
+      "#define DTB_DEFAULT_ENTRIES 64\n")
+    set(SGEMM_UNROLL_M 2)
+    set(SGEMM_UNROLL_N 2)
+    set(DGEMM_UNROLL_M 2)
+    set(DGEMM_UNROLL_N 2)
+    set(CGEMM_UNROLL_M 2)
+    set(CGEMM_UNROLL_N 2)
+    set(ZGEMM_UNROLL_M 2)
+    set(ZGEMM_UNROLL_N 2)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" MATCHES "MIPS")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L2_SIZE 262144\n"
+      "#define DTB_SIZE 4096\n"
+      "#define DTB_DEFAULT_ENTRIES 64\n")
+    set(SGEMM_UNROLL_M 2)
+    set(SGEMM_UNROLL_N 2)
+    set(DGEMM_UNROLL_M 2)
+    set(DGEMM_UNROLL_N 2)
+    set(CGEMM_UNROLL_M 2)
+    set(CGEMM_UNROLL_N 2)
+    set(ZGEMM_UNROLL_M 2)
+    set(ZGEMM_UNROLL_N 2)
     set(SYMV_P 16)
   elseif ("${TCORE}" STREQUAL "POWER6")
     file(APPEND ${TARGET_CONF_TEMP}
@@ -493,6 +1429,166 @@ elseif ("${TCORE}" STREQUAL "VORTEX")
     set(ZGEMM_UNROLL_M 8)
     set(ZGEMM_UNROLL_N 2)
     set(SYMV_P 8)
+  elseif ("${TCORE}" STREQUAL "C910V")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE 32768\n"
+      "#define L1_DATA_LINESIZE 32\n"
+      "#define L2_SIZE 1048576\n"
+      "#define L2_LINESIZE 32 \n"
+      "#define DTB_DEFAULT_ENTRIES 128\n"
+      "#define DTB_SIZE 4096\n"
+      "#define L2_ASSOCIATIVE 4\n")
+    set(SGEMM_UNROLL_M 16)
+    set(SGEMM_UNROLL_N 4)
+    set(DGEMM_UNROLL_M 8)
+    set(DGEMM_UNROLL_N 4)
+    set(CGEMM_UNROLL_M 2)
+    set(CGEMM_UNROLL_N 2)
+    set(ZGEMM_UNROLL_M 2)
+    set(ZGEMM_UNROLL_N 2)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "x280")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE 65536\n"
+      "#define L1_LINESIZE 32 \n"
+      "#define L2_SIZE 2097152\n"
+      "#define L2_LINESIZE 32 \n"
+      "#define DTB_DEFAULT_ENTRIES 128\n"
+      "#define DTB_SIZE 4096\n"
+      "#define L2_ASSOCIATIVE 4\n")
+    set(SGEMM_UNROLL_M 16)
+    set(SGEMM_UNROLL_N 8)
+    set(DGEMM_UNROLL_M 16)
+    set(DGEMM_UNROLL_N 8)
+    set(CGEMM_UNROLL_M 8)
+    set(CGEMM_UNROLL_N 4)
+    set(ZGEMM_UNROLL_M 8)
+    set(ZGEMM_UNROLL_N 4)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "RISCV64_ZVL128B")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE 32768\n"
+      "#define L1_DATA_LINESIZE 32\n"
+      "#define L2_SIZE 1048576\n"
+      "#define L2_LINESIZE 32 \n"
+      "#define DTB_DEFAULT_ENTRIES 128\n"
+      "#define DTB_SIZE 4096\n"
+      "#define L2_ASSOCIATIVE 4\n")
+    set(SGEMM_UNROLL_M 8)
+    set(SGEMM_UNROLL_N 8)
+    set(DGEMM_UNROLL_M 8)
+    set(DGEMM_UNROLL_N 4)
+    set(CGEMM_UNROLL_M 8)
+    set(CGEMM_UNROLL_N 4)
+    set(ZGEMM_UNROLL_M 4)
+    set(ZGEMM_UNROLL_N 4)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "RISCV64_ZVL256B")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE 65536\n"
+      "#define L1_DATA_LINESIZE 32\n"
+      "#define L2_SIZE 2097152\n"
+      "#define L2_LINESIZE 32 \n"
+      "#define DTB_DEFAULT_ENTRIES 128\n"
+      "#define DTB_SIZE 4096\n"
+      "#define L2_ASSOCIATIVE 4\n")
+    set(SGEMM_UNROLL_M 16)
+    set(SGEMM_UNROLL_N 8)
+    set(DGEMM_UNROLL_M 8)
+    set(DGEMM_UNROLL_N 8)
+    set(CGEMM_UNROLL_M 8)
+    set(CGEMM_UNROLL_N 8)
+    set(ZGEMM_UNROLL_M 8)
+    set(ZGEMM_UNROLL_N 4)
+    set(SYMV_P 16)
+  elseif ("${TCORE}" STREQUAL "GENERIC")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE 32768\n"
+      "#define L1_DATA_LINESIZE 128\n"
+      "#define L2_SIZE 524288\n"
+      "#define L2_LINESIZE 128 \n"
+      "#define DTB_DEFAULT_ENTRIES 128\n"
+      "#define DTB_SIZE 4096\n"
+      "#define L2_ASSOCIATIVE 8\n")
+  elseif ("${TCORE}" STREQUAL "RISCV64_GENERIC")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE 32768\n"
+      "#define L1_DATA_LINESIZE 32\n"
+      "#define L2_SIZE 1048576\n"
+      "#define L2_LINESIZE 32 \n"
+      "#define DTB_DEFAULT_ENTRIES 128\n"
+      "#define DTB_SIZE 4096\n"
+      "#define L2_ASSOCIATIVE 4\n")
+  elseif ("${TCORE}" STREQUAL "U74")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE 32768\n"
+      "#define L1_DATA_LINESIZE 64\n"
+      "#define L2_SIZE 2097152\n"
+      "#define L2_LINESIZE 64 \n"
+      "#define DTB_DEFAULT_ENTRIES 128\n"
+      "#define DTB_SIZE 4096\n"
+      "#define L2_ASSOCIATIVE 16\n")
+  elseif ("${TCORE}" STREQUAL "WASM128_GENERIC")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE 32768\n"
+      "#define L1_DATA_LINESIZE 32\n"
+      "#define L2_SIZE 1048576\n"
+      "#define L2_LINESIZE 32 \n"
+      "#define DTB_DEFAULT_ENTRIES 128\n"
+      "#define DTB_SIZE 4096\n"
+      "#define L2_ASSOCIATIVE 4\n")
+      set(SGEMM_UNROLL_M 8)
+      set(SGEMM_UNROLL_N 4)
+      set(DGEMM_UNROLL_M 4)
+      set(DGEMM_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "LA64_GENERIC")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define DTB_DEFAULT_ENTRIES 64\n")
+      set(SGEMM_UNROLL_M 2)
+      set(SGEMM_UNROLL_N 8)
+      set(DGEMM_UNROLL_M 2)
+      set(DGEMM_UNROLL_N 8)
+      set(CGEMM_UNROLL_M 1)
+      set(CGEMM_UNROLL_N 4)
+      set(ZGEMM_UNROLL_M 1)
+      set(ZGEMM_UNROLL_N 4)
+      set(CGEMM3M_UNROLL_M 2)
+      set(CGEMM3M_UNROLL_N 8)
+      set(ZGEMM3M_UNROLL_M 2)
+      set(ZGEMM3M_UNROLL_N 8)
+  elseif ("${TCORE}" STREQUAL "LA264")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define DTB_DEFAULT_ENTRIES 64\n")
+      set(HAVE_LSX  1)
+      set(SGEMM_UNROLL_M 2)
+      set(SGEMM_UNROLL_N 8)
+      set(DGEMM_UNROLL_M 8)
+      set(DGEMM_UNROLL_N 4)
+      set(CGEMM_UNROLL_M 8)
+      set(CGEMM_UNROLL_N 4)
+      set(ZGEMM_UNROLL_M 4)
+      set(ZGEMM_UNROLL_N 4)
+      set(CGEMM3M_UNROLL_M 2)
+      set(CGEMM3M_UNROLL_N 8)
+      set(ZGEMM3M_UNROLL_M 8)
+      set(ZGEMM3M_UNROLL_N 4)
+  elseif ("${TCORE}" STREQUAL "LA464")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define DTB_DEFAULT_ENTRIES 64\n")
+      set(HAVE_LASX 1)
+      set(HAVE_LSX  1)
+      set(SGEMM_UNROLL_M 16)
+      set(SGEMM_UNROLL_N 8)
+      set(DGEMM_UNROLL_M 16)
+      set(DGEMM_UNROLL_N 6)
+      set(CGEMM_UNROLL_M 16)
+      set(CGEMM_UNROLL_N 4)
+      set(ZGEMM_UNROLL_M 8)
+      set(ZGEMM_UNROLL_N 4)
+      set(CGEMM3M_UNROLL_M 16)
+      set(CGEMM3M_UNROLL_N 8)
+      set(ZGEMM3M_UNROLL_M 16)
+      set(ZGEMM3M_UNROLL_N 6)
   endif()
   set(SBGEMM_UNROLL_M 8)
   set(SBGEMM_UNROLL_N 4)
@@ -505,9 +1601,11 @@ elseif ("${TCORE}" STREQUAL "VORTEX")
   # GetArch_2nd
   foreach(float_char S;D;Q;C;Z;X)
     if (NOT DEFINED ${float_char}GEMM_UNROLL_M)
+	    message(STATUS "setting unrollm=2")
       set(${float_char}GEMM_UNROLL_M 2)
     endif()
     if (NOT DEFINED ${float_char}GEMM_UNROLL_N)
+	    message(STATUS "setting unrolln=2")
       set(${float_char}GEMM_UNROLL_N 2)
     endif()
   endforeach()
@@ -515,7 +1613,7 @@ elseif ("${TCORE}" STREQUAL "VORTEX")
     "#define GEMM_MULTITHREAD_THRESHOLD\t${GEMM_MULTITHREAD_THRESHOLD}\n")
   # Move to where gen_config_h would place it
   file(MAKE_DIRECTORY ${TARGET_CONF_DIR})
-  file(RENAME ${TARGET_CONF_TEMP} "${TARGET_CONF_DIR}/${TARGET_CONF}")  
+  file(RENAME ${TARGET_CONF_TEMP} "${TARGET_CONF_DIR}/${TARGET_CONF}")
 
 else(NOT CMAKE_CROSSCOMPILING)
   # compile getarch
@@ -526,10 +1624,12 @@ else(NOT CMAKE_CROSSCOMPILING)
 
   if ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     #Use generic for MSVC now
-    message("MSVC")
+    message(STATUS "MSVC")
     set(GETARCH_FLAGS ${GETARCH_FLAGS} -DFORCE_GENERIC)
   else()
-    list(APPEND GETARCH_SRC ${PROJECT_SOURCE_DIR}/cpuid.S)
+    if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+      list(APPEND GETARCH_SRC ${PROJECT_SOURCE_DIR}/cpuid.S)
+    endif()
     if (DEFINED TARGET_CORE)
     set(GETARCH_FLAGS ${GETARCH_FLAGS} -DFORCE_${TARGET_CORE})
   endif ()
@@ -542,16 +1642,25 @@ else(NOT CMAKE_CROSSCOMPILING)
 
   set(GETARCH_DIR "${PROJECT_BINARY_DIR}/getarch_build")
   set(GETARCH_BIN "getarch${CMAKE_EXECUTABLE_SUFFIX}")
-  file(MAKE_DIRECTORY ${GETARCH_DIR})
-  configure_file(${TARGET_CONF_TEMP} ${GETARCH_DIR}/${TARGET_CONF} COPYONLY)
+  file(MAKE_DIRECTORY "${GETARCH_DIR}")
+  configure_file("${TARGET_CONF_TEMP}" "${GETARCH_DIR}/${TARGET_CONF}" COPYONLY)
   if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
-    try_compile(GETARCH_RESULT ${GETARCH_DIR}
-      SOURCES ${GETARCH_SRC}
-    COMPILE_DEFINITIONS ${EXFLAGS} ${GETARCH_FLAGS} -I"${GETARCH_DIR}" -I"${PROJECT_SOURCE_DIR}" -I"${PROJECT_BINARY_DIR}"
-      OUTPUT_VARIABLE GETARCH_LOG
-      COPY_FILE ${PROJECT_BINARY_DIR}/${GETARCH_BIN}
-    )
-  
+    if (CMAKE_ASM_COMPILER_ID STREQUAL "")
+      try_compile(GETARCH_RESULT "${GETARCH_DIR}"
+        SOURCES ${GETARCH_SRC}
+        CMAKE_FLAGS "-DCMAKE_ASM_COMPILER=${CMAKE_C_COMPILER}"
+        COMPILE_DEFINITIONS ${EXFLAGS} ${GETARCH_FLAGS} -I"${GETARCH_DIR}" -I"${PROJECT_SOURCE_DIR}" -I"${PROJECT_BINARY_DIR}"
+        OUTPUT_VARIABLE GETARCH_LOG
+        COPY_FILE "${PROJECT_BINARY_DIR}/${GETARCH_BIN}"
+      )
+    else()
+      try_compile(GETARCH_RESULT "${GETARCH_DIR}"
+        SOURCES ${GETARCH_SRC}
+        COMPILE_DEFINITIONS ${EXFLAGS} ${GETARCH_FLAGS} -I"${GETARCH_DIR}" -I"${PROJECT_SOURCE_DIR}" -I"${PROJECT_BINARY_DIR}"
+        OUTPUT_VARIABLE GETARCH_LOG
+        COPY_FILE "${PROJECT_BINARY_DIR}/${GETARCH_BIN}"
+      )
+    endif()
     if (NOT ${GETARCH_RESULT})
       MESSAGE(FATAL_ERROR "Compiling getarch failed ${GETARCH_LOG}")
     endif ()
@@ -571,6 +1680,8 @@ else(NOT CMAKE_CROSSCOMPILING)
   unset (HAVE_VFP)
   unset (HAVE_VFPV3)
   unset (HAVE_VFPV4)
+  unset (HAVE_SVE)
+  unset (HAVE_SME)
   message(STATUS "Running getarch")
 
   # use the cmake binary w/ the -E param to run a shell command in a cross-platform way
@@ -580,19 +1691,19 @@ execute_process(COMMAND "${PROJECT_BINARY_DIR}/${GETARCH_BIN}" 1 OUTPUT_VARIABLE
   message(STATUS "GETARCH results:\n${GETARCH_MAKE_OUT}")
 
   # append config data from getarch to the TARGET file and read in CMake vars
-  file(APPEND ${TARGET_CONF_TEMP} ${GETARCH_CONF_OUT})
+  file(APPEND "${TARGET_CONF_TEMP}" ${GETARCH_CONF_OUT})
   ParseGetArchVars(${GETARCH_MAKE_OUT})
 
   set(GETARCH2_DIR "${PROJECT_BINARY_DIR}/getarch2_build")
   set(GETARCH2_BIN "getarch_2nd${CMAKE_EXECUTABLE_SUFFIX}")
-  file(MAKE_DIRECTORY ${GETARCH2_DIR})
-  configure_file(${TARGET_CONF_TEMP} ${GETARCH2_DIR}/${TARGET_CONF} COPYONLY)
+  file(MAKE_DIRECTORY "${GETARCH2_DIR}")
+  configure_file("${TARGET_CONF_TEMP}" "${GETARCH2_DIR}/${TARGET_CONF}" COPYONLY)
   if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
-    try_compile(GETARCH2_RESULT ${GETARCH2_DIR}
-      SOURCES ${PROJECT_SOURCE_DIR}/getarch_2nd.c
+    try_compile(GETARCH2_RESULT "${GETARCH2_DIR}"
+      SOURCES "${PROJECT_SOURCE_DIR}/getarch_2nd.c"
     COMPILE_DEFINITIONS ${EXFLAGS} ${GETARCH_FLAGS} ${GETARCH2_FLAGS} -I"${GETARCH2_DIR}" -I"${PROJECT_SOURCE_DIR}" -I"${PROJECT_BINARY_DIR}"
       OUTPUT_VARIABLE GETARCH2_LOG
-      COPY_FILE ${PROJECT_BINARY_DIR}/${GETARCH2_BIN}
+      COPY_FILE "${PROJECT_BINARY_DIR}/${GETARCH2_BIN}"
     )
 
     if (NOT ${GETARCH2_RESULT})
@@ -605,9 +1716,9 @@ execute_process(COMMAND "${PROJECT_BINARY_DIR}/${GETARCH2_BIN}" 0 OUTPUT_VARIABL
 execute_process(COMMAND "${PROJECT_BINARY_DIR}/${GETARCH2_BIN}" 1 OUTPUT_VARIABLE GETARCH2_CONF_OUT)
 
   # append config data from getarch_2nd to the TARGET file and read in CMake vars
-  file(APPEND ${TARGET_CONF_TEMP} ${GETARCH2_CONF_OUT})
+  file(APPEND "${TARGET_CONF_TEMP}" ${GETARCH2_CONF_OUT})
 
-  configure_file(${TARGET_CONF_TEMP} ${TARGET_CONF_DIR}/${TARGET_CONF} COPYONLY)
+  configure_file("${TARGET_CONF_TEMP}" "${TARGET_CONF_DIR}/${TARGET_CONF}" COPYONLY)
 
   ParseGetArchVars(${GETARCH2_MAKE_OUT})
 

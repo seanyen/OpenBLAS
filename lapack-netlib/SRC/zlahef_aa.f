@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download ZLAHEF_AA + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zlahef_aa.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zlahef_aa.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -136,18 +134,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
-*> \ingroup complex16HEcomputational
+*> \ingroup lahef_aa
 *
 *  =====================================================================
       SUBROUTINE ZLAHEF_AA( UPLO, J1, M, NB, A, LDA, IPIV,
      $                      H, LDH, WORK )
 *
-*  -- LAPACK computational routine (version 3.8.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
       IMPLICIT NONE
 *
@@ -175,8 +170,8 @@
       EXTERNAL     LSAME, ILAENV, IZAMAX
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL     ZGEMM, ZGEMV, ZAXPY, ZLACGV, ZCOPY, ZSCAL, ZSWAP,
-     $             ZLASET, XERBLA
+      EXTERNAL     ZGEMV, ZAXPY, ZLACGV, ZCOPY, ZSCAL,
+     $             ZSWAP, ZLASET, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC    DBLE, DCONJG, MAX

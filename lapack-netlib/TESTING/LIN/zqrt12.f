@@ -28,7 +28,7 @@
 *> ZQRT12 computes the singular values `svlues' of the upper trapezoid
 *> of A(1:M,1:N) and returns the ratio
 *>
-*>      || s - svlues||/(||svlues||*eps*max(M,N))
+*>      || svlues - s||/(||s||*eps*max(M,N))
 *> \endverbatim
 *
 *  Arguments:
@@ -89,18 +89,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup complex16_lin
 *
 *  =====================================================================
       DOUBLE PRECISION FUNCTION ZQRT12( M, N, A, LDA, S, WORK, LWORK,
      $                 RWORK )
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            LDA, LWORK, M, N
@@ -128,8 +125,8 @@
       EXTERNAL           DASUM, DLAMCH, DNRM2, ZLANGE
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           DAXPY, DBDSQR, DLABAD, DLASCL, XERBLA, ZGEBD2,
-     $                   ZLASCL, ZLASET
+      EXTERNAL           DAXPY, DBDSQR, DLASCL, XERBLA, ZGEBD2, ZLASCL,
+     $                   ZLASET
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          DBLE, DCMPLX, MAX, MIN
@@ -157,17 +154,16 @@
 *
       CALL ZLASET( 'Full', M, N, DCMPLX( ZERO ), DCMPLX( ZERO ), WORK,
      $             M )
-      DO 20 J = 1, N
-         DO 10 I = 1, MIN( J, M )
+      DO J = 1, N
+         DO I = 1, MIN( J, M )
             WORK( ( J-1 )*M+I ) = A( I, J )
-   10    CONTINUE
-   20 CONTINUE
+         END DO
+      END DO
 *
 *     Get machine parameters
 *
       SMLNUM = DLAMCH( 'S' ) / DLAMCH( 'P' )
       BIGNUM = ONE / SMLNUM
-      CALL DLABAD( SMLNUM, BIGNUM )
 *
 *     Scale work if max entry outside range [SMLNUM,BIGNUM]
 *
@@ -211,9 +207,9 @@
 *
       ELSE
 *
-         DO 30 I = 1, MN
+         DO I = 1, MN
             RWORK( I ) = ZERO
-   30    CONTINUE
+         END DO
       END IF
 *
 *     Compare s and singular values of work
@@ -221,6 +217,7 @@
       CALL DAXPY( MN, -ONE, S, 1, RWORK( 1 ), 1 )
       ZQRT12 = DASUM( MN, RWORK( 1 ), 1 ) /
      $         ( DLAMCH( 'Epsilon' )*DBLE( MAX( M, N ) ) )
+*
       IF( NRMSVL.NE.ZERO )
      $   ZQRT12 = ZQRT12 / NRMSVL
 *

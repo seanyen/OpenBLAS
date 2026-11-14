@@ -233,9 +233,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realOTHERcomputational
+*> \ingroup hseqr
 *
 *> \par Contributors:
 *  ==================
@@ -316,10 +314,9 @@
       SUBROUTINE SHSEQR( JOB, COMPZ, N, ILO, IHI, H, LDH, WR, WI, Z,
      $                   LDZ, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            IHI, ILO, INFO, LDH, LDZ, LWORK, N
@@ -338,10 +335,10 @@
 *     .    SLAHQR because of insufficient subdiagonal scratch space.
 *     .    (This is a hard limit.) ====
       INTEGER            NTINY
-      PARAMETER          ( NTINY = 11 )
+      PARAMETER          ( NTINY = 15 )
 *
 *     ==== NL allocates some local workspace to help small matrices
-*     .    through a rare SLAHQR failure.  NL > NTINY = 11 is
+*     .    through a rare SLAHQR failure.  NL > NTINY = 15 is
 *     .    required and NL <= NMIN = ILAENV(ISPEC=12,...) is recom-
 *     .    mended.  (The default value of NMIN is 75.)  Using NL = 49
 *     .    allows up to six simultaneous shifts and a 16-by-16
@@ -361,7 +358,8 @@
 *     .. External Functions ..
       INTEGER            ILAENV
       LOGICAL            LSAME
-      EXTERNAL           ILAENV, LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, LSAME, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SLACPY, SLAHQR, SLAQR0, SLASET, XERBLA
@@ -376,7 +374,7 @@
       WANTT = LSAME( JOB, 'S' )
       INITZ = LSAME( COMPZ, 'I' )
       WANTZ = INITZ .OR. LSAME( COMPZ, 'V' )
-      WORK( 1 ) = REAL( MAX( 1, N ) )
+      WORK( 1 ) = SROUNDUP_LWORK( MAX( 1, N ) )
       LQUERY = LWORK.EQ.-1
 *
       INFO = 0

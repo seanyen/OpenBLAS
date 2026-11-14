@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download SGELQ2 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/sgelq2.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/sgelq2.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -40,7 +38,7 @@
 *> where:
 *>
 *>    Q is a n-by-n orthogonal matrix;
-*>    L is an lower-triangular m-by-m matrix;
+*>    L is a lower-triangular m-by-m matrix;
 *>    0 is a m-by-(n-m) zero matrix, if m < n.
 *>
 *> \endverbatim
@@ -104,9 +102,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2019
-*
-*> \ingroup realGEcomputational
+*> \ingroup gelq2
 *
 *> \par Further Details:
 *  =====================
@@ -128,11 +124,11 @@
 *>
 *  =====================================================================
       SUBROUTINE SGELQ2( M, N, A, LDA, TAU, WORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.9.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2019
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, M, N
@@ -143,16 +139,11 @@
 *
 *  =====================================================================
 *
-*     .. Parameters ..
-      REAL               ONE
-      PARAMETER          ( ONE = 1.0E+0 )
-*     ..
 *     .. Local Scalars ..
       INTEGER            I, K
-      REAL               AII
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           SLARF, SLARFG, XERBLA
+      EXTERNAL           SLARF1F, SLARFG, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, MIN
@@ -186,11 +177,8 @@
 *
 *           Apply H(i) to A(i+1:m,i:n) from the right
 *
-            AII = A( I, I )
-            A( I, I ) = ONE
-            CALL SLARF( 'Right', M-I, N-I+1, A( I, I ), LDA, TAU( I ),
-     $                  A( I+1, I ), LDA, WORK )
-            A( I, I ) = AII
+            CALL SLARF1F( 'Right', M-I, N-I+1, A( I, I ), LDA,
+     $                    TAU( I ), A( I+1, I ), LDA, WORK )
          END IF
    10 CONTINUE
       RETURN

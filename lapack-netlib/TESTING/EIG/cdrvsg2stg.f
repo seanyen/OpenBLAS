@@ -242,7 +242,7 @@
 *>
 *>  B       COMPLEX array, dimension (LDB , max(NN))
 *>          Used to hold the Hermitian positive definite matrix for
-*>          the generailzed problem.
+*>          the generalized problem.
 *>          On exit, B contains the last matrix actually
 *>          used.
 *>          Modified.
@@ -366,8 +366,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup complex_eig
 *
 *  =====================================================================
@@ -378,10 +376,9 @@
 *
       IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LDB, LDZ, LIWORK, LRWORK, NOUNIT,
@@ -429,7 +426,7 @@
       EXTERNAL           LSAME, SLAMCH, SLARND
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           SLABAD, SLAFTS, SLASUM, XERBLA, CHBGV, CHBGVD,
+      EXTERNAL           SLAFTS, SLASUM, XERBLA, CHBGV, CHBGVD,
      $                   CHBGVX, CHEGV, CHEGVD, CHEGVX, CHPGV, CHPGVD,
      $                   CHPGVX, CLACPY, CLASET, CLATMR, CLATMS, CSGT01,
      $                   CHEGV_2STAGE
@@ -493,7 +490,6 @@
 *
       UNFL = SLAMCH( 'Safe minimum' )
       OVFL = SLAMCH( 'Overflow' )
-      CALL SLABAD( UNFL, OVFL )
       ULP = SLAMCH( 'Epsilon' )*SLAMCH( 'Base' )
       ULPINV = ONE / ULP
       RTUNFL = SQRT( UNFL )
@@ -1013,7 +1009,7 @@ C     $                         LDZ, D, WORK, RWORK, RESULT( NTEST ) )
 *
                   CALL CHPGVX( IBTYPE, 'V', 'A', UPLO, N, AP, BP, VL,
      $                         VU, IL, IU, ABSTOL, M, D, Z, LDZ, WORK,
-     $                         RWORK, IWORK( N+1 ), IWORK, INFO )
+     $                         RWORK, IWORK( N+1 ), IWORK, IINFO )
                   IF( IINFO.NE.0 ) THEN
                      WRITE( NOUNIT, FMT = 9999 )'CHPGVX(V,A' // UPLO //
      $                  ')', IINFO, N, JTYPE, IOLDSD
@@ -1059,7 +1055,7 @@ C     $                         LDZ, D, WORK, RWORK, RESULT( NTEST ) )
                   VU = ANORM
                   CALL CHPGVX( IBTYPE, 'V', 'V', UPLO, N, AP, BP, VL,
      $                         VU, IL, IU, ABSTOL, M, D, Z, LDZ, WORK,
-     $                         RWORK, IWORK( N+1 ), IWORK, INFO )
+     $                         RWORK, IWORK( N+1 ), IWORK, IINFO )
                   IF( IINFO.NE.0 ) THEN
                      WRITE( NOUNIT, FMT = 9999 )'CHPGVX(V,V' // UPLO //
      $                  ')', IINFO, N, JTYPE, IOLDSD
@@ -1103,7 +1099,7 @@ C     $                         LDZ, D, WORK, RWORK, RESULT( NTEST ) )
 *
                   CALL CHPGVX( IBTYPE, 'V', 'I', UPLO, N, AP, BP, VL,
      $                         VU, IL, IU, ABSTOL, M, D, Z, LDZ, WORK,
-     $                         RWORK, IWORK( N+1 ), IWORK, INFO )
+     $                         RWORK, IWORK( N+1 ), IWORK, IINFO )
                   IF( IINFO.NE.0 ) THEN
                      WRITE( NOUNIT, FMT = 9999 )'CHPGVX(V,I' // UPLO //
      $                  ')', IINFO, N, JTYPE, IOLDSD

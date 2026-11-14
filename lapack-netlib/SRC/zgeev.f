@@ -169,7 +169,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
 *
 *  @precisions fortran z -> c
 *
@@ -180,10 +179,9 @@
      $                  WORK, LWORK, RWORK, INFO )
       implicit none
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBVL, JOBVR
@@ -218,7 +216,7 @@
      $                   ZHSEQR, ZLACPY, ZLASCL, ZSCAL, ZTREVC3, ZUNGHR
 *     ..
 *     .. External Functions ..
-      LOGICAL            LSAME
+      LOGICAL            LSAME, DISNAN
       INTEGER            IDAMAX, ILAENV
       DOUBLE PRECISION   DLAMCH, DZNRM2, ZLANGE
       EXTERNAL           LSAME, IDAMAX, ILAENV, DLAMCH, DZNRM2, ZLANGE
@@ -331,6 +329,10 @@
       ELSE IF( ANRM.GT.BIGNUM ) THEN
          SCALEA = .TRUE.
          CSCALE = BIGNUM
+      ELSE IF ( DISNAN ( ANRM ) ) THEN
+         INFO = -4
+         CALL XERBLA ( 'ZGEEV', -INFO )
+         RETURN
       END IF
       IF( SCALEA )
      $   CALL ZLASCL( 'G', 0, 0, ANRM, CSCALE, N, N, A, LDA, IERR )

@@ -1,3 +1,4 @@
+//#pragma clang optimize off
 /***************************************************************************
 Copyright (c) 2014, The OpenBLAS Project
 All rights reserved.
@@ -33,10 +34,20 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef DOUBLE
 #define GEMM   BLASFUNC(dgemm)
-#elif defined(HALF)
+#elif defined(BFLOAT16) && defined(BGEMM)
+#define GEMM   BLASFUNC(bgemm)
+#elif defined(BFLOAT16)
 #define GEMM   BLASFUNC(sbgemm)
+#undef IFLOAT
+#define IFLOAT bfloat16
+#elif defined(HFLOAT16)
+#define GEMM   BLASFUNC(shgemm)
+#undef IFLOAT
+#define IFLOAT hfloat16
 #else
 #define GEMM   BLASFUNC(sgemm)
+#undef IFLOAT
+#define IFLOAT float
 #endif
 
 #else
@@ -53,8 +64,18 @@ int main(int argc, char *argv[]){
 
   IFLOAT *a, *b;
   FLOAT *c;
+#ifdef BGEMM
+  blasint one=1;
+  blasint two=2;
+  float alpha_in[] = {1.0, 0.0};
+  float beta_in[] = {0.0, 0.0};
+  FLOAT alpha[2], beta[2];
+  sbstobf16_(&two, alpha_in, &one, alpha, &one);
+  sbstobf16_(&two, beta_in, &one, beta, &one);
+#else
   FLOAT alpha[] = {1.0, 0.0};
   FLOAT beta [] = {0.0, 0.0};
+#endif
   char transa = 'N';
   char transb = 'N';
   blasint m, n, k, i, j, lda, ldb, ldc;
@@ -167,7 +188,7 @@ int main(int argc, char *argv[]){
 
     timeg = time1/loops;
     fprintf(stderr,
-	    " %10.2f MFlops %10.6f sec\n",
+	    " %10.2lf MFlops %10.6f sec\n",
 	    COMPSIZE * COMPSIZE * 2. * (double)k * (double)m * (double)n / timeg * 1.e-6, time1);
     
   }

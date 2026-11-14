@@ -217,7 +217,7 @@
 *>          If 0 < SCALE < 1, C and F hold the solutions R and L, resp.,
 *>          to a slightly perturbed system but the input matrices A, B,
 *>          D and E have not been changed. If SCALE = 0, R and L will
-*>          hold the solutions to the homogenious system with C = F = 0.
+*>          hold the solutions to the homogeneous system with C = F = 0.
 *> \endverbatim
 *>
 *> \param[out] WORK
@@ -260,9 +260,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexSYcomputational
+*> \ingroup tgsyl
 *
 *> \par Contributors:
 *  ==================
@@ -295,10 +293,9 @@
      $                   LDD, E, LDE, F, LDF, SCALE, DIF, WORK, LWORK,
      $                   IWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          TRANS
@@ -332,7 +329,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           LSAME, ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CGEMM, CLACPY, CLASET, CSCAL, CTGSY2, XERBLA
@@ -385,7 +383,7 @@
          ELSE
             LWMIN = 1
          END IF
-         WORK( 1 ) = LWMIN
+         WORK( 1 ) = SROUNDUP_LWORK(LWMIN)
 *
          IF( LWORK.LT.LWMIN .AND. .NOT.LQUERY ) THEN
             INFO = -20
@@ -686,7 +684,7 @@
   210    CONTINUE
       END IF
 *
-      WORK( 1 ) = LWMIN
+      WORK( 1 ) = SROUNDUP_LWORK(LWMIN)
 *
       RETURN
 *

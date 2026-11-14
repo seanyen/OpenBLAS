@@ -222,11 +222,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
-*  @generated from ztrevc3.f, fortran z -> c, Tue Apr 19 01:47:44 2016
-*
-*> \ingroup complexOTHERcomputational
+*> \ingroup trevc3
 *
 *> \par Further Details:
 *  =====================
@@ -247,10 +243,9 @@
      $                    LDVR, MM, M, WORK, LWORK, RWORK, LRWORK, INFO)
       IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.8.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
 *     .. Scalar Arguments ..
       CHARACTER          HOWMNY, SIDE
@@ -283,12 +278,13 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV, ICAMAX
-      REAL               SLAMCH, SCASUM
-      EXTERNAL           LSAME, ILAENV, ICAMAX, SLAMCH, SCASUM
+      REAL               SLAMCH, SCASUM, SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, ICAMAX, SLAMCH, SCASUM,
+     $                   SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           XERBLA, CCOPY, CLASET, CSSCAL, CGEMM, CGEMV,
-     $                   CLATRS, CLACPY, SLABAD
+     $                   CLATRS, CLACPY
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, REAL, CMPLX, CONJG, AIMAG, MAX
@@ -326,9 +322,9 @@
 *
       INFO = 0
       NB = ILAENV( 1, 'CTREVC', SIDE // HOWMNY, N, -1, -1, -1 )
-      MAXWRK = N + 2*N*NB
-      WORK(1) = MAXWRK
-      RWORK(1) = N
+      MAXWRK = MAX( 1, N + 2*N*NB )
+      WORK(1) = SROUNDUP_LWORK(MAXWRK)
+      RWORK(1) = MAX( 1, N )
       LQUERY = ( LWORK.EQ.-1 .OR. LRWORK.EQ.-1 )
       IF( .NOT.RIGHTV .AND. .NOT.LEFTV ) THEN
          INFO = -1
@@ -376,7 +372,6 @@
 *
       UNFL = SLAMCH( 'Safe minimum' )
       OVFL = ONE / UNFL
-      CALL SLABAD( UNFL, OVFL )
       ULP = SLAMCH( 'Precision' )
       SMLNUM = UNFL*( N / ULP )
 *

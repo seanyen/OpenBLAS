@@ -1,11 +1,10 @@
-*> \brief \b DTPRFB applies a real or complex "triangular-pentagonal" blocked reflector to a real or complex matrix, which is composed of two blocks.
+*> \brief \b DTPRFB applies a real "triangular-pentagonal" block reflector to a real matrix, which is composed of two blocks.
 *
 *  =========== DOCUMENTATION ===========
 *
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download DTPRFB + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dtprfb.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dtprfb.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -194,9 +192,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup doubleOTHERauxiliary
+*> \ingroup tprfb
 *
 *> \par Further Details:
 *  =====================
@@ -250,11 +246,11 @@
 *  =====================================================================
       SUBROUTINE DTPRFB( SIDE, TRANS, DIRECT, STOREV, M, N, K, L,
      $                   V, LDV, T, LDT, A, LDA, B, LDB, WORK, LDWORK )
+      IMPLICIT NONE
 *
-*  -- LAPACK auxiliary routine (version 3.7.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER DIRECT, SIDE, STOREV, TRANS
@@ -432,7 +428,8 @@
 *
          CALL DGEMM( 'N', 'T', M, N-L, K, -ONE, WORK, LDWORK,
      $               V, LDV, ONE, B, LDB )
-         CALL DGEMM( 'N', 'T', M, L, K-L, -ONE, WORK( 1, KP ), LDWORK,
+         CALL DGEMM( 'N', 'T', M, L, K-L, -ONE, WORK( 1, KP ),
+     $               LDWORK,
      $               V( NP, KP ), LDV, ONE, B( 1, NP ), LDB )
          CALL DTRMM( 'R', 'U', 'T', 'N', M, L, ONE, V( NP, 1 ), LDV,
      $               WORK, LDWORK )
@@ -591,7 +588,7 @@
             END DO
          END DO
          CALL DTRMM( 'L', 'L', 'N', 'N', L, N, ONE, V( 1, MP ), LDV,
-     $               WORK, LDB )
+     $               WORK, LDWORK )
          CALL DGEMM( 'N', 'N', L, N, M-L, ONE, V, LDV,B, LDB,
      $               ONE, WORK, LDWORK )
          CALL DGEMM( 'N', 'N', K-L, N, M, ONE, V( KP, 1 ), LDV,
@@ -673,7 +670,8 @@
 *
          CALL DGEMM( 'N', 'N', M, N-L, K, -ONE, WORK, LDWORK,
      $               V, LDV, ONE, B, LDB )
-         CALL DGEMM( 'N', 'N', M, L, K-L, -ONE, WORK( 1, KP ), LDWORK,
+         CALL DGEMM( 'N', 'N', M, L, K-L, -ONE, WORK( 1, KP ),
+     $               LDWORK,
      $               V( KP, NP ), LDV, ONE, B( 1, NP ), LDB )
          CALL DTRMM( 'R', 'L', 'N', 'N', M, L, ONE, V( 1, NP ), LDV,
      $               WORK, LDWORK )

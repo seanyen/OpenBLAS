@@ -44,12 +44,6 @@
 *> positive definite.
 *> If eigenvectors are desired, it uses a divide and conquer algorithm.
 *>
-*> The divide and conquer algorithm makes very mild assumptions about
-*> floating point arithmetic. It will work on machines with a guard
-*> digit in add/subtract, or on those binary machines without guard
-*> digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
-*> Cray-2. It could conceivably fail on hexadecimal or decimal machines
-*> without guard digits, but we know of none.
 *> \endverbatim
 *
 *  Arguments:
@@ -184,7 +178,7 @@
 *>                    i off-diagonal elements of an intermediate
 *>                    tridiagonal form did not converge to zero;
 *>             > N:   if INFO = N + i, for 1 <= i <= N, then the leading
-*>                    minor of order i of B is not positive definite.
+*>                    principal minor of order i of B is not positive.
 *>                    The factorization of B could not be completed and
 *>                    no eigenvalues or eigenvectors were computed.
 *> \endverbatim
@@ -197,8 +191,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup doubleOTHEReigen
 *
 *> \par Contributors:
@@ -210,10 +202,9 @@
       SUBROUTINE DSPGVD( ITYPE, JOBZ, UPLO, N, AP, BP, W, Z, LDZ, WORK,
      $                   LWORK, IWORK, LIWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBZ, UPLO
@@ -234,7 +225,8 @@
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      EXTERNAL           LSAME
+      DOUBLE PRECISION   DROUNDUP_LWORK
+      EXTERNAL           LSAME, DROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           DPPTRF, DSPEVD, DSPGST, DTPMV, DTPSV, XERBLA
@@ -276,7 +268,7 @@
                LWMIN = 2*N
             END IF
          END IF
-         WORK( 1 ) = LWMIN
+         WORK( 1 ) = DROUNDUP_LWORK(LWMIN)
          IWORK( 1 ) = LIWMIN
          IF( LWORK.LT.LWMIN .AND. .NOT.LQUERY ) THEN
             INFO = -11
@@ -310,8 +302,8 @@
       CALL DSPGST( ITYPE, UPLO, N, AP, BP, INFO )
       CALL DSPEVD( JOBZ, UPLO, N, AP, W, Z, LDZ, WORK, LWORK, IWORK,
      $             LIWORK, INFO )
-      LWMIN = MAX( DBLE( LWMIN ), DBLE( WORK( 1 ) ) )
-      LIWMIN = MAX( DBLE( LIWMIN ), DBLE( IWORK( 1 ) ) )
+      LWMIN = MAX( LWMIN, INT( WORK( 1 ) ) )
+      LIWMIN = MAX( LIWMIN, IWORK( 1 ) )
 *
       IF( WANTZ ) THEN
 *
@@ -354,7 +346,7 @@
          END IF
       END IF
 *
-      WORK( 1 ) = LWMIN
+      WORK( 1 ) = DROUNDUP_LWORK(LWMIN)
       IWORK( 1 ) = LIWMIN
 *
       RETURN

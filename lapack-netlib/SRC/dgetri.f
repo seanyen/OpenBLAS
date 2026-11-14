@@ -107,17 +107,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup doubleGEcomputational
+*> \ingroup getri
 *
 *  =====================================================================
       SUBROUTINE DGETRI( N, A, LDA, IPIV, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LWORK, N
@@ -154,8 +151,9 @@
 *
       INFO = 0
       NB = ILAENV( 1, 'DGETRI', ' ', N, -1, -1, -1 )
-      LWKOPT = N*NB
+      LWKOPT = MAX( 1, N*NB )
       WORK( 1 ) = LWKOPT
+*
       LQUERY = ( LWORK.EQ.-1 )
       IF( N.LT.0 ) THEN
          INFO = -1

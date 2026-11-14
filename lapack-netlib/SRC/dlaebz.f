@@ -63,7 +63,7 @@
 *> Note that the intervals are in all cases half-open intervals,
 *> i.e., of the form  (a,b] , which includes  b  but not  a .
 *>
-*> To avoid underflow, the matrix should be scaled so that its largest
+*> To avoid overflow, the matrix should be scaled so that its largest
 *> element is no greater than  overflow**(1/2) * underflow**(1/4)
 *> in absolute value.  To assure the most accurate computation
 *> of small eigenvalues, the matrix should be scaled to be
@@ -273,8 +273,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup OTHERauxiliary
 *
 *> \par Further Details:
@@ -319,10 +317,9 @@
      $                   RELTOL, PIVMIN, D, E, E2, NVAL, AB, C, MOUT,
      $                   NAB, WORK, IWORK, INFO )
 *
-*  -- LAPACK auxiliary routine (version 3.7.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            IJOB, INFO, MINP, MMAX, MOUT, N, NBMIN, NITMAX

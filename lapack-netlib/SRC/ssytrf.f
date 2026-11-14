@@ -135,9 +135,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realSYcomputational
+*> \ingroup hetrf
 *
 *> \par Further Details:
 *  =====================
@@ -182,10 +180,9 @@
 *  =====================================================================
       SUBROUTINE SSYTRF( UPLO, N, A, LDA, IPIV, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO
@@ -205,7 +202,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           LSAME, ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SLASYF, SSYTF2, XERBLA
@@ -235,8 +233,8 @@
 *        Determine the block size
 *
          NB = ILAENV( 1, 'SSYTRF', UPLO, N, -1, -1, -1 )
-         LWKOPT = N*NB
-         WORK( 1 ) = LWKOPT
+         LWKOPT = MAX( 1, N*NB )
+         WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -355,7 +353,8 @@
       END IF
 *
    40 CONTINUE
-      WORK( 1 ) = LWKOPT
+*
+      WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       RETURN
 *
 *     End of SSYTRF

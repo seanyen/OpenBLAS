@@ -1,5 +1,6 @@
 /*********************************************************************/
 /* Copyright 2009, 2010 The University of Texas at Austin.           */
+/* Copyright 2025 The OpenBLAS Project.                              */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -169,6 +170,22 @@
 #define STOP_RPCC(COUNTER)
 #endif
 
+#if defined(BUILD_BFLOAT16)
+#if defined(DYNAMIC_ARCH)
+  #if defined(BGEMM)
+    #define BFLOAT16_ALIGN_K gotoblas->bgemm_align_k
+  #else
+    #define BFLOAT16_ALIGN_K gotoblas->sbgemm_align_k
+  #endif
+#else
+  #if defined(BGEMM)
+    #define BFLOAT16_ALIGN_K BGEMM_ALIGN_K
+  #else
+    #define BFLOAT16_ALIGN_K SBGEMM_ALIGN_K
+  #endif
+#endif
+#endif
+
 int CNAME(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n,
 		  XFLOAT *sa, XFLOAT *sb, BLASLONG dummy){
   BLASLONG k, lda, ldb, ldc;
@@ -196,6 +213,15 @@ int CNAME(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n,
   unsigned long long kernelcost = 0;
   double total;
 #endif
+
+  /* Begin a cancellable generation on the calling thread and poll it at
+   * block granularity; openblas_cancel() against this thread's slot makes
+   * the operation return early, leaving C partially updated.  (When this
+   * driver runs on a BLAS worker thread on behalf of another operation,
+   * the generation is the worker's own, which nobody cancels; the outer
+   * operation's cancellation is handled by the threading driver.) */
+  size_t cancel_gen = openblas_cancel_begin();
+  size_t *cancel_slot = openblas_cancel_self();
 
   k = K;
 
@@ -286,10 +312,14 @@ int CNAME(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n,
 #endif
 
   for(js = n_from; js < n_to; js += GEMM_R){
+    if (openblas_cancel_poll(cancel_slot, cancel_gen)) return 0;
+
     min_j = n_to - js;
     if (min_j > GEMM_R) min_j = GEMM_R;
 
     for(ls = 0; ls < k; ls += min_l){
+
+      if (openblas_cancel_poll(cancel_slot, cancel_gen)) return 0;
 
       min_l = k - ls;
 
@@ -303,6 +333,11 @@ int CNAME(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n,
 	gemm_p = ((l2size / min_l + GEMM_UNROLL_M - 1)/GEMM_UNROLL_M) * GEMM_UNROLL_M;
 	while (gemm_p * min_l > l2size) gemm_p -= GEMM_UNROLL_M;
       }
+
+      BLASLONG pad_min_l = min_l;
+#if defined(BFLOAT16)
+    pad_min_l = (min_l + BFLOAT16_ALIGN_K - 1) & ~(BFLOAT16_ALIGN_K - 1);
+#endif
 
       /* First, we have to move data A to L2 cache */
       min_i = m_to - m_from;
@@ -332,8 +367,10 @@ int CNAME(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n,
 
 #else
       for(jjs = js; jjs < js + min_j; jjs += min_jj){
+	if (openblas_cancel_poll(cancel_slot, cancel_gen)) return 0;
+
 	min_jj = min_j + js - jjs;
-#if defined(SKYLAKEX) || defined(COOPERLAKE)
+#if defined(SKYLAKEX) || defined(COOPERLAKE) || defined(SAPPHIRERAPIDS)
 	/* the current AVX512 s/d/c/z GEMM kernel requires n>=6*GEMM_UNROLL_N to achieve best performance */
 	if (min_jj >= 6*GEMM_UNROLL_N) min_jj = 6*GEMM_UNROLL_N;
 #else
@@ -350,7 +387,7 @@ int CNAME(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n,
 	START_RPCC();
 
 	OCOPY_OPERATION(min_l, min_jj, b, ldb, ls, jjs,
-			sb + min_l * (jjs - js) * COMPSIZE * l1stride);
+			sb + pad_min_l * (jjs - js) * COMPSIZE * l1stride);
 
 	STOP_RPCC(outercost);
 
@@ -358,10 +395,10 @@ int CNAME(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n,
 
 #if !defined(XDOUBLE)  || !defined(QUAD_PRECISION)
 	KERNEL_OPERATION(min_i, min_jj, min_l, alpha,
-			 sa, sb + min_l * (jjs - js)  * COMPSIZE * l1stride, c, ldc, m_from, jjs);
+			 sa, sb + pad_min_l * (jjs - js)  * COMPSIZE * l1stride, c, ldc, m_from, jjs);
 #else
 	KERNEL_OPERATION(min_i, min_jj, min_l, (void *)&xalpha,
-			 sa, sb + min_l * (jjs - js)  * COMPSIZE * l1stride, c, ldc, m_from, jjs);
+			 sa, sb + pad_min_l * (jjs - js)  * COMPSIZE * l1stride, c, ldc, m_from, jjs);
 #endif
 
 	STOP_RPCC(kernelcost);
@@ -369,6 +406,8 @@ int CNAME(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n,
 #endif
 
       for(is = m_from + min_i; is < m_to; is += min_i){
+	if (openblas_cancel_poll(cancel_slot, cancel_gen)) return 0;
+
 	min_i = m_to - is;
 
 	if (min_i >= GEMM_P * 2) {

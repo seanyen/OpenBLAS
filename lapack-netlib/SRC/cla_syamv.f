@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download CLA_SYAMV + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/cla_syamv.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/cla_syamv.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -155,9 +153,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2017
-*
-*> \ingroup complexSYcomputational
+*> \ingroup la_heamv
 *
 *> \par Further Details:
 *  =====================
@@ -178,11 +174,11 @@
 *  =====================================================================
       SUBROUTINE CLA_SYAMV( UPLO, N, ALPHA, A, LDA, X, INCX, BETA, Y,
      $                      INCY )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2017
 *
 *     .. Scalar Arguments ..
       REAL               ALPHA, BETA
@@ -267,7 +263,7 @@
 *     number of additions in each row.
 *
       SAFE1 = SLAMCH( 'Safe minimum' )
-      SAFE1 = (N+1)*SAFE1
+      SAFE1 = REAL( N+1 )*SAFE1
 *
 *     Form  y := alpha*abs(A)*abs(x) + beta*abs(y).
 *
@@ -361,7 +357,7 @@
                   DO J = 1, I
                      TEMP = CABS1( A( J, I ) )
                      SYMB_ZERO = SYMB_ZERO .AND.
-     $                    ( X( J ) .EQ. ZERO .OR. TEMP .EQ. ZERO )
+     $                    ( X( JX ) .EQ. ZERO .OR. TEMP .EQ. ZERO )
 
                      Y( IY ) = Y( IY ) + ALPHA*CABS1( X( JX ) )*TEMP
                      JX = JX + INCX
@@ -369,7 +365,7 @@
                   DO J = I+1, N
                      TEMP = CABS1( A( I, J ) )
                      SYMB_ZERO = SYMB_ZERO .AND.
-     $                    ( X( J ) .EQ. ZERO .OR. TEMP .EQ. ZERO )
+     $                    ( X( JX ) .EQ. ZERO .OR. TEMP .EQ. ZERO )
 
                      Y( IY ) = Y( IY ) + ALPHA*CABS1( X( JX ) )*TEMP
                      JX = JX + INCX
@@ -397,7 +393,7 @@
                   DO J = 1, I
                      TEMP = CABS1( A( I, J ) )
                      SYMB_ZERO = SYMB_ZERO .AND.
-     $                    ( X( J ) .EQ. ZERO .OR. TEMP .EQ. ZERO )
+     $                    ( X( JX ) .EQ. ZERO .OR. TEMP .EQ. ZERO )
 
                      Y( IY ) = Y( IY ) + ALPHA*CABS1( X( JX ) )*TEMP
                      JX = JX + INCX
@@ -405,7 +401,7 @@
                   DO J = I+1, N
                      TEMP = CABS1( A( J, I ) )
                      SYMB_ZERO = SYMB_ZERO .AND.
-     $                    ( X( J ) .EQ. ZERO .OR. TEMP .EQ. ZERO )
+     $                    ( X( JX ) .EQ. ZERO .OR. TEMP .EQ. ZERO )
 
                      Y( IY ) = Y( IY ) + ALPHA*CABS1( X( JX ) )*TEMP
                      JX = JX + INCX

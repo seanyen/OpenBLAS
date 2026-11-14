@@ -48,18 +48,15 @@
 *> \author Univ. of Colorado Zenver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup double_lin
 *
 *  =====================================================================
       SUBROUTINE ZERRTSQR( PATH, NUNIT )
       IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*3        PATH
@@ -73,11 +70,11 @@
       PARAMETER          ( NMAX = 2 )
 *     ..
 *     .. Local Scalars ..
-      INTEGER            I, INFO, J, NB
+      INTEGER            I, INFO, J, MB, NB
 *     ..
 *     .. Local Arrays ..
-      COMPLEX*16         A( NMAX, NMAX ), T( NMAX, NMAX ), W( NMAX ),
-     $                   C( NMAX, NMAX ), TAU(NMAX)
+      COMPLEX*16         A( NMAX, NMAX ), W( NMAX ),
+     $                   C( NMAX, NMAX ), TAU( 5 )
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           ALAESM, CHKXER, ZGEQR,
@@ -106,7 +103,6 @@
          DO I = 1, NMAX
             A( I, J ) = 1.D0 / DBLE( I+J )
             C( I, J ) = 1.D0 / DBLE( I+J )
-            T( I, J ) = 1.D0 / DBLE( I+J )
          END DO
          W( J ) = 0.D0
       END DO
@@ -133,10 +129,40 @@
       CALL ZGEQR( 3, 2, A, 3, TAU, 8, W, 0, INFO )
       CALL CHKXER( 'ZGEQR', INFOT, NOUT, LERR, OK )
 *
+*     ZLATSQR
+*
+      MB = 1
+      NB = 1
+      SRNAMT = 'ZLATSQR'
+      INFOT = 1
+      CALL ZLATSQR( -1, 0, MB, NB, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLATSQR', INFOT, NOUT, LERR, OK )
+      INFOT = 2
+      CALL ZLATSQR( 1, 2, MB, NB, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLATSQR', INFOT, NOUT, LERR, OK )
+      CALL ZLATSQR( 0, -1, MB, NB, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLATSQR', INFOT, NOUT, LERR, OK )
+      INFOT = 3
+      CALL ZLATSQR( 2, 1, -1, NB, A, 2, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLATSQR', INFOT, NOUT, LERR, OK )
+      INFOT = 4
+      CALL ZLATSQR( 2, 1, MB, 2, A, 2, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLATSQR', INFOT, NOUT, LERR, OK )
+      INFOT = 6
+      CALL ZLATSQR( 2, 1, MB, NB, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLATSQR', INFOT, NOUT, LERR, OK )
+      INFOT = 8
+      CALL ZLATSQR( 2, 1, MB, NB, A, 2, TAU, 0, W, 1, INFO )
+      CALL CHKXER( 'ZLATSQR', INFOT, NOUT, LERR, OK )
+      INFOT = 10
+      CALL ZLATSQR( 2, 1, MB, NB, A, 2, TAU, 2, W, 0, INFO )
+      CALL CHKXER( 'ZLATSQR', INFOT, NOUT, LERR, OK )
+*
 *     ZGEMQR
 *
-      TAU(1)=1
-      TAU(2)=1
+      DO I = 1, 5
+         TAU( I ) = 1
+      END DO
       SRNAMT = 'ZGEMQR'
       NB=1
       INFOT = 1
@@ -192,10 +218,42 @@
       CALL ZGELQ( 2, 3, A, 3, TAU, 8, W, 0, INFO )
       CALL CHKXER( 'ZGELQ', INFOT, NOUT, LERR, OK )
 *
+*     ZLASWLQ
+*
+      MB = 1
+      NB = 1
+      SRNAMT = 'ZLASWLQ'
+      INFOT = 1
+      CALL ZLASWLQ( -1, 0, MB, NB, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLASWLQ', INFOT, NOUT, LERR, OK )
+      INFOT = 2
+      CALL ZLASWLQ( 2, 1, MB, NB, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLASWLQ', INFOT, NOUT, LERR, OK )
+      CALL ZLASWLQ( 0, -1, MB, NB, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLASWLQ', INFOT, NOUT, LERR, OK )
+      INFOT = 3
+      CALL ZLASWLQ( 1, 2, -1, NB, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLASWLQ', INFOT, NOUT, LERR, OK )
+      CALL ZLASWLQ( 1, 1, 2, NB, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLASWLQ', INFOT, NOUT, LERR, OK )
+      INFOT = 4
+      CALL ZLASWLQ( 1, 2, MB, -1, A, 1, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLASWLQ', INFOT, NOUT, LERR, OK )
+      INFOT = 6
+      CALL ZLASWLQ( 1, 2, MB, NB, A, 0, TAU, 1, W, 1, INFO )
+      CALL CHKXER( 'ZLASWLQ', INFOT, NOUT, LERR, OK )
+      INFOT = 8
+      CALL ZLASWLQ( 1, 2, MB, NB, A, 1, TAU, 0, W, 1, INFO )
+      CALL CHKXER( 'ZLASWLQ', INFOT, NOUT, LERR, OK )
+      INFOT = 10
+      CALL ZLASWLQ( 1, 2, MB, NB, A, 1, TAU, 1, W, 0, INFO )
+      CALL CHKXER( 'ZLASWLQ', INFOT, NOUT, LERR, OK )
+*
 *     ZGEMLQ
 *
-      TAU(1)=1
-      TAU(2)=1
+      DO I = 1, 5
+         TAU( I ) = 1
+      END DO
       SRNAMT = 'ZGEMLQ'
       NB=1
       INFOT = 1
@@ -238,6 +296,6 @@
 *
       RETURN
 *
-*     End of DERRTSQR
+*     End of ZERRTSQR
 *
       END

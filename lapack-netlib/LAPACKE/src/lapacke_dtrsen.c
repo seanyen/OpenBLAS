@@ -28,7 +28,6 @@
 *****************************************************************************
 * Contents: Native high-level C interface to LAPACK function dtrsen
 * Author: Intel Corporation
-* Generated November 2015
 *****************************************************************************/
 
 #include "lapacke_utils.h"
@@ -75,6 +74,12 @@ lapack_int LAPACKE_dtrsen( int matrix_layout, char job, char compq,
     /* Allocate memory for work arrays */
     if( LAPACKE_lsame( job, 'b' ) || LAPACKE_lsame( job, 'v' ) ) {
         iwork = (lapack_int*)LAPACKE_malloc( sizeof(lapack_int) * liwork );
+        if( iwork == NULL ) {
+            info = LAPACK_WORK_MEMORY_ERROR;
+            goto exit_level_0;
+        }
+    } else {
+        iwork = (lapack_int*)LAPACKE_malloc( sizeof(lapack_int) );
         if( iwork == NULL ) {
             info = LAPACK_WORK_MEMORY_ERROR;
             goto exit_level_0;

@@ -13,7 +13,8 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dorgtsqr.f">
 *> [TXT]</a>
-*>
+*> \endhtmlonly
+*
 *  Definition:
 *  ===========
 *
@@ -132,6 +133,7 @@
 *>
 *> \param[in] LWORK
 *> \verbatim
+*>          LWORK is INTEGER
 *>          The dimension of the array WORK.  LWORK >= (M+NB)*N.
 *>          If LWORK = -1, then a workspace query is assumed.
 *>          The routine only calculates the optimal size of the WORK
@@ -155,8 +157,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2019
-*
 *> \ingroup doubleOTHERcomputational
 *
 *> \par Contributors:
@@ -175,10 +175,9 @@
      $                     INFO )
       IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.9.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2019
 *
 *     .. Scalar Arguments ..
       INTEGER           INFO, LDA, LDT, LWORK, M, N, MB, NB

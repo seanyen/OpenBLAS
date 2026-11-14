@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download DLANTR + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dlantr.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dlantr.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -133,20 +131,18 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup doubleOTHERauxiliary
+*> \ingroup lantr
 *
 *  =====================================================================
-      DOUBLE PRECISION FUNCTION DLANTR( NORM, UPLO, DIAG, M, N, A, LDA,
+      DOUBLE PRECISION FUNCTION DLANTR( NORM, UPLO, DIAG, M, N, A,
+     $                                  LDA,
      $                 WORK )
+      IMPLICIT NONE
 *
-*  -- LAPACK auxiliary routine (version 3.7.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
-      IMPLICIT NONE
 *     .. Scalar Arguments ..
       CHARACTER          DIAG, NORM, UPLO
       INTEGER            LDA, M, N
@@ -164,17 +160,14 @@
 *     .. Local Scalars ..
       LOGICAL            UDIAG
       INTEGER            I, J
-      DOUBLE PRECISION   SUM, VALUE
+      DOUBLE PRECISION   SCALE, SUM, VALUE
 *     ..
-*     .. Local Arrays ..
-      DOUBLE PRECISION   SSQ( 2 ), COLSSQ( 2 )
+*     .. External Subroutines ..
+      EXTERNAL           DLASSQ
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME, DISNAN
       EXTERNAL           LSAME, DISNAN
-*     ..
-*     .. External Subroutines ..
-      EXTERNAL           DLASSQ, DCOMBSSQ
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, MIN, SQRT
@@ -193,14 +186,16 @@
                DO 20 J = 1, N
                   DO 10 I = 1, MIN( M, J-1 )
                      SUM = ABS( A( I, J ) )
-                     IF( VALUE .LT. SUM .OR. DISNAN( SUM ) ) VALUE = SUM
+                     IF( VALUE .LT. SUM .OR.
+     $                   DISNAN( SUM ) ) VALUE = SUM
    10             CONTINUE
    20          CONTINUE
             ELSE
-               DO 40 J = 1, N
+               DO 40 J = 1, MIN( M, N )
                   DO 30 I = J + 1, M
                      SUM = ABS( A( I, J ) )
-                     IF( VALUE .LT. SUM .OR. DISNAN( SUM ) ) VALUE = SUM
+                     IF( VALUE .LT. SUM .OR.
+     $                   DISNAN( SUM ) ) VALUE = SUM
    30             CONTINUE
    40          CONTINUE
             END IF
@@ -210,14 +205,16 @@
                DO 60 J = 1, N
                   DO 50 I = 1, MIN( M, J )
                      SUM = ABS( A( I, J ) )
-                     IF( VALUE .LT. SUM .OR. DISNAN( SUM ) ) VALUE = SUM
+                     IF( VALUE .LT. SUM .OR.
+     $                   DISNAN( SUM ) ) VALUE = SUM
    50             CONTINUE
    60          CONTINUE
             ELSE
-               DO 80 J = 1, N
+               DO 80 J = 1, MIN( M, N )
                   DO 70 I = J, M
                      SUM = ABS( A( I, J ) )
-                     IF( VALUE .LT. SUM .OR. DISNAN( SUM ) ) VALUE = SUM
+                     IF( VALUE .LT. SUM .OR.
+     $                   DISNAN( SUM ) ) VALUE = SUM
    70             CONTINUE
    80          CONTINUE
             END IF
@@ -244,7 +241,7 @@
                IF( VALUE .LT. SUM .OR. DISNAN( SUM ) ) VALUE = SUM
   110       CONTINUE
          ELSE
-            DO 140 J = 1, N
+            DO 140 J = 1, MIN( M, N )
                IF( UDIAG ) THEN
                   SUM = ONE
                   DO 120 I = J + 1, M
@@ -291,7 +288,7 @@
                DO 220 I = N + 1, M
                   WORK( I ) = ZERO
   220          CONTINUE
-               DO 240 J = 1, N
+               DO 240 J = 1, MIN (M, N )
                   DO 230 I = J + 1, M
                      WORK( I ) = WORK( I ) + ABS( A( I, J ) )
   230             CONTINUE
@@ -300,7 +297,7 @@
                DO 250 I = 1, M
                   WORK( I ) = ZERO
   250          CONTINUE
-               DO 270 J = 1, N
+               DO 270 J = 1, MIN( M, N )
                   DO 260 I = J, M
                      WORK( I ) = WORK( I ) + ABS( A( I, J ) )
   260             CONTINUE
@@ -312,59 +309,44 @@
             SUM = WORK( I )
             IF( VALUE .LT. SUM .OR. DISNAN( SUM ) ) VALUE = SUM
   280    CONTINUE
-      ELSE IF( ( LSAME( NORM, 'F' ) ) .OR. ( LSAME( NORM, 'E' ) ) ) THEN
+      ELSE IF( ( LSAME( NORM, 'F' ) ) .OR.
+     $         ( LSAME( NORM, 'E' ) ) ) THEN
 *
 *        Find normF(A).
-*        SSQ(1) is scale
-*        SSQ(2) is sum-of-squares
-*        For better accuracy, sum each column separately.
 *
          IF( LSAME( UPLO, 'U' ) ) THEN
             IF( LSAME( DIAG, 'U' ) ) THEN
-               SSQ( 1 ) = ONE
-               SSQ( 2 ) = MIN( M, N )
+               SCALE = ONE
+               SUM = MIN( M, N )
                DO 290 J = 2, N
-                  COLSSQ( 1 ) = ZERO
-                  COLSSQ( 2 ) = ONE
-                  CALL DLASSQ( MIN( M, J-1 ), A( 1, J ), 1,
-     $                         COLSSQ( 1 ), COLSSQ( 2 ) )
-                  CALL DCOMBSSQ( SSQ, COLSSQ )
+                  CALL DLASSQ( MIN( M, J-1 ), A( 1, J ), 1, SCALE,
+     $                         SUM )
   290          CONTINUE
             ELSE
-               SSQ( 1 ) = ZERO
-               SSQ( 2 ) = ONE
+               SCALE = ZERO
+               SUM = ONE
                DO 300 J = 1, N
-                  COLSSQ( 1 ) = ZERO
-                  COLSSQ( 2 ) = ONE
-                  CALL DLASSQ( MIN( M, J ), A( 1, J ), 1,
-     $                         COLSSQ( 1 ), COLSSQ( 2 ) )
-                  CALL DCOMBSSQ( SSQ, COLSSQ )
+                  CALL DLASSQ( MIN( M, J ), A( 1, J ), 1, SCALE,
+     $                         SUM )
   300          CONTINUE
             END IF
          ELSE
             IF( LSAME( DIAG, 'U' ) ) THEN
-               SSQ( 1 ) = ONE
-               SSQ( 2 ) = MIN( M, N )
-               DO 310 J = 1, N
-                  COLSSQ( 1 ) = ZERO
-                  COLSSQ( 2 ) = ONE
-                  CALL DLASSQ( M-J, A( MIN( M, J+1 ), J ), 1,
-     $                         COLSSQ( 1 ), COLSSQ( 2 ) )
-                  CALL DCOMBSSQ( SSQ, COLSSQ )
+               SCALE = ONE
+               SUM = MIN( M, N )
+               DO 310 J = 1, MIN( M, N )
+                  CALL DLASSQ( M-J, A( MIN( M, J+1 ), J ), 1, SCALE,
+     $                         SUM )
   310          CONTINUE
             ELSE
-               SSQ( 1 ) = ZERO
-               SSQ( 2 ) = ONE
-               DO 320 J = 1, N
-                  COLSSQ( 1 ) = ZERO
-                  COLSSQ( 2 ) = ONE
-                  CALL DLASSQ( M-J+1, A( J, J ), 1,
-     $                         COLSSQ( 1 ), COLSSQ( 2 ) )
-                  CALL DCOMBSSQ( SSQ, COLSSQ )
+               SCALE = ZERO
+               SUM = ONE
+               DO 320 J = 1, MIN( M, N )
+                  CALL DLASSQ( M-J+1, A( J, J ), 1, SCALE, SUM )
   320          CONTINUE
             END IF
          END IF
-         VALUE = SSQ( 1 )*SQRT( SSQ( 2 ) )
+         VALUE = SCALE*SQRT( SUM )
       END IF
 *
       DLANTR = VALUE

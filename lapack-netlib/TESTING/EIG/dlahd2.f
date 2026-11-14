@@ -58,17 +58,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup double_eig
 *
 *  =====================================================================
       SUBROUTINE DLAHD2( IOUNIT, PATH )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*3        PATH
@@ -512,6 +510,33 @@
      $        ' otherwise)',
      $      / '  34: norm( S - S1 )      / ( norm(S) ulp ),',
      $        ' where S1 is computed', / 44X,
+     $        ' without computing U and V''',
+     $      / '  35: norm( B - U S V'' )  / ( norm(B) min(m,n) ulp )',
+     $        '  DBDSVDMR3(V,A)',
+     $      / '  36: norm( I - U'' U )    / ( min(m,n) ulp )',
+     $      / '  37: norm( I - V'' V )    / ( min(m,n) ulp )',
+     $      / '  38: Test ordering of S  (0 if nondecreasing, 1/ulp ',
+     $        ' otherwise)',
+     $      / '  39: norm( S - S1 )      / ( norm(S) ulp ),',
+     $        ' where S1 is computed', / 44X,
+     $        ' without computing U and V''',
+     $      / '  40: norm( S - U'' B V ) / ( norm(B) n ulp )',
+     $        '  DBDSVDMR3(V,I)',
+     $      / '  41: norm( I - U'' U )    / ( min(m,n) ulp )',
+     $      / '  42: norm( I - V'' V )    / ( min(m,n) ulp )',
+     $      / '  43: Test ordering of S  (0 if nondecreasing, 1/ulp ',
+     $        ' otherwise)',
+     $      / '  44: norm( S - S1 )      / ( norm(S) ulp ),',
+     $        ' where S1 is computed', / 44X,
+     $        ' without computing U and V''',
+     $      / '  45: norm( S - U'' B V ) / ( norm(B) n ulp )',
+     $        '  DBDSVDMR3(V,V)',
+     $      / '  46: norm( I - U'' U )    / ( min(m,n) ulp )',
+     $      / '  47: norm( I - V'' V )    / ( min(m,n) ulp )',
+     $      / '  48: Test ordering of S  (0 if nondecreasing, 1/ulp ',
+     $        ' otherwise)',
+     $      / '  49: norm( S - S1 )      / ( norm(S) ulp ),',
+     $        ' where S1 is computed', / 44X,
      $        ' without computing U and V''' )
 *
 *     Band reduction to bidiagonal form
@@ -537,8 +562,8 @@
      $      / ' 2: norm( I - Q'' Q )   / ( m ulp )',
      $      / ' 3: norm( I - PT PT'' )   / ( n ulp )',
      $      / ' 4: norm( Y - Q'' C )   / ( norm(Y) max(m,nrhs) ulp )' )
- 9968 FORMAT( / ' Tests performed:  See sdrvst.f' )
- 9967 FORMAT( / ' Tests performed:  See cdrvst.f' )
+ 9968 FORMAT( / ' Tests performed:  See ddrvst.f' )
+ 9967 FORMAT( / ' Tests performed:  See zdrvst.f' )
 *
 *     End of DLAHD2
 *

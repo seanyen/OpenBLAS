@@ -75,6 +75,8 @@
 *>             _TP:  Triangular packed
 *>             _TB:  Triangular band
 *>             _QR:  QR (general matrices)
+*>             _QK:  truncated QR decomposition with column pivoting
+*>             _CX:  CX decomposition
 *>             _LQ:  LQ (general matrices)
 *>             _QL:  QL (general matrices)
 *>             _RQ:  RQ (general matrices)
@@ -86,6 +88,8 @@
 *>             _QS:  QR variants
 *>             _QT:  QRT (general matrices)
 *>             _QX:  QRT (triangular-pentagonal matrices)
+*>             _TS:  QR routines for tall-skinny and short-wide matrices
+*>             _HH:  Householder reconstruction for tall-skinny matrices
 *>          The first character must be one of S, D, C, or Z (C or Z only
 *>          if complex).
 *> \endverbatim
@@ -98,17 +102,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup aux_lin
 *
 *  =====================================================================
       SUBROUTINE ALAHD( IOUNIT, PATH )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*3        PATH
@@ -298,7 +300,7 @@
          END IF
          WRITE( IOUNIT, FMT = '( '' Matrix types:'' )' )
          IF( SORD ) THEN
-            WRITE( IOUNIT, FMT = 9972 )
+            WRITE( IOUNIT, FMT = 7972 )
          ELSE
             WRITE( IOUNIT, FMT = 9971 )
          END IF
@@ -585,12 +587,39 @@
 *
 *        QR decomposition with column pivoting
 *
-         WRITE( IOUNIT, FMT = 9986 )PATH
+         WRITE( IOUNIT, FMT = 8006 )PATH
          WRITE( IOUNIT, FMT = 9969 )
          WRITE( IOUNIT, FMT = '( '' Test ratios:'' )' )
          WRITE( IOUNIT, FMT = 9940 )1
          WRITE( IOUNIT, FMT = 9939 )2
          WRITE( IOUNIT, FMT = 9938 )3
+         WRITE( IOUNIT, FMT = '( '' Messages:'' )' )
+*
+      ELSE IF( LSAMEN( 2, P2, 'QK' ) ) THEN
+*
+*        truncated QR decomposition with column pivoting
+*
+         WRITE( IOUNIT, FMT = 8006 )PATH
+         WRITE( IOUNIT, FMT = 9871 )
+         WRITE( IOUNIT, FMT = '( '' Test ratios:'' )' )
+         WRITE( IOUNIT, FMT = 8060 )1
+         WRITE( IOUNIT, FMT = 8061 )2
+         WRITE( IOUNIT, FMT = 8062 )3
+         WRITE( IOUNIT, FMT = 8063 )4
+         WRITE( IOUNIT, FMT = 8064 )5
+         WRITE( IOUNIT, FMT = '( '' Messages:'' )' )
+
+      ELSE IF( LSAMEN( 2, P2, 'CX' ) ) THEN
+*
+*        CX decomposition
+*
+         WRITE( IOUNIT, FMT = 8007 )PATH
+         WRITE( IOUNIT, FMT = 9871 )
+         WRITE( IOUNIT, FMT = '( '' Test ratios:'' )' )
+         WRITE( IOUNIT, FMT = 8060 )1
+         WRITE( IOUNIT, FMT = 8061 )2
+         WRITE( IOUNIT, FMT = 8062 )3
+         WRITE( IOUNIT, FMT = 8063 )4
          WRITE( IOUNIT, FMT = '( '' Messages:'' )' )
 *
       ELSE IF( LSAMEN( 2, P2, 'TZ' ) ) THEN
@@ -609,17 +638,18 @@
       ELSE IF( LSAMEN( 2, P2, 'LS' ) ) THEN
 *
 *        LS:  Least Squares driver routines for
-*             LS, LSD, LSS, LSX and LSY.
+*             LS, LST, TSLS, LSD, LSS, LSX and LSY.
 *
          WRITE( IOUNIT, FMT = 9984 )PATH
          WRITE( IOUNIT, FMT = 9967 )
-         WRITE( IOUNIT, FMT = 9921 )C1, C1, C1, C1
+         WRITE( IOUNIT, FMT = 9921 )C1, C1, C1, C1, C1, C1
          WRITE( IOUNIT, FMT = 9935 )1
          WRITE( IOUNIT, FMT = 9931 )2
-         WRITE( IOUNIT, FMT = 9933 )3
-         WRITE( IOUNIT, FMT = 9935 )4
-         WRITE( IOUNIT, FMT = 9934 )5
-         WRITE( IOUNIT, FMT = 9932 )6
+         WRITE( IOUNIT, FMT = 9919 )
+         WRITE( IOUNIT, FMT = 9933 )7
+         WRITE( IOUNIT, FMT = 9935 )8
+         WRITE( IOUNIT, FMT = 9934 )9
+         WRITE( IOUNIT, FMT = 9932 )10
          WRITE( IOUNIT, FMT = 9920 )
          WRITE( IOUNIT, FMT = '( '' Messages:'' )' )
 *
@@ -708,7 +738,7 @@
 *
       ELSE IF( LSAMEN( 2, P2, 'TS' ) ) THEN
 *
-*        QRT (triangular-pentagonal)
+*        TS:  QR routines for tall-skinny and short-wide matrices
 *
          WRITE( IOUNIT, FMT = 8004 ) PATH
          WRITE( IOUNIT, FMT = '( '' Test ratios:'' )' )
@@ -718,6 +748,19 @@
          WRITE( IOUNIT, FMT = 8038 ) 4
          WRITE( IOUNIT, FMT = 8039 ) 5
          WRITE( IOUNIT, FMT = 8040 ) 6
+*
+      ELSE IF( LSAMEN( 2, P2, 'HH' ) ) THEN
+*
+*        HH:  Householder reconstruction for tall-skinny matrices
+*
+         WRITE( IOUNIT, FMT = 8005 ) PATH
+         WRITE( IOUNIT, FMT = '( '' Test ratios:'' )' )
+         WRITE( IOUNIT, FMT = 8050 ) 1
+         WRITE( IOUNIT, FMT = 8051 ) 2
+         WRITE( IOUNIT, FMT = 8052 ) 3
+         WRITE( IOUNIT, FMT = 8053 ) 4
+         WRITE( IOUNIT, FMT = 8054 ) 5
+         WRITE( IOUNIT, FMT = 8055 ) 6
 *
       ELSE
 *
@@ -763,7 +806,12 @@
  8003 FORMAT( / 1X, A3, ':  LQT factorization for ',
      $       'triangular-pentagonal matrices' )
  8004 FORMAT( / 1X, A3, ':  TS factorization for ',
-     $       'tall-skiny or short-wide matrices' )
+     $       'tall-skinny or short-wide matrices' )
+ 8005 FORMAT( / 1X, A3, ':  Householder reconstruction from TSQR',
+     $       ' factorization output ', /,' for tall-skinny matrices.' )
+ 8006 FORMAT( / 1X, A3, ':  truncated QR factorization',
+     $        ' with column pivoting' )
+ 8007 FORMAT( / 1X, A3, ':  CX decomposition' )
 *
 *     GE matrix types
 *
@@ -783,7 +831,8 @@
      $      '2. First column zero', 15X, '6. Random, CNDNUM = .01/EPS',
      $      / 4X, '3. Last column zero', 16X,
      $      '7. Scaled near underflow', / 4X,
-     $      '4. Last n/2 columns zero', 11X, '8. Scaled near overflow' )
+     $      '4. Last n/2 columns zero', 11X, '8. Scaled near overflow',
+     $      / 39X, '9. Scaled into the subnormal range' )
 *
 *     GT matrix types
 *
@@ -866,6 +915,21 @@
 *
 *     SSY, SSR, SSP, CHE, CHR, CHP matrix types
 *
+*
+*     SSY matrix types
+*
+ 7972 FORMAT( 4X, '1. Diagonal', 24X,
+     $      '6. Last n/2 rows and columns zero', / 4X,
+     $      '2. Random, CNDNUM = 2', 14X,
+     $      '7. Random, CNDNUM = sqrt(0.1/EPS)', / 4X,
+     $      '3. First row and column zero', 7X,
+     $      '8. Random, CNDNUM = 0.1/EPS', / 4X,
+     $      '4. Last row and column zero', 8X,
+     $      '9. Scaled near underflow', / 4X,
+     $      '5. Middle row and column zero', 5X,
+     $      '10. Scaled near overflow', / 39X,
+     $      '11. Subnormal 2 by 2 pivot block' )
+*
  9972 FORMAT( 4X, '1. Diagonal', 24X,
      $      '6. Last n/2 rows and columns zero', / 4X,
      $      '2. Random, CNDNUM = 2', 14X,
@@ -906,6 +970,50 @@
      $      '2. One small eigenvalue', 12X, '5. Last n/2 columns fixed',
      $      / 4X, '3. Geometric distribution', 10X,
      $      '6. Every second column fixed' )
+*
+*     QK matrix types
+*
+ 9871 FORMAT( 4X, ' 1. Zero matrix', /
+     $        4X, ' 2. Random, Diagonal, CNDNUM = 2, NORM = 1', /
+     $        4X, ' 3. Random, Upper triangular, CNDNUM = 2,',
+     $                 ' NORM = 1', /
+     $        4X, ' 4. Random, Lower triangular, CNDNUM = 2,',
+     $                 ' NORM = 1', /
+     $        4X, ' 5. Random, First column is zero, CNDNUM = 2,',
+     $                 ' NORM = 1', /
+     $        4X, ' 6. Random, Last MINMN column is zero, CNDNUM = 2,',
+     $                 ' NORM = 1', /
+     $        4X, ' 7. Random, Last N column is zero, CNDNUM = 2,',
+     $                 ' NORM = 1', /
+     $        4X, ' 8. Random, Middle column in MINMN is zero,',
+     $                 ' CNDNUM = 2, NORM = 1', /
+     $        4X, ' 9. Random, First half of MINMN columns are zero,', /
+     $        4x, '            zero block size MINMN/2, CNDNUM = 2,',
+     $                       ' NORM = 1', /
+     $        4X, '10. Random, Last columns are zero starting from',
+     $                 ' MINMN/2+1 column,', /
+     $        4x, '            zero block size N - MINMN/2',
+     $                 ' CNDNUM = 2, NORM = 1', /
+     $        4X, '11. Random, Half of MINMN columns in the middle are',
+     $                 ' zero,', /
+     $        4X, '            starting from MINMN/2-(MINMN/2)/2+1',
+     $                 ' column,', /
+     $        4x, '            zero block size',
+     $                 ' MINMN/2, CNDNUM = 2, NORM = 1', /
+     $        4X, '12. Random, Odd columns are ZERO, CNDNUM = 2,',
+     $                 ' NORM = 1', /
+     $        4X, '13. Random, Even columns are ZERO, CNDNUM = 2,',
+     $                 ' NORM = 1', /
+     $        4X, '14. Random, CNDNUM = 2, NORM = 1', /
+     $        4X, '15. Random, CNDNUM = sqrt(0.1/EPS), NORM = 1', /
+     $        4X, '16. Random, CNDNUM = 0.1/EPS, NORM = 1', /
+     $        4X, '17. Random, CNDNUM = 0.1/EPS,',
+     $                 ' one small singular value S(N)=1/CNDNUM,',
+     $                 ' NORM = 1', /
+     $        4X, '18. Random, CNDNUM = 2, scaled near underflow,',
+     $                 ' NORM = SMALL = SAFMIN', /
+     $        4X, '19. Random, CNDNUM = 2, scaled near overflow,',
+     $            ' NORM = LARGE = 1.0/( 0.25 * ( SAFMIN / EPS ) )' )
 *
 *     TZ matrix types
 *
@@ -1015,9 +1123,8 @@
      $      ' * norm(C) * EPS )' )
  9940 FORMAT( 3X, I2, ': norm(svd(A) - svd(R)) / ',
      $      '( M * norm(svd(R)) * EPS )' )
- 9939 FORMAT( 3X, I2, ': norm( A*P - Q*R )     / ( M * norm(A) * EPS )'
-     $       )
- 9938 FORMAT( 3X, I2, ': norm( I - Q''*Q )      / ( M * EPS )' )
+ 9939 FORMAT( 3X, I2, ': norm( A*P - Q*R ) / ( M * norm(A) * EPS )')
+ 9938 FORMAT( 3X, I2, ': norm( I - Q''*Q ) / ( M * EPS )' )
  9937 FORMAT( 3X, I2, ': norm( A - R*Q )       / ( M * norm(A) * EPS )'
      $       )
  9935 FORMAT( 3X, I2, ': norm( B - A * X )   / ',
@@ -1034,10 +1141,11 @@
      $      'check if X is in the row space of A or A'' ',
      $      '(overdetermined case)' )
  9929 FORMAT( ' Test ratios (1-3: ', A1, 'TZRZF):' )
- 9920 FORMAT( 3X, ' 7-10: same as 3-6', 3X, ' 11-14: same as 3-6' )
- 9921 FORMAT( ' Test ratios:', / '    (1-2: ', A1, 'GELS, 3-6: ', A1,
-     $      'GELSY, 7-10: ', A1, 'GELSS, 11-14: ', A1, 'GELSD, 15-16: '
-     $        A1, 'GETSLS)')
+ 9919 FORMAT( 3X, ' 3-4: same as 1-2', 3X, ' 5-6: same as 1-2' )
+ 9920 FORMAT( 3X, ' 11-14: same as 7-10', 3X, ' 15-18: same as 7-10' )
+ 9921 FORMAT( ' Test ratios:', / '    (1-2: ', A1, 'GELS, 3-4: ', A1,
+     $      'GELST, 5-6: ', A1, 'GETSLS, 7-10: ', A1, 'GELSY, 11-14: ',
+     $        A1, 'GETSS, 15-18: ', A1, 'GELSD)' )
  9928 FORMAT( 7X, 'where ALPHA = ( 1 + SQRT( 17 ) ) / 8' )
  9927 FORMAT( 3X, I2, ': ABS( Largest element in L )', / 12X,
      $      ' - ( 1 / ( 1 - ALPHA ) ) + THRESH' )
@@ -1081,6 +1189,23 @@
  8039 FORMAT(3X,I2,': norm( C*Q - C*Q ) / ( (M+N) * norm(C) * EPS )' )
  8040 FORMAT(3X,I2,
      $ ': norm( C*Q'' - C*Q'' ) / ( (M+N) * norm(C) * EPS )')
+*
+ 8050 FORMAT(3X,I2,': norm( R - Q''*A ) / ( M * norm(A) * EPS )' )
+ 8051 FORMAT(3X,I2,': norm( I - Q''*Q ) / ( M * EPS )' )
+ 8052 FORMAT(3X,I2,': norm( Q*C - Q*C ) / ( M * norm(C) * EPS )' )
+ 8053 FORMAT(3X,I2,': norm( Q''*C - Q''*C ) / ( M * norm(C) * EPS )')
+ 8054 FORMAT(3X,I2,': norm( C*Q - C*Q ) / ( M * norm(C) * EPS )' )
+ 8055 FORMAT(3X,I2,': norm( C*Q'' - C*Q'' ) / ( M * norm(C) * EPS )')
+
+ 8060 FORMAT( 3X, I2, ': 2-norm(svd(A) - svd(R)) / ',
+     $      '( max(M,N) * 2-norm(svd(R)) * EPS )' )
+ 8061 FORMAT( 3X, I2, ': 1-norm( A*P - Q*R ) / ( max(M,N) * 1-norm(A)',
+     $                ' * EPS )')
+ 8062 FORMAT( 3X, I2, ': 1-norm( I - Q''*Q ) / ( M * EPS )' )
+ 8063 FORMAT( 3X, I2, ': Returns 1.0D+100, if abs(R(K+1,K+1))',
+     $                 ' > abs(R(K,K)), where K=1:KFACT-1' )
+ 8064 FORMAT( 3X, I2, ': 1-norm(Q**T * B - Q**T * B ) / ( M * EPS )')
+
 *
       RETURN
 *

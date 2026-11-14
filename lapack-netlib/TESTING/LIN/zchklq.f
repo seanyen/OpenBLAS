@@ -32,7 +32,7 @@
 *>
 *> \verbatim
 *>
-*> ZCHKLQ tests ZGELQF, ZUNGLQ and CUNMLQ.
+*> ZCHKLQ tests ZGELQF, ZUNGLQ and ZUNMLQ.
 *> \endverbatim
 *
 *  Arguments:
@@ -187,8 +187,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup complex16_lin
 *
 *  =====================================================================
@@ -196,10 +194,9 @@
      $                   NRHS, THRESH, TSTERR, NMAX, A, AF, AQ, AL, AC,
      $                   B, X, XACT, TAU, WORK, RWORK, NOUT )
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       LOGICAL            TSTERR
@@ -238,7 +235,7 @@
       DOUBLE PRECISION   RESULT( NTESTS )
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           ALAERH, ALAHD, ALASUM, XLAENV, ZERRLQ, ZGELQS,
+      EXTERNAL           ALAERH, ALAHD, ALASUM, XLAENV, ZERRLQ, ZGELS,
      $                   ZGET02, ZLACPY, ZLARHS, ZLATB4, ZLATMS, ZLQT01,
      $                   ZLQT02, ZLQT03
 *     ..
@@ -373,7 +370,7 @@
      $                               WORK, LWORK, RWORK, RESULT( 3 ) )
                         NT = NT + 4
 *
-*                       If M>=N and K=N, call ZGELQS to solve a system
+*                       If M<=N and K=M, call ZGELS to solve a system
 *                       with NRHS right hand sides and compute the
 *                       residual.
 *
@@ -390,14 +387,27 @@
 *
                            CALL ZLACPY( 'Full', M, NRHS, B, LDA, X,
      $                                  LDA )
-                           SRNAMT = 'ZGELQS'
-                           CALL ZGELQS( M, N, NRHS, AF, LDA, TAU, X,
-     $                                  LDA, WORK, LWORK, INFO )
 *
-*                          Check error code from ZGELQS.
+*                          Reset AF to the original matrix. ZGELS
+*                          factors the matrix before solving the system.
 *
-                           IF( INFO.NE.0 )
-     $                        CALL ALAERH( PATH, 'ZGELQS', INFO, 0, ' ',
+                           CALL ZLACPY( 'Full', M, N, A, LDA, AF, LDA )
+*
+                           SRNAMT = 'ZGELS'
+                            CALL ZGELS( 'No transpose', M, N, NRHS, AF,
+     $                                 LDA, X, LDA, WORK, LWORK, INFO )
+*
+*                          Re-factorize AF with ZGELQF for subsequent
+*                          LQ tests which expect LQ factorization in AF.
+*
+                            CALL ZLACPY( 'Full', M, N, A, LDA, AF, LDA )
+                            CALL ZGELQF( M, N, AF, LDA, TAU, WORK,
+     $                                   LWORK, INFO )
+*
+*                          Check error code from ZGELS.
+*
+                            IF( INFO.NE.0 )
+     $                        CALL ALAERH( PATH, 'ZGELS', INFO, 0, 'N',
      $                                     M, N, NRHS, -1, NB, IMAT,
      $                                     NFAIL, NERRS, NOUT )
 *

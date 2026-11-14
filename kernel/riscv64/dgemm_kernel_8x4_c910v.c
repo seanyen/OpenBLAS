@@ -1,5 +1,5 @@
 #include "common.h"
-#include <riscv-vector.h>
+#include <riscv_vector.h>
 
 #define KERNEL8x4_I \
 	"addi       t1,    %[PB], 1*8  \n\t"\
@@ -196,7 +196,7 @@ int CNAME(BLASLONG bm,BLASLONG bn,BLASLONG bk,FLOAT alpha,FLOAT* ba,FLOAT* bb,FL
 		   
 		   asm volatile(
 				"vsetvli    zero, zero, e64,m1 \n\t"
-				"fmv.w.x    ft11, zero         \n\t"
+				"fmv.d.x    ft11, zero         \n\t"
 				"mv         t0,   %[BK]        \n\t"
 				
 				"vfmv.v.f   v16,  ft11         \n\t"

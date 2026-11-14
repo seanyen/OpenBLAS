@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download SGGEV3 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/sggev3.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/sggev3.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -189,6 +187,8 @@
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
+*>          The dimension of the array WORK. LWORK >= MAX(1,8*N).
+*>          For good performance, LWORK should generally be larger.
 *>
 *>          If LWORK = -1, then a workspace query is assumed; the routine
 *>          only calculates the optimal size of the WORK array, returns
@@ -205,7 +205,7 @@
 *>                The QZ iteration failed.  No eigenvectors have been
 *>                calculated, but ALPHAR(j), ALPHAI(j), and BETA(j)
 *>                should be correct for j=INFO+1,...,N.
-*>          > N:  =N+1: other than QZ iteration failed in SHGEQZ.
+*>          > N:  =N+1: other than QZ iteration failed in SLAQZ0.
 *>                =N+2: error return from STGEVC.
 *> \endverbatim
 *
@@ -217,19 +217,17 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date January 2015
-*
-*> \ingroup realGEeigen
+*> \ingroup ggev3
 *
 *  =====================================================================
       SUBROUTINE SGGEV3( JOBVL, JOBVR, N, A, LDA, B, LDB, ALPHAR,
      $                   ALPHAI, BETA, VL, LDVL, VR, LDVR, WORK, LWORK,
      $                   INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK driver routine (version 3.6.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     January 2015
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBVL, JOBVR
@@ -251,7 +249,8 @@
       LOGICAL            ILASCL, ILBSCL, ILV, ILVL, ILVR, LQUERY
       CHARACTER          CHTEMP
       INTEGER            ICOLS, IERR, IHI, IJOBVL, IJOBVR, ILEFT, ILO,
-     $                   IN, IRIGHT, IROWS, ITAU, IWRK, JC, JR, LWKOPT
+     $                   IN, IRIGHT, IROWS, ITAU, IWRK, JC, JR, LWKOPT,
+     $                   LWKMIN
       REAL               ANRM, ANRMTO, BIGNUM, BNRM, BNRMTO, EPS,
      $                   SMLNUM, TEMP
 *     ..
@@ -259,14 +258,16 @@
       LOGICAL            LDUMMA( 1 )
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           SGEQRF, SGGBAK, SGGBAL, SGGHD3, SHGEQZ, SLABAD,
-     $                   SLACPY, SLASCL, SLASET, SORGQR, SORMQR, STGEVC,
-     $                   XERBLA
+      EXTERNAL           SGEQRF, SGGBAK, SGGBAL,
+     $                   SGGHD3, SLAQZ0, SLACPY,
+     $                   SLASCL, SLASET, SORGQR,
+     $                   SORMQR, STGEVC
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      REAL               SLAMCH, SLANGE
-      EXTERNAL           LSAME, SLAMCH, SLANGE
+      REAL               SLAMCH, SLANGE, SROUNDUP_LWORK
+      EXTERNAL           LSAME, SLAMCH, SLANGE,
+     $                   SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, MAX, SQRT
@@ -302,6 +303,7 @@
 *
       INFO = 0
       LQUERY = ( LWORK.EQ.-1 )
+      LWKMIN = MAX( 1, 8*N )
       IF( IJOBVL.LE.0 ) THEN
          INFO = -1
       ELSE IF( IJOBVR.LE.0 ) THEN
@@ -316,7 +318,7 @@
          INFO = -12
       ELSE IF( LDVR.LT.1 .OR. ( ILVR .AND. LDVR.LT.N ) ) THEN
          INFO = -14
-      ELSE IF( LWORK.LT.MAX( 1, 8*N ) .AND. .NOT.LQUERY ) THEN
+      ELSE IF( LWORK.LT.LWKMIN .AND. .NOT.LQUERY ) THEN
          INFO = -16
       END IF
 *
@@ -324,28 +326,36 @@
 *
       IF( INFO.EQ.0 ) THEN
          CALL SGEQRF( N, N, B, LDB, WORK, WORK, -1, IERR )
-         LWKOPT = MAX( 1, 8*N, 3*N+INT ( WORK( 1 ) ) )
+         LWKOPT = MAX( LWKMIN, 3*N+INT( WORK( 1 ) ) )
          CALL SORMQR( 'L', 'T', N, N, N, B, LDB, WORK, A, LDA, WORK,
      $                -1, IERR )
-         LWKOPT = MAX( LWKOPT, 3*N+INT ( WORK( 1 ) ) )
-         CALL SGGHD3( JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB, VL, LDVL,
-     $                VR, LDVR, WORK, -1, IERR )
-         LWKOPT = MAX( LWKOPT, 3*N+INT ( WORK( 1 ) ) )
+         LWKOPT = MAX( LWKOPT, 3*N+INT( WORK( 1 ) ) )
          IF( ILVL ) THEN
             CALL SORGQR( N, N, N, VL, LDVL, WORK, WORK, -1, IERR )
-            LWKOPT = MAX( LWKOPT, 3*N+INT ( WORK( 1 ) ) )
-            CALL SHGEQZ( 'S', JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB,
-     $                   ALPHAR, ALPHAI, BETA, VL, LDVL, VR, LDVR,
-     $                   WORK, -1, IERR )
-            LWKOPT = MAX( LWKOPT, 2*N+INT ( WORK( 1 ) ) )
-         ELSE
-            CALL SHGEQZ( 'E', JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB,
-     $                   ALPHAR, ALPHAI, BETA, VL, LDVL, VR, LDVR,
-     $                   WORK, -1, IERR )
-            LWKOPT = MAX( LWKOPT, 2*N+INT ( WORK( 1 ) ) )
+            LWKOPT = MAX( LWKOPT, 3*N+INT( WORK( 1 ) ) )
          END IF
-         WORK( 1 ) = REAL( LWKOPT )
-*
+         IF( ILV ) THEN
+            CALL SGGHD3( JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB, VL,
+     $                   LDVL, VR, LDVR, WORK, -1, IERR )
+            LWKOPT = MAX( LWKOPT, 3*N+INT( WORK( 1 ) ) )
+            CALL SLAQZ0( 'S', JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB,
+     $                   ALPHAR, ALPHAI, BETA, VL, LDVL, VR, LDVR,
+     $                   WORK, -1, 0, IERR )
+            LWKOPT = MAX( LWKOPT, 2*N+INT( WORK( 1 ) ) )
+         ELSE
+            CALL SGGHD3( 'N', 'N', N, 1, N, A, LDA, B, LDB, VL, LDVL,
+     $                   VR, LDVR, WORK, -1, IERR )
+            LWKOPT = MAX( LWKOPT, 3*N+INT( WORK( 1 ) ) )
+            CALL SLAQZ0( 'E', JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB,
+     $                   ALPHAR, ALPHAI, BETA, VL, LDVL, VR, LDVR,
+     $                   WORK, -1, 0, IERR )
+            LWKOPT = MAX( LWKOPT, 2*N+INT( WORK( 1 ) ) )
+         END IF
+         IF( N.EQ.0 ) THEN
+            WORK( 1 ) = 1
+         ELSE
+            WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
+         END IF
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -365,7 +375,6 @@
       EPS = SLAMCH( 'P' )
       SMLNUM = SLAMCH( 'S' )
       BIGNUM = ONE / SMLNUM
-      CALL SLABAD( SMLNUM, BIGNUM )
       SMLNUM = SQRT( SMLNUM ) / EPS
       BIGNUM = ONE / SMLNUM
 *
@@ -429,7 +438,8 @@
       IF( ILVL ) THEN
          CALL SLASET( 'Full', N, N, ZERO, ONE, VL, LDVL )
          IF( IROWS.GT.1 ) THEN
-            CALL SLACPY( 'L', IROWS-1, IROWS-1, B( ILO+1, ILO ), LDB,
+            CALL SLACPY( 'L', IROWS-1, IROWS-1,
+     $                   B( ILO+1, ILO ), LDB,
      $                   VL( ILO+1, ILO ), LDVL )
          END IF
          CALL SORGQR( IROWS, IROWS, IROWS, VL( ILO, ILO ), LDVL,
@@ -447,11 +457,16 @@
 *
 *        Eigenvectors requested -- work on whole matrix.
 *
-         CALL SGGHD3( JOBVL, JOBVR, N, ILO, IHI, A, LDA, B, LDB, VL,
-     $                LDVL, VR, LDVR, WORK( IWRK ), LWORK+1-IWRK, IERR )
+         CALL SGGHD3( JOBVL, JOBVR, N, ILO, IHI,
+     $                A, LDA,
+     $                B, LDB, VL,
+     $                LDVL, VR, LDVR,
+     $                WORK( IWRK ), LWORK+1-IWRK, IERR )
       ELSE
-         CALL SGGHD3( 'N', 'N', IROWS, 1, IROWS, A( ILO, ILO ), LDA,
-     $                B( ILO, ILO ), LDB, VL, LDVL, VR, LDVR,
+         CALL SGGHD3( 'N', 'N', IROWS, 1, IROWS,
+     $                A( ILO, ILO ), LDA,
+     $                B( ILO, ILO ), LDB, VL,
+     $                LDVL, VR, LDVR,
      $                WORK( IWRK ), LWORK+1-IWRK, IERR )
       END IF
 *
@@ -464,9 +479,9 @@
       ELSE
          CHTEMP = 'E'
       END IF
-      CALL SHGEQZ( CHTEMP, JOBVL, JOBVR, N, ILO, IHI, A, LDA, B, LDB,
+      CALL SLAQZ0( CHTEMP, JOBVL, JOBVR, N, ILO, IHI, A, LDA, B, LDB,
      $             ALPHAR, ALPHAI, BETA, VL, LDVL, VR, LDVR,
-     $             WORK( IWRK ), LWORK+1-IWRK, IERR )
+     $             WORK( IWRK ), LWORK+1-IWRK, 0, IERR )
       IF( IERR.NE.0 ) THEN
          IF( IERR.GT.0 .AND. IERR.LE.N ) THEN
             INFO = IERR
@@ -490,7 +505,8 @@
          ELSE
             CHTEMP = 'R'
          END IF
-         CALL STGEVC( CHTEMP, 'B', LDUMMA, N, A, LDA, B, LDB, VL, LDVL,
+         CALL STGEVC( CHTEMP, 'B', LDUMMA, N, A, LDA, B, LDB, VL,
+     $                LDVL,
      $                VR, LDVR, N, IN, WORK( IWRK ), IERR )
          IF( IERR.NE.0 ) THEN
             INFO = N + 2
@@ -573,15 +589,17 @@
   110 CONTINUE
 *
       IF( ILASCL ) THEN
-         CALL SLASCL( 'G', 0, 0, ANRMTO, ANRM, N, 1, ALPHAR, N, IERR )
-         CALL SLASCL( 'G', 0, 0, ANRMTO, ANRM, N, 1, ALPHAI, N, IERR )
+         CALL SLASCL( 'G', 0, 0, ANRMTO, ANRM, N, 1, ALPHAR, N,
+     $                IERR )
+         CALL SLASCL( 'G', 0, 0, ANRMTO, ANRM, N, 1, ALPHAI, N,
+     $                IERR )
       END IF
 *
       IF( ILBSCL ) THEN
          CALL SLASCL( 'G', 0, 0, BNRMTO, BNRM, N, 1, BETA, N, IERR )
       END IF
 *
-      WORK( 1 ) = REAL( LWKOPT )
+      WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       RETURN
 *
 *     End of SGGEV3

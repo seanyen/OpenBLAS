@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download SORMLQ + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/sormlq.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/sormlq.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -160,18 +158,16 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realOTHERcomputational
+*> \ingroup unmlq
 *
 *  =====================================================================
       SUBROUTINE SORMLQ( SIDE, TRANS, M, N, K, A, LDA, TAU, C, LDC,
      $                   WORK, LWORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          SIDE, TRANS
@@ -198,7 +194,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           LSAME, ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SLARFB, SLARFT, SORML2, XERBLA
@@ -219,10 +216,10 @@
 *
       IF( LEFT ) THEN
          NQ = M
-         NW = N
+         NW = MAX( 1, N )
       ELSE
          NQ = N
-         NW = M
+         NW = MAX( 1, M )
       END IF
       IF( .NOT.LEFT .AND. .NOT.LSAME( SIDE, 'R' ) ) THEN
          INFO = -1
@@ -238,7 +235,7 @@
          INFO = -7
       ELSE IF( LDC.LT.MAX( 1, M ) ) THEN
          INFO = -10
-      ELSE IF( LWORK.LT.MAX( 1, NW ) .AND. .NOT.LQUERY ) THEN
+      ELSE IF( LWORK.LT.NW .AND. .NOT.LQUERY ) THEN
          INFO = -12
       END IF
 *
@@ -246,10 +243,11 @@
 *
 *        Compute the workspace requirements
 *
-         NB = MIN( NBMAX, ILAENV( 1, 'SORMLQ', SIDE // TRANS, M, N, K,
+         NB = MIN( NBMAX, ILAENV( 1, 'SORMLQ', SIDE // TRANS, M, N,
+     $             K,
      $             -1 ) )
-         LWKOPT = MAX( 1, NW )*NB + TSIZE
-         WORK( 1 ) = LWKOPT
+          LWKOPT = NW*NB + LDT*NB
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -269,9 +267,10 @@
       NBMIN = 2
       LDWORK = NW
       IF( NB.GT.1 .AND. NB.LT.K ) THEN
-         IF( LWORK.LT.NW*NB+TSIZE ) THEN
-            NB = (LWORK-TSIZE) / LDWORK
-            NBMIN = MAX( 2, ILAENV( 2, 'SORMLQ', SIDE // TRANS, M, N, K,
+         IF( LWORK.LT.LWKOPT ) THEN
+             NB = LWORK / (LDWORK + LDT)
+            NBMIN = MAX( 2, ILAENV( 2, 'SORMLQ', SIDE // TRANS, M, N,
+     $                   K,
      $              -1 ) )
          END IF
       END IF
@@ -280,7 +279,8 @@
 *
 *        Use unblocked code
 *
-         CALL SORML2( SIDE, TRANS, M, N, K, A, LDA, TAU, C, LDC, WORK,
+         CALL SORML2( SIDE, TRANS, M, N, K, A, LDA, TAU, C, LDC,
+     $                WORK,
      $                IINFO )
       ELSE
 *
@@ -336,12 +336,13 @@
 *
 *           Apply H or H**T
 *
-            CALL SLARFB( SIDE, TRANST, 'Forward', 'Rowwise', MI, NI, IB,
+            CALL SLARFB( SIDE, TRANST, 'Forward', 'Rowwise', MI, NI,
+     $                   IB,
      $                   A( I, I ), LDA, WORK( IWT ), LDT,
      $                   C( IC, JC ), LDC, WORK, LDWORK )
    10    CONTINUE
       END IF
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       RETURN
 *
 *     End of SORMLQ

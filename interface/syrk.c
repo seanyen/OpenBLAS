@@ -44,6 +44,7 @@
 #endif
 
 #ifndef COMPLEX
+#define SMP_THRESHOLD_MIN 109944.
 #ifdef XDOUBLE
 #define ERROR_NAME "QSYRK "
 #elif defined(DOUBLE)
@@ -52,6 +53,7 @@
 #define ERROR_NAME "SSYRK "
 #endif
 #else
+#define SMP_THRESHOLD_MIN 14824.
 #ifndef HEMM
 #ifdef XDOUBLE
 #define ERROR_NAME "XSYRK "
@@ -71,6 +73,10 @@
 #endif
 #endif
 
+#ifndef GEMM_MULTITHREAD_THRESHOLD
+#define GEMM_MULTITHREAD_THRESHOLD 4
+#endif
+
 static int (*syrk[])(blas_arg_t *, BLASLONG *, BLASLONG *, FLOAT *, FLOAT *, BLASLONG) = {
 #ifndef HEMM
   SYRK_UN, SYRK_UC, SYRK_LN, SYRK_LC,
@@ -84,6 +90,8 @@ static int (*syrk[])(blas_arg_t *, BLASLONG *, BLASLONG *, FLOAT *, FLOAT *, BLA
 #endif
 #endif
 };
+
+OPENBLAS_EXPORT
 
 #ifndef CBLAS
 
@@ -101,6 +109,7 @@ void NAME(char *UPLO, char *TRANS,
   FLOAT *sa, *sb;
 
 #ifdef SMP
+  double NNK;
 #ifdef USE_SIMPLE_THREADED_LEVEL3
 #ifndef COMPLEX
 #ifdef XDOUBLE
@@ -225,6 +234,8 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE Tr
   FLOAT *sa, *sb;
 
 #ifdef SMP
+double NNK;
+
 #ifdef USE_SIMPLE_THREADED_LEVEL3
 #ifndef COMPLEX
 #ifdef XDOUBLE
@@ -330,15 +341,46 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE Tr
     return;
   }
 
+  if (args.n == 0) return;
+
+#ifdef DYNAMIC_ARCH
+extern char* gotoblas_corename(void);
+#endif
+	
+#if !defined(COMPLEX) && !defined(DOUBLE) && !defined(BFLOAT16)  && !defined(HFLOAT16)
+#if defined(ARCH_ARM64) && (defined(USE_SSYRK_KERNEL_DIRECT)||defined(DYNAMIC_ARCH))
+#if defined(DYNAMIC_ARCH)
+if (strcmp(gotoblas_corename(), "armv9sme") == 0
+#if defined(__clang__)
+ || strcmp(gotoblas_corename(), "vortexm4") == 0
+#endif
+)
+#endif
+  if (order == CblasRowMajor && n == ldc) {
+    if (Trans == CblasNoTrans && k == lda) {
+      (Uplo == CblasUpper ? SSYRK_DIRECT_ALPHA_BETA_UN : SSYRK_DIRECT_ALPHA_BETA_LN)(n, k, alpha, a, lda, beta, c, ldc);
+      return;
+    } else if (Trans == CblasTrans && n == lda){
+      (Uplo == CblasUpper ? SSYRK_DIRECT_ALPHA_BETA_UT : SSYRK_DIRECT_ALPHA_BETA_LT)(n, k, alpha, a, lda, beta, c, ldc);
+      return;
+    }
+  }
+#endif
 #endif
 
-  if (args.n == 0) return;
+#endif
+
 
   IDEBUG_START;
 
   FUNCTION_PROFILE_START();
 
   buffer = (FLOAT *)blas_memory_alloc(0);
+  if (!buffer) {
+    info = -999;
+    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
+    return;
+  }
 
   sa = (FLOAT *)((BLASLONG)buffer + GEMM_OFFSET_A);
   sb = (FLOAT *)(((BLASLONG)sa + ((GEMM_P * GEMM_Q * COMPSIZE * SIZE + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
@@ -354,7 +396,13 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE Tr
 #endif
 
   args.common = NULL;
+
+  NNK = (double)(args.n+1)*(double)args.n*(double)args.k;
+  if (NNK <= (SMP_THRESHOLD_MIN * GEMM_MULTITHREAD_THRESHOLD)) {
+  args.nthreads = 1;
+  } else {
   args.nthreads = num_cpu_avail(3);
+  }
 
   if (args.nthreads == 1) {
 #endif
@@ -362,7 +410,6 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE Tr
     (syrk[(uplo << 1) | trans ])(&args, NULL, NULL, sa, sb, 0);
 
 #ifdef SMP
-
   } else {
 
 #ifndef USE_SIMPLE_THREADED_LEVEL3

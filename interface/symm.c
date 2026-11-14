@@ -44,6 +44,7 @@
 #endif
 
 #ifndef COMPLEX
+#define SMP_THRESHOLD_MIN 65536.
 #ifdef XDOUBLE
 #define ERROR_NAME "QSYMM "
 #elif defined(DOUBLE)
@@ -52,6 +53,7 @@
 #define ERROR_NAME "SSYMM "
 #endif
 #else
+#define SMP_THRESHOLD_MIN 8192.
 #ifndef GEMM3M
 #ifndef HEMM
 #ifdef XDOUBLE
@@ -91,6 +93,13 @@
 #endif
 #endif
 
+#ifndef GEMM_MULTITHREAD_THRESHOLD
+#define GEMM_MULTITHREAD_THRESHOLD 4
+#endif
+
+#ifdef DYNAMIC_ARCH
+extern char* gotoblas_corename(void);                                
+#endif                                                               
 
 #ifdef SMP
 #ifndef COMPLEX
@@ -140,6 +149,8 @@ static int (*symm[])(blas_arg_t *, BLASLONG *, BLASLONG *, FLOAT *, FLOAT *, BLA
 #endif
 };
 
+OPENBLAS_EXPORT
+
 #ifndef CBLAS
 
 void NAME(char *SIDE, char *UPLO,
@@ -159,7 +170,9 @@ void NAME(char *SIDE, char *UPLO,
 #if defined(SMP) && !defined(NO_AFFINITY)
   int nodes;
 #endif
-
+# if defined(SMP)
+  double MN;
+#endif
   blasint info;
   int side;
   int uplo;
@@ -254,6 +267,9 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_SIDE Side, enum CBLAS_UPLO Uplo,
 
 #if defined(SMP) && !defined(NO_AFFINITY)
   int nodes;
+#endif
+#if defined(SMP)
+  double MN;
 #endif
 
   PRINT_DEBUG_CNAME;
@@ -360,30 +376,58 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_SIDE Side, enum CBLAS_UPLO Uplo,
     return;
   }
 
+   if (args.m == 0 || args.n == 0) return;
+#if !defined(COMPLEX) && !defined(DOUBLE) && !defined(BFLOAT16)  && !defined(HFLOAT16)
+#if defined(ARCH_ARM64) && (defined(USE_SSYMM_KERNEL_DIRECT)||defined(DYNAMIC_ARCH))
+#if defined(DYNAMIC_ARCH)
+if (strcmp(gotoblas_corename(), "armv9sme") == 0
+#if defined(__clang__)
+ || strcmp(gotoblas_corename(), "vortexm4") == 0
+#endif
+)
+#endif
+   if (order == CblasRowMajor && m == lda && n == ldb && n == ldc)
+   {
+     if (Side == CblasLeft && Uplo == CblasUpper) {
+       SSYMM_DIRECT_ALPHA_BETA_LU(m, n, alpha, a, lda, b, ldb, beta, c, ldc); return;
+     }
+     else if (Side == CblasLeft && Uplo == CblasLower) {
+       SSYMM_DIRECT_ALPHA_BETA_LL(m, n, alpha, a, lda, b, ldb, beta, c, ldc); return;
+     }
+   }
+#endif
 #endif
 
-  if (args.m == 0 || args.n == 0) return;
+#endif
 
   IDEBUG_START;
 
   FUNCTION_PROFILE_START();
 
   buffer = (FLOAT *)blas_memory_alloc(0);
+  if (!buffer) {
+    info = -999;
+    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
+    return;
+  }
 
   sa = (FLOAT *)((BLASLONG)buffer + GEMM_OFFSET_A);
   sb = (FLOAT *)(((BLASLONG)sa + ((GEMM_P * GEMM_Q * COMPSIZE * SIZE + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
 
 #ifdef SMP
   args.common = NULL;
-  args.nthreads = num_cpu_avail(3);
-
+  MN = 2.* (double) args.m * (double)args.m * (double) args.n;
+  if (MN <= (SMP_THRESHOLD_MIN * (double) GEMM_MULTITHREAD_THRESHOLD) ) {
+	  args.nthreads = 1;
+  } else {
+	 args.nthreads = num_cpu_avail(3);
+  }
   if (args.nthreads == 1) {
 #endif
 
     (symm[(side << 1) | uplo ])(&args, NULL, NULL, sa, sb, 0);
 
 #ifdef SMP
-
   } else {
 
 #ifndef NO_AFFINITY

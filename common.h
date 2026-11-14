@@ -1,5 +1,6 @@
 /*********************************************************************/
 /* Copyright 2009, 2010 The University of Texas at Austin.           */
+/* Copyright 2025 The OpenBLAS Project.                              */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -56,6 +57,7 @@ extern "C" {
 #define __USE_SVID
 #endif
 
+#include "exports.h"
 #ifdef BUILD_KERNEL
 #include "config_kernel.h"
 #else
@@ -78,6 +80,22 @@ extern "C" {
 #endif
 #endif
 
+#ifndef ASSEMBLER
+#if defined(HAVE_C11) && !defined(__cplusplus)
+#if defined(C_GCC) && ( __GNUC__ < 7)
+// workaround for GCC bug 65467
+#ifndef _Atomic
+#define _Atomic volatile
+#endif
+#endif
+#include <stdatomic.h>
+#else
+#ifndef _Atomic
+#define _Atomic volatile
+#endif
+#endif
+#endif
+
 #if !defined(NOINCLUDE) && !defined(ASSEMBLER)
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,7 +108,7 @@ extern "C" {
 #endif
 #include <time.h>
 
-#ifdef OS_LINUX
+#if defined(OS_LINUX) || defined(OS_QNX)
 #include <malloc.h>
 #include <sched.h>
 #endif
@@ -107,7 +125,7 @@ extern "C" {
 #endif
 #endif
 
-#ifdef OS_HAIKU
+#if defined(OS_HAIKU) || defined(OS_QNX)
 #define NO_SYSV_IPC
 #endif
 
@@ -192,8 +210,10 @@ extern "C" {
 
 #ifdef NEEDBUNDERSCORE
 #define BLASFUNC(FUNC) FUNC##_
+#define OPENBLAS_API(FUNC) OPENBLAS_EXPORT FUNC##_
 #else
 #define BLASFUNC(FUNC) FUNC
+#define OPENBLAS_API(FUNC) OPENBLAS_EXPORT FUNC
 #endif
 
 #undef	USE_PTHREAD_LOCK
@@ -266,6 +286,19 @@ typedef uint16_t bfloat16;
 #define BFLOAT16CONVERSION 1
 #endif
 
+#ifdef BUILD_HFLOAT16
+  #ifndef hfloat16
+  #if defined(POWER8) || defined(POWER9) || defined(POWER10)
+  /* POWER does not have a native _Float16 ABI type; use uint16_t bit-pattern */
+  typedef uint16_t hfloat16;
+  #else
+  typedef _Float16 hfloat16;
+  #endif
+  #endif
+#else
+  typedef uint16_t hfloat16;
+#endif
+
 #ifdef USE64BITINT
 typedef BLASLONG blasint;
 #if defined(OS_WINDOWS) && defined(__64BIT__)
@@ -309,8 +342,19 @@ typedef int blasint;
 #elif defined(BFLOAT16)
 #define IFLOAT	bfloat16
 #define XFLOAT IFLOAT
-#define FLOAT	float
+#ifdef BGEMM
+#define FLOAT	bfloat16
+#else
+#define FLOAT float
+#endif
 #define SIZE   2
+#define BASE_SHIFT 1
+#define ZBASE_SHIFT 2
+#elif defined(HFLOAT16)
+#define IFLOAT	hfloat16
+#define XFLOAT	IFLOAT
+#define FLOAT	float
+#define SIZE	2
 #define BASE_SHIFT 1
 #define ZBASE_SHIFT 2
 #else
@@ -342,26 +386,8 @@ typedef int blasint;
 #define MAX_CPU_NUMBER 2
 #endif
 
-#if defined(OS_SUNOS)
-#define YIELDING	thr_yield()
-#endif
-
-#if defined(OS_WINDOWS)
-#if defined(_MSC_VER) && !defined(__clang__)
-#define YIELDING    YieldProcessor()
-#else
-#define YIELDING	SwitchToThread()
-#endif
-#endif
-
 #if defined(ARMV7) || defined(ARMV6) || defined(ARMV8) || defined(ARMV5)
 #define YIELDING        __asm__ __volatile__ ("nop;nop;nop;nop;nop;nop;nop;nop; \n");
-#endif
-
-#ifdef BULLDOZER
-#ifndef YIELDING
-#define YIELDING        __asm__ __volatile__ ("nop;nop;nop;nop;nop;nop;nop;nop;\n");
-#endif
 #endif
 
 
@@ -371,28 +397,44 @@ typedef int blasint;
 #endif
 #endif
 
-/*
-#ifdef PILEDRIVER
+
+#if defined(ARCH_X86_64)
 #ifndef YIELDING
 #define YIELDING        __asm__ __volatile__ ("nop;nop;nop;nop;nop;nop;nop;nop;\n");
 #endif
 #endif
-*/
 
-/*
-#ifdef STEAMROLLER
+#if defined(ARCH_RISCV64)
 #ifndef YIELDING
 #define YIELDING        __asm__ __volatile__ ("nop;nop;nop;nop;nop;nop;nop;nop;\n");
 #endif
 #endif
-*/
+
+#if defined(ARCH_WASM)
+#ifndef YIELDING
+#define YIELDING
+#endif
+#endif
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#undef YIELDING // MSVC doesn't support assembly code
+#define YIELDING    	YieldProcessor()
+#endif
 
 #ifndef YIELDING
+#if defined(OS_SUNOS)
+#define YIELDING	thr_yield()
+
+#elif defined(OS_WINDOWS)
+#define YIELDING	SwitchToThread()
+
+#else // assume POSIX.1-2008
 #define YIELDING	sched_yield()
+#endif
 #endif
 
 /***
-To alloc job_t on heap or statck.
+To alloc job_t on heap or stack.
 please https://github.com/xianyi/OpenBLAS/issues/246
 ***/
 #if defined(OS_WINDOWS)
@@ -412,8 +454,23 @@ please https://github.com/xianyi/OpenBLAS/issues/246
 #include "common_quad.h"
 #endif
 
+#ifndef ASSEMBLER
+#if defined(HAVE_C11) && !defined(__cplusplus)
+#define BLAS_LOCK_DEFINED
+#endif
+#endif
+
 #ifdef ARCH_ALPHA
 #include "common_alpha.h"
+#endif
+
+#if (defined(ARCH_X86) || defined(ARCH_X86_64)) && defined(__CET__) && defined(__has_include)
+#if __has_include(<cet.h>)
+#include <cet.h>
+#endif
+#endif
+#ifndef _CET_ENDBR
+#define _CET_ENDBR
 #endif
 
 #ifdef ARCH_X86
@@ -440,7 +497,7 @@ please https://github.com/xianyi/OpenBLAS/issues/246
 #include "common_mips.h"
 #endif
 
-    
+
 #ifdef ARCH_RISCV64
 #include "common_riscv64.h"
 #endif
@@ -459,6 +516,22 @@ please https://github.com/xianyi/OpenBLAS/issues/246
 
 #ifdef ARCH_ZARCH
 #include "common_zarch.h"
+#endif
+
+#ifdef ARCH_LOONGARCH64
+#include "common_loongarch64.h"
+#endif
+
+#ifdef ARCH_E2K
+#include "common_e2k.h"
+#endif
+
+#ifdef ARCH_CSKY
+#include "common_csky.h"
+#endif
+
+#ifdef ARCH_WASM
+#include "common_wasm.h"
 #endif
 
 #ifndef ASSEMBLER
@@ -504,7 +577,7 @@ static inline unsigned long long rpcc(void){
 #endif // !RPCC_DEFINED
 
 #if !defined(BLAS_LOCK_DEFINED) && defined(__GNUC__)
-static void __inline blas_lock(volatile BLASULONG *address){
+static __inline void blas_lock(volatile BLASULONG *address){
 
   do {
     while (*address) {YIELDING;};
@@ -513,6 +586,27 @@ static void __inline blas_lock(volatile BLASULONG *address){
 }
 #define BLAS_LOCK_DEFINED
 #endif
+
+#if defined(HAVE_C11) && !defined(__cplusplus)
+static __inline void blas_lock(volatile BLASULONG *address) {
+  BLASULONG expected = 0;
+  while (!atomic_compare_exchange_strong((volatile _Atomic BLASULONG *)address,
+             &expected, (BLASULONG)1)) {
+    expected = 0;
+    YIELDING;
+  }
+}
+#endif
+
+static __inline void blas_unlock(volatile BLASULONG *address){
+#if defined(HAVE_C11) && !defined(__cplusplus)
+  atomic_store((volatile _Atomic BLASULONG *)address, (BLASULONG)0);
+#else
+  MB;
+  *address = 0;
+#endif
+}
+
 
 #ifndef RPCC_DEFINED
 #error "rpcc() implementation is missing for your platform"
@@ -675,7 +769,18 @@ int get_num_proc   (int);
 int get_node_equal (void);
 #endif
 
-void goto_set_num_threads(int);
+OPENBLAS_EXPORT void goto_set_num_threads(int);
+
+/* Cooperative cancellation of in-flight operations
+ * (implemented in driver/others/openblas_cancel.c).  These symbols are
+ * exported without SYMBOLPREFIX/SYMBOLSUFFIX decoration. */
+size_t *openblas_cancel_token(void);
+OPENBLAS_EXPORT void openblas_cancel(size_t *token, size_t loaded_token);
+
+/* Internal helpers for the instrumented compute drivers. */
+size_t  openblas_cancel_begin(void);
+size_t *openblas_cancel_self(void);
+int     openblas_cancel_poll(size_t *slot, size_t gen);
 
 void gotoblas_affinity_init(void);
 void gotoblas_affinity_quit(void);
@@ -685,6 +790,7 @@ void gotoblas_profile_init(void);
 void gotoblas_profile_quit(void);
 	
 int support_avx512(void);	
+int support_sme1(void);	
 
 #ifdef USE_OPENMP
 
@@ -696,19 +802,6 @@ __declspec(dllimport) int __cdecl omp_in_parallel(void);
 __declspec(dllimport) int __cdecl omp_get_num_procs(void);
 #endif
 
-#ifdef HAVE_C11
-#if defined(C_GCC) && ( __GNUC__ < 7) 
-// workaround for GCC bug 65467
-#ifndef _Atomic
-#define _Atomic volatile
-#endif
-#endif
-#include <stdatomic.h>
-#else
-#ifndef _Atomic
-#define _Atomic volatile
-#endif
-#endif
 
 #else
 #ifdef __ELF__
@@ -717,17 +810,13 @@ int omp_get_num_procs(void) __attribute__ ((weak));
 #endif
 #endif
 
-static __inline void blas_unlock(volatile BLASULONG *address){
-  MB;
-  *address = 0;
-}
 
 #ifdef OS_WINDOWSSTORE
 static __inline int readenv_atoi(char *env) {
 	return 0;
 }
 #else
-#ifdef OS_WINDOWS
+#if defined(OS_WINDOWS) && !defined(OS_CYGWIN_NT)
 static __inline int readenv_atoi(char *env) {
   env_var_t p;
   return readenv(p,env) ? 0 : atoi(p);
@@ -743,7 +832,7 @@ static __inline int readenv_atoi(char *env) {
 #endif
 #endif
 
-#if !defined(XDOUBLE) || !defined(QUAD_PRECISION)
+#if !defined(BFLOAT16) && (!defined(XDOUBLE) || !defined(QUAD_PRECISION))
 
 static __inline void compinv(FLOAT *b, FLOAT ar, FLOAT ai){
 
@@ -810,6 +899,26 @@ typedef struct {
 #endif
 
 #include "common_interface.h"
+
+/* Internal declaration of the public C XERBLA callback API. Keep this out of
+ * common_interface.h, whose contents are copied verbatim into f77blas.h and
+ * are not adjusted for SYMBOLPREFIX/SYMBOLSUFFIX by the CMake build. */
+#ifndef ASSEMBLER
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifndef OPENBLAS_XERBLA_HANDLER_DEFINED
+#define OPENBLAS_XERBLA_HANDLER_DEFINED
+typedef void (*openblas_xerbla_handler)(const char *name,
+                                        const blasint *info,
+                                        size_t name_length);
+#endif
+OPENBLAS_EXPORT openblas_xerbla_handler openblas_set_xerbla(openblas_xerbla_handler handler);
+#ifdef __cplusplus
+}
+#endif
+#endif
+
 #ifdef SANITY_CHECK
 #include "common_reference.h"
 #endif

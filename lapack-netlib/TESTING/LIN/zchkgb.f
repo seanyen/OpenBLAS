@@ -78,7 +78,7 @@
 *>
 *> \param[in] NBVAL
 *> \verbatim
-*>          NBVAL is INTEGER array, dimension (NBVAL)
+*>          NBVAL is INTEGER array, dimension (NNB)
 *>          The values of the blocksize NB.
 *> \endverbatim
 *>
@@ -160,7 +160,7 @@
 *> \param[out] RWORK
 *> \verbatim
 *>          RWORK is DOUBLE PRECISION array, dimension
-*>                      (max(NMAX,2*NSMAX))
+*>                      (NMAX+2*NSMAX)
 *> \endverbatim
 *>
 *> \param[out] IWORK
@@ -182,19 +182,17 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup complex16_lin
 *
 *  =====================================================================
       SUBROUTINE ZCHKGB( DOTYPE, NM, MVAL, NN, NVAL, NNB, NBVAL, NNS,
      $                   NSVAL, THRESH, TSTERR, A, LA, AFAC, LAFAC, B,
      $                   X, XACT, WORK, RWORK, IWORK, NOUT )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       LOGICAL            TSTERR
@@ -216,7 +214,7 @@
       DOUBLE PRECISION   ONE, ZERO
       PARAMETER          ( ONE = 1.0D+0, ZERO = 0.0D+0 )
       INTEGER            NTYPES, NTESTS
-      PARAMETER          ( NTYPES = 8, NTESTS = 7 )
+      PARAMETER          ( NTYPES = 9, NTESTS = 7 )
       INTEGER            NBW, NTRAN
       PARAMETER          ( NBW = 4, NTRAN = 3 )
 *     ..
@@ -230,6 +228,7 @@
      $                   NIMAT, NKL, NKU, NRHS, NRUN
       DOUBLE PRECISION   AINVNM, ANORM, ANORMI, ANORMO, CNDNUM, RCOND,
      $                   RCONDC, RCONDI, RCONDO
+      DOUBLE PRECISION   ANRMF, SUBNRM
 *     ..
 *     .. Local Arrays ..
       CHARACTER          TRANSS( NTRAN )
@@ -238,14 +237,17 @@
       DOUBLE PRECISION   RESULT( NTESTS )
 *     ..
 *     .. External Functions ..
+      LOGICAL            DISNAN
+      DOUBLE PRECISION   DLAMCH
       DOUBLE PRECISION   DGET06, ZLANGB, ZLANGE
       EXTERNAL           DGET06, ZLANGB, ZLANGE
+      EXTERNAL           DISNAN, DLAMCH
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           ALAERH, ALAHD, ALASUM, XLAENV, ZCOPY, ZERRGE,
-     $                   ZGBCON, ZGBRFS, ZGBT01, ZGBT02, ZGBT05, ZGBTRF,
-     $                   ZGBTRS, ZGET04, ZLACPY, ZLARHS, ZLASET, ZLATB4,
-     $                   ZLATMS
+      EXTERNAL           ALAERH, ALAHD, ALASUM, XLAENV, ZCOPY, ZDSCAL,
+     $                   ZERRGE, ZGBCON, ZGBRFS, ZGBT01, ZGBT02, ZGBT05,
+     $                   ZGBTRF, ZGBTRS, ZGET04, ZLACPY, ZLARHS, ZLASET,
+     $                   ZLATB4, ZLATMS
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          DCMPLX, MAX, MIN
@@ -403,6 +405,17 @@
      $                                  NERRS, NOUT )
                            GO TO 120
                         END IF
+*
+*                       Type 9:  scale the matrix into the subnormal
+*                       range, where the reciprocal of a pivot
+*                       overflows.  ZLATMS cannot generate such a
+*                       matrix, because it scales its output by the
+*                       requested norm.
+*
+                        IF( IMAT.EQ.9 ) THEN
+                           SUBNRM = DLAMCH( 'Safe minimum' ) / 8
+                           CALL ZDSCAL( LDA*N, SUBNRM, A, 1 )
+                        END IF
                      ELSE IF( IZERO.GT.0 ) THEN
 *
 *                       Use the same matrix for types 3 and 4 as for
@@ -480,13 +493,31 @@
 *                       Reconstruct matrix from factors and compute
 *                       residual.
 *
-                        CALL ZGBT01( M, N, KL, KU, A, LDA, AFAC, LDAFAC,
-     $                               IWORK, WORK, RESULT( 1 ) )
+                        IF( IMAT.EQ.9 ) THEN
+*
+*                          The subnormal matrix carries no accuracy to
+*                          reconstruct, so test what the guarded pivot
+*                          division promises: a finite factor.
+*
+                           ANRMF = ZLANGB( 'M', N, KL, KL+KU, AFAC,
+     $                              LDAFAC, RWORK )
+                           IF( DISNAN( ANRMF ) .OR.
+     $                         ANRMF.GT.DLAMCH( 'Overflow' ) ) THEN
+                              RESULT( 1 ) = ONE / DLAMCH( 'Epsilon' )
+                           ELSE
+                              RESULT( 1 ) = ZERO
+                           END IF
+                        ELSE
+                           CALL ZGBT01( M, N, KL, KU, A, LDA, AFAC,
+     $                                 LDAFAC, IWORK, WORK,
+     $                                 RESULT( 1 ) )
+                        END IF
 *
 *                       Print information about the tests so far that
 *                       did not pass the threshold.
 *
-                        IF( RESULT( 1 ).GE.THRESH ) THEN
+                        IF( RESULT( 1 ).GE.THRESH .OR.
+     $                      DISNAN( RESULT( 1 ) ) ) THEN
                            IF( NFAIL.EQ.0 .AND. NERRS.EQ.0 )
      $                        CALL ALAHD( NOUT, PATH )
                            WRITE( NOUT, FMT = 9997 )M, N, KL, KU, NB,
@@ -498,7 +529,7 @@
 *                       Skip the remaining tests if this is not the
 *                       first block size or if M .ne. N.
 *
-                        IF( INB.GT.1 .OR. M.NE.N )
+                        IF( INB.GT.1 .OR. M.NE.N .OR. IMAT.EQ.9 )
      $                     GO TO 110
 *
                         ANORMO = ZLANGB( 'O', N, KL, KU, A, LDA, RWORK )
@@ -566,7 +597,7 @@
                               END IF
 *
 *+    TEST 2:
-*                             Solve and compute residual for A * X = B.
+*                             Solve and compute residual for op(A) * X = B.
 *
                               SRNAMT = 'ZLARHS'
                               CALL ZLARHS( PATH, XTYPE, ' ', TRANS, N,
@@ -592,7 +623,7 @@
      $                                     WORK, LDB )
                               CALL ZGBT02( TRANS, M, N, KL, KU, NRHS, A,
      $                                     LDA, X, LDB, WORK, LDB,
-     $                                     RESULT( 2 ) )
+     $                                     RWORK, RESULT( 2 ) )
 *
 *+    TEST 3:
 *                             Check solution from generated exact

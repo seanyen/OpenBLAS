@@ -28,7 +28,10 @@
 #define WEAK
 #endif
 
+#ifndef __MSC_VER
 #include <inttypes.h> /* intmax_t, uintmax_t, PRI* */
+#endif
+
 #include <stddef.h> /* size_t */
 
 typedef void (*SetupFunc)(void*);
@@ -38,7 +41,7 @@ typedef void (*RunWithDataFunc)(void*);
 struct ctest {
     const char* ssname;  // suite name
     const char* ttname;  // test name
-    void (*run)();
+    void (*run)(void);
     int skip;
 
     void* data;
@@ -62,8 +65,13 @@ struct ctest {
 #undef CTEST_SEGFAULT
 #endif
 
-#if defined(_WIN32) && defined(_MSC_VER)
+#if defined(_WIN32)
+#if defined(__clang__)
+#define __CTEST_NO_TIME
+#undef CTEST_SEGFAULT
+#elif defined(_MSC_VER)
 #define __CTEST_MSVC
+#endif
 #endif
 
 //config for MSVC compiler
@@ -71,6 +79,13 @@ struct ctest {
 
 #define __CTEST_NO_TIME
 #define CTEST_NO_COLORS
+
+#if __MSC_VER >= 1500
+#include <inttypes.h>
+#else
+#include <stdint.h>
+#define CTEST_NO_INTTYPES
+#endif
 
 #ifndef CTEST_ADD_TESTS_MANUALLY
 #pragma section(".ctest$a")
@@ -144,9 +159,9 @@ struct ctest {
     void WEAK sname##_teardown(struct sname##_data* data)
 
 #define __CTEST_INTERNAL(sname, tname, _skip) \
-    void __FNAME(sname, tname)(); \
+    void __FNAME(sname, tname)(void); \
     __CTEST_STRUCT(sname, tname, _skip, NULL, NULL, NULL) \
-    void __FNAME(sname, tname)()
+    void __FNAME(sname, tname)(void)
 
 #ifdef __CTEST_APPLE
 #define SETUP_FNAME(sname) NULL
@@ -276,7 +291,7 @@ void assert_dbl_far(double exp, double real, double tol, const char* caller, int
 #endif
 #include <stdint.h>
 
-#ifdef __CTEST_MSVC
+#ifdef _WIN32
 #include <io.h>
 #else
 #include <unistd.h>
@@ -351,19 +366,21 @@ void __ctest_addTest(struct ctest *test)
 #ifndef __CTEST_MSVC
 /* Add all tests to linked list automatically.
  */
-static void __ctest_linkTests()
+static void __ctest_linkTests(void)
 {
     struct ctest ** test;
     struct ctest ** ctest_begin = (struct ctest **)__PNAME(suite, test);
     struct ctest ** ctest_end = (struct ctest **)__PNAME(suite, test);
 
     // find begin and end of section by comparing magics
-    while (1) {
+#if 0
+    	while (1) {
         struct ctest** t = __CTEST_POINTER_PREV(ctest_begin);
 	if (t[0] == NULL) break;
         if (t[1] != (struct ctest*)__CTEST_MAGIC) break;
         ctest_begin = t;
     }
+#endif
     while (1) {
         struct ctest** t = __CTEST_POINTER_NEXT(ctest_end);
        	if (t[0] == NULL) break;
@@ -386,7 +403,7 @@ static void __ctest_linkTests()
     __ctest_head_p = ctest_begin;
 }
 #else //for msvc
-static void __ctest_linkTests()
+static void __ctest_linkTests(void)
 {
     struct ctest ** ctest_start = __ctest_head_p;
     struct ctest ** test;
@@ -435,7 +452,7 @@ static void msg_start(const char* color, const char* title) {
     print_errormsg("  %s: ", title);
 }
 
-static void msg_end() {
+static void msg_end(void) {
     if (color_output) {
     	print_errormsg(ANSI_NORMAL);
     }
@@ -480,11 +497,19 @@ void assert_data(const unsigned char* exp, size_t expsize,
                  const char* caller, int line) {
     size_t i;
     if (expsize != realsize) {
+#ifndef CTEST_NO_INTTYPES
         CTEST_ERR("%s:%d  expected %" PRIuMAX " bytes, got %" PRIuMAX, caller, line, (uintmax_t) expsize, (uintmax_t) realsize);
+#else
+        CTEST_ERR("%s:%d  expected %u bytes, got %u", caller, line, (uintmax_t) expsize, (uintmax_t) realsize);
+#endif
     }
     for (i=0; i<expsize; i++) {
         if (exp[i] != real[i]) {
+#ifndef CTEST_NO_INTTYPES
             CTEST_ERR("%s:%d expected 0x%02x at offset %" PRIuMAX " got 0x%02x",
+#else
+            CTEST_ERR("%s:%d expected 0x%02x at offset %u got 0x%02x",
+#endif
                 caller, line, exp[i], (uintmax_t) i, real[i]);
         }
     }
@@ -492,31 +517,51 @@ void assert_data(const unsigned char* exp, size_t expsize,
 
 void assert_equal(intmax_t exp, intmax_t real, const char* caller, int line) {
     if (exp != real) {
+#ifndef CTEST_NO_INTTYPES
         CTEST_ERR("%s:%d  expected %" PRIdMAX ", got %" PRIdMAX, caller, line, exp, real);
+#else
+        CTEST_ERR("%s:%d  expected %d, got %d", caller, line, exp, real);
+#endif
     }
 }
 
 void assert_equal_u(uintmax_t exp, uintmax_t real, const char* caller, int line) {
     if (exp != real) {
+#ifndef CTEST_NO_INTTYPES
         CTEST_ERR("%s:%d  expected %" PRIuMAX ", got %" PRIuMAX, caller, line, exp, real);
+#else
+        CTEST_ERR("%s:%d  expected %u, got %u", caller, line, exp, real);
+#endif
     }
 }
 
 void assert_not_equal(intmax_t exp, intmax_t real, const char* caller, int line) {
     if ((exp) == (real)) {
+#ifndef CTEST_NO_INTTYPES
         CTEST_ERR("%s:%d  should not be %" PRIdMAX, caller, line, real);
+#else
+        CTEST_ERR("%s:%d  should not be %d", caller, line, real);
+#endif
     }
 }
 
 void assert_not_equal_u(uintmax_t exp, uintmax_t real, const char* caller, int line) {
     if ((exp) == (real)) {
+#ifndef CTEST_NO_INTTYPES
         CTEST_ERR("%s:%d  should not be %" PRIuMAX, caller, line, real);
+#else
+        CTEST_ERR("%s:%d  should not be %u", caller, line, real);
+#endif
     }
 }
 
 void assert_interval(intmax_t exp1, intmax_t exp2, intmax_t real, const char* caller, int line) {
     if (real < exp1 || real > exp2) {
+#ifndef CTEST_NO_INTTYPES
         CTEST_ERR("%s:%d  expected %" PRIdMAX "-%" PRIdMAX ", got %" PRIdMAX, caller, line, exp1, exp2, real);
+#else
+        CTEST_ERR("%s:%d  expected %d-%d, got %d", caller, line, exp1, exp2, real);
+#endif
     }
 }
 
@@ -591,7 +636,7 @@ static int suite_test_filter(struct ctest* t) {
 
 
 #ifndef __CTEST_NO_TIME
-static uint64_t getCurrentTime() {
+static uint64_t getCurrentTime(void) {
     struct timeval now;
     gettimeofday(&now, NULL);
     uint64_t now64 = (uint64_t) now.tv_sec;

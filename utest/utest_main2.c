@@ -38,6 +38,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CTEST_SEGFAULT
 #define CTEST_ADD_TESTS_MANUALLY
 
+#include "cblas.h"
 #include "openblas_utest.h"
 
 CTEST(amax, samax){
@@ -369,6 +370,38 @@ CTEST(dsdot,dsdot_n_1)
 
 }
 
+#if defined(BUILD_DOUBLE)
+CTEST(dnrm2,dnrm2_inf)
+{
+#ifndef INFINITY
+#define INFINITY HUGE_VAL
+#endif
+	int i;
+	double x[29];
+	blasint incx=1;
+	blasint n=28;
+	double res1=0.0f, res2=INFINITY;
+
+	for (i=0;i<n;i++)x[i]=0.0f;
+	x[10]=-INFINITY;
+	res1=BLASFUNC(dnrm2)(&n, x, &incx);
+	ASSERT_DBL_NEAR_TOL(res2, res1, DOUBLE_EPS);
+
+}
+CTEST(dnrm2,dnrm2_tiny)
+{
+	int i;
+	double x[29];
+	blasint incx=1;
+	blasint n=28;
+	double res1=0.0f, res2=0.0f;
+
+	for (i=0;i<n;i++)x[i]=7.457008414e-310;
+	res1=BLASFUNC(dnrm2)(&n, x, &incx);
+	ASSERT_DBL_NEAR_TOL(res2, res1, DOUBLE_EPS);
+}
+#endif
+
 CTEST(rot,drot_inc_0)
 {
 	blasint i=0;
@@ -585,6 +618,51 @@ CTEST(max, smax_zero){
   ASSERT_DBL_NEAR_TOL((double)(tr_max), (double)(te_max), SINGLE_EPS);
 }
 
+
+CTEST(zscal, i_nan)
+{
+    double i[] = {0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1 };
+    double nan[] = {NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0};
+    cblas_zscal(9, i, &nan, 1);
+    ASSERT_TRUE(isnan(nan[0]));
+    ASSERT_TRUE(isnan(nan[1]));
+    ASSERT_TRUE(isnan(nan[16]));
+    ASSERT_TRUE(isnan(nan[17]));
+}
+
+CTEST(zscal, nan_i)
+{
+    double i[] = {0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1 };
+    double nan[] = {NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0, NAN,0};
+    cblas_zscal(9, &nan, &i, 1);
+    ASSERT_TRUE(isnan(i[0]));
+    ASSERT_TRUE(isnan(i[1]));
+    ASSERT_TRUE(isnan(i[16]));
+    ASSERT_TRUE(isnan(i[17]));
+	    }    
+	    
+CTEST(zscal, i_inf)
+{
+    double i[] = {0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1 };
+    double inf[] = {INFINITY, 0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0};
+    cblas_zscal(9, i, &inf, 1);
+    ASSERT_TRUE(isnan(inf[0]));
+    ASSERT_TRUE(isinf(inf[1]));
+    ASSERT_TRUE(isnan(inf[16]));
+    ASSERT_TRUE(isinf(inf[17]));
+}    
+
+CTEST(zscal, inf_i)
+{
+    double i[] = {0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1, 0,1 };
+    double inf[] = {INFINITY, 0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0, INFINITY,0};
+    cblas_zscal(9, &inf, &i, 1);
+    ASSERT_TRUE(isnan(i[0]));
+    ASSERT_TRUE(isinf(i[1]));
+    ASSERT_TRUE(isnan(i[16]));
+    ASSERT_TRUE(isinf(i[17]));
+}
+
 int main(int argc, const char ** argv){
 
   CTEST_ADD (amax, samax);
@@ -606,6 +684,8 @@ int main(int argc, const char ** argv){
   CTEST_ADD (zdotu,zdotu_n_1);
   CTEST_ADD (zdotu,zdotu_offset_1);
   CTEST_ADD (dsdot,dsdot_n_1);
+  CTEST_ADD (dnrm2,dnrm2_inf);
+  CTEST_ADD (dnrm2,dnrm2_tiny);
   CTEST_ADD (rot,drot_inc_0);
   CTEST_ADD (rot,zdrot_inc_0);
   CTEST_ADD (rot,srot_inc_0);
@@ -614,7 +694,10 @@ int main(int argc, const char ** argv){
   CTEST_ADD (swap,zswap_inc_0);
   CTEST_ADD (swap,sswap_inc_0);
   CTEST_ADD (swap,cswap_inc_0);
-
+  CTEST_ADD (zscal, i_nan);
+  CTEST_ADD (zscal, nan_i);
+  CTEST_ADD (zscal, i_inf);
+  CTEST_ADD (zscal, inf_i);
   int num_fail=0;
 
   num_fail=ctest_main(argc, argv);

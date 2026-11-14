@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download SGEQR2 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/sgeqr2.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/sgeqr2.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -105,9 +103,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2019
-*
-*> \ingroup realGEcomputational
+*> \ingroup geqr2
 *
 *> \par Further Details:
 *  =====================
@@ -129,11 +125,11 @@
 *>
 *  =====================================================================
       SUBROUTINE SGEQR2( M, N, A, LDA, TAU, WORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.9.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2019
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, M, N
@@ -144,16 +140,11 @@
 *
 *  =====================================================================
 *
-*     .. Parameters ..
-      REAL               ONE
-      PARAMETER          ( ONE = 1.0E+0 )
-*     ..
 *     .. Local Scalars ..
       INTEGER            I, K
-      REAL               AII
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           SLARF, SLARFG, XERBLA
+      EXTERNAL           SLARF1F, SLARFG, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, MIN
@@ -187,11 +178,8 @@
 *
 *           Apply H(i) to A(i:m,i+1:n) from the left
 *
-            AII = A( I, I )
-            A( I, I ) = ONE
-            CALL SLARF( 'Left', M-I+1, N-I, A( I, I ), 1, TAU( I ),
-     $                  A( I, I+1 ), LDA, WORK )
-            A( I, I ) = AII
+            CALL SLARF1F( 'Left', M-I+1, N-I, A( I, I ), 1, TAU( I ),
+     $                    A( I, I+1 ), LDA, WORK )
          END IF
    10 CONTINUE
       RETURN

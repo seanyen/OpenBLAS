@@ -181,9 +181,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date April 2012
-*
-*> \ingroup realSYsolve
+*> \ingroup hesv_rook
 *
 *> \par Contributors:
 *  ==================
@@ -204,10 +202,9 @@
       SUBROUTINE SSYSV_ROOK( UPLO, N, NRHS, A, LDA, IPIV, B, LDB, WORK,
      $                  LWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     April 2012
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO
@@ -226,7 +223,8 @@
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      EXTERNAL           LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           XERBLA, SSYTRF_ROOK, SSYTRS_ROOK
@@ -259,9 +257,9 @@
             LWKOPT = 1
          ELSE
             CALL SSYTRF_ROOK( UPLO, N, A, LDA, IPIV, WORK, -1, INFO )
-            LWKOPT = WORK(1)
+            LWKOPT = INT( WORK( 1 ) )
          END IF
-         WORK( 1 ) = LWKOPT
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -284,7 +282,7 @@
 *
       END IF
 *
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
 *
       RETURN
 *

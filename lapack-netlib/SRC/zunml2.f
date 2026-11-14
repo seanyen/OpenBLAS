@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download ZUNML2 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zunml2.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zunml2.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -151,18 +149,16 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complex16OTHERcomputational
+*> \ingroup unml2
 *
 *  =====================================================================
       SUBROUTINE ZUNML2( SIDE, TRANS, M, N, K, A, LDA, TAU, C, LDC,
      $                   WORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          SIDE, TRANS
@@ -181,14 +177,14 @@
 *     .. Local Scalars ..
       LOGICAL            LEFT, NOTRAN
       INTEGER            I, I1, I2, I3, IC, JC, MI, NI, NQ
-      COMPLEX*16         AII, TAUI
+      COMPLEX*16         TAUI
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
       EXTERNAL           LSAME
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           XERBLA, ZLACGV, ZLARF
+      EXTERNAL           XERBLA, ZLACGV, ZLARF1F
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          DCONJG, MAX
@@ -275,11 +271,8 @@
          END IF
          IF( I.LT.NQ )
      $      CALL ZLACGV( NQ-I, A( I, I+1 ), LDA )
-         AII = A( I, I )
-         A( I, I ) = ONE
-         CALL ZLARF( SIDE, MI, NI, A( I, I ), LDA, TAUI, C( IC, JC ),
-     $               LDC, WORK )
-         A( I, I ) = AII
+         CALL ZLARF1F( SIDE, MI, NI, A( I, I ), LDA, TAUI, C( IC,
+     $                 JC ), LDC, WORK )
          IF( I.LT.NQ )
      $      CALL ZLACGV( NQ-I, A( I, I+1 ), LDA )
    10 CONTINUE

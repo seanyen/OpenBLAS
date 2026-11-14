@@ -23,7 +23,7 @@ C> \brief \b ZGEQRF VARIANT: left-looking Level 3 BLAS of the algorithm.
 C>\details \b Purpose:
 C>\verbatim
 C>
-C> ZGEQRF computes a QR factorization of a real M-by-N matrix A:
+C> ZGEQRF computes a QR factorization of a complex M-by-N matrix A:
 C> A = Q * R.
 C>
 C> This is the left-looking Level 3 BLAS version of the algorithm.
@@ -81,7 +81,8 @@ C> \verbatim
 C>          LWORK is INTEGER
 C> \endverbatim
 C> \verbatim
-C>          The dimension of the array WORK. The dimension can be divided into three parts.
+C>          The dimension of the array WORK. LWORK >= 1 if MIN(M,N) = 0,
+C>          otherwise the dimension can be divided into three parts.
 C> \endverbatim
 C> \verbatim
 C>          1) The part for the triangular factor T. If the very last T is not bigger
@@ -149,10 +150,9 @@ C>
 *  =====================================================================
       SUBROUTINE ZGEQRF ( M, N, A, LDA, TAU, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LWORK, M, N
@@ -172,12 +172,12 @@ C>
       EXTERNAL           ZGEQR2, ZLARFB, ZLARFT, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
-      INTRINSIC          MAX, MIN
+      INTRINSIC          CEILING, MAX, MIN, REAL
 *     ..
 *     .. External Functions ..
       INTEGER            ILAENV
-      REAL               SCEIL
-      EXTERNAL           ILAENV, SCEIL
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. Executable Statements ..
 
@@ -205,28 +205,34 @@ C>
 *
 *     So here 4 x 4 is the last T stored in the workspace
 *
-      NT = K-SCEIL(REAL(K-NX)/REAL(NB))*NB
+      NT = K-CEILING(REAL(K-NX)/REAL(NB))*NB
 
 *
 *     optimal workspace = space for dlarfb + space for normal T's + space for the last T
 *
       LLWORK = MAX (MAX((N-M)*K, (N-M)*NB), MAX(K*NB, NB*NB))
-      LLWORK = SCEIL(REAL(LLWORK)/REAL(NB))
+      LLWORK = CEILING(REAL(LLWORK)/REAL(NB))
 
-      IF ( NT.GT.NB ) THEN
+      IF( K.EQ.0 ) THEN
+
+         LBWORK = 0
+         LWKOPT = 1
+         WORK( 1 ) = LWKOPT
+
+      ELSE IF ( NT.GT.NB ) THEN
 
           LBWORK = K-NT
 *
 *         Optimal workspace for dlarfb = MAX(1,N)*NT
 *
           LWKOPT = (LBWORK+LLWORK)*NB
-          WORK( 1 ) = (LWKOPT+NT*NT)
+          WORK( 1 ) = SROUNDUP_LWORK(LWKOPT+NT*NT)
 
       ELSE
 
-          LBWORK = SCEIL(REAL(K)/REAL(NB))*NB
+          LBWORK = CEILING(REAL(K)/REAL(NB))*NB
           LWKOPT = (LBWORK+LLWORK-NB)*NB
-          WORK( 1 ) = LWKOPT
+          WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
 
       END IF
 
@@ -240,8 +246,9 @@ C>
          INFO = -2
       ELSE IF( LDA.LT.MAX( 1, M ) ) THEN
          INFO = -4
-      ELSE IF( LWORK.LT.MAX( 1, N ) .AND. .NOT.LQUERY ) THEN
-         INFO = -7
+      ELSE IF ( .NOT.LQUERY ) THEN
+         IF( LWORK.LE.0 .OR. ( M.GT.0 .AND. LWORK.LT.MAX( 1, N ) ) )
+     $      INFO = -7
       END IF
       IF( INFO.NE.0 ) THEN
          CALL XERBLA( 'ZGEQRF', -INFO )
@@ -253,7 +260,6 @@ C>
 *     Quick return if possible
 *
       IF( K.EQ.0 ) THEN
-         WORK( 1 ) = 1
          RETURN
       END IF
 *
@@ -408,7 +414,7 @@ C>
 
       END IF
 
-      WORK( 1 ) = IWS
+      WORK( 1 ) = SROUNDUP_LWORK(IWS)
       RETURN
 *
 *     End of ZGEQRF

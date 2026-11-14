@@ -110,18 +110,16 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2017
-*
 *> \ingroup single_lin
 *
 *  =====================================================================
       SUBROUTINE SDRVRF3( NOUT, NN, NVAL, THRESH, A, LDA, ARF, B1, B2,
      +                    S_WORK_SLANGE, S_WORK_SGEQRF, TAU )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.1) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2017
 *
 *     .. Scalar Arguments ..
       INTEGER            LDA, NN, NOUT
@@ -137,9 +135,10 @@
 *  =====================================================================
 *     ..
 *     .. Parameters ..
-      REAL               ZERO, ONE
+      REAL               ZERO, ONE, TWO
       PARAMETER          ( ZERO = ( 0.0E+0, 0.0E+0 ) ,
-     +                     ONE  = ( 1.0E+0, 0.0E+0 ) )
+     +                     ONE  = ( 1.0E+0, 0.0E+0 ),
+     +                     TWO  = 2.0E+0 )
       INTEGER            NTESTS
       PARAMETER          ( NTESTS = 1 )
 *     ..
@@ -147,7 +146,7 @@
       CHARACTER          UPLO, CFORM, DIAG, TRANS, SIDE
       INTEGER            I, IFORM, IIM, IIN, INFO, IUPLO, J, M, N, NA,
      +                   NFAIL, NRUN, ISIDE, IDIAG, IALPHA, ITRANS
-      REAL               EPS, ALPHA
+      REAL               EPS, ALPHA, SOLNRM
 *     ..
 *     .. Local Arrays ..
       CHARACTER          UPLOS( 2 ), FORMS( 2 ), TRANSS( 2 ),
@@ -156,11 +155,12 @@
       REAL               RESULT( NTESTS )
 *     ..
 *     .. External Functions ..
+      LOGICAL            LSAME
       REAL               SLAMCH, SLANGE, SLARND
-      EXTERNAL           SLAMCH, SLANGE, SLARND
+      EXTERNAL           SLAMCH, SLANGE, SLARND, LSAME
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           STRTTF, SGEQRF, SGEQLF, STFSM, STRSM
+      EXTERNAL           STRTTF, SGEQRF, SGELQF, STFSM, STRSM
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, SQRT
@@ -221,9 +221,9 @@
 *
                            DO 100 IALPHA = 1, 3
 *
-                              IF ( IALPHA.EQ. 1) THEN
+                              IF ( IALPHA.EQ.1 ) THEN
                                  ALPHA = ZERO
-                              ELSE IF ( IALPHA.EQ. 2) THEN
+                              ELSE IF ( IALPHA.EQ.2 ) THEN
                                  ALPHA = ONE
                               ELSE
                                  ALPHA = SLARND( 2, ISEED )
@@ -255,14 +255,14 @@
 *                             Generate A our NA--by--NA triangular
 *                             matrix.
 *                             Our test is based on forward error so we
-*                             do want A to be well conditionned! To get
-*                             a well-conditionned triangular matrix, we
+*                             do want A to be well conditioned! To get
+*                             a well-conditioned triangular matrix, we
 *                             take the R factor of the QR/LQ factorization
 *                             of a random matrix.
 *
                               DO J = 1, NA
                                  DO I = 1, NA
-                                    A( I, J) = SLARND( 2, ISEED )
+                                    A( I, J ) = SLARND( 2, ISEED )
                                  END DO
                               END DO
 *
@@ -275,6 +275,20 @@
                                  CALL SGEQRF( NA, NA, A, LDA, TAU,
      +                                        S_WORK_SGEQRF, LDA,
      +                                        INFO )
+*
+*                                Forcing main diagonal of test matrix to
+*                                be unit makes it ill-conditioned for
+*                                some test cases
+*
+                                 IF ( LSAME( DIAG, 'U' ) ) THEN
+                                    DO J = 1, NA
+                                       DO I = 1, J
+                                          A( I, J ) = A( I, J ) /
+     +                                            ( TWO * A( J, J ) )
+                                       END DO
+                                    END DO
+                                 END IF
+*
                               ELSE
 *
 *                                The case IUPLO.EQ.2 is when SIDE.EQ.'L'
@@ -284,6 +298,20 @@
                                  CALL SGELQF( NA, NA, A, LDA, TAU,
      +                                        S_WORK_SGEQRF, LDA,
      +                                        INFO )
+*
+*                                Forcing main diagonal of test matrix to
+*                                be unit makes it ill-conditioned for
+*                                some test cases
+*
+                                 IF ( LSAME( DIAG, 'U' ) ) THEN
+                                    DO I = 1, NA
+                                       DO J = 1, I
+                                          A( I, J ) = A( I, J ) /
+     +                                            ( TWO * A( I, I ) )
+                                       END DO
+                                    END DO
+                                 END IF
+*
                               END IF
 *
 *                             Store a copy of A in RFP format (in ARF).
@@ -297,8 +325,8 @@
 *
                               DO J = 1, N
                                  DO I = 1, M
-                                    B1( I, J) = SLARND( 2, ISEED )
-                                    B2( I, J) = B1( I, J)
+                                    B1( I, J ) = SLARND( 2, ISEED )
+                                    B2( I, J ) = B1( I, J )
                                  END DO
                               END DO
 *
@@ -319,26 +347,30 @@
 *
 *                             Check that the result agrees.
 *
+                              SOLNRM = SLANGE( 'I', M, N, B1, LDA,
+     +                                        S_WORK_SLANGE )
+*
                               DO J = 1, N
                                  DO I = 1, M
-                                    B1( I, J) = B2( I, J ) - B1( I, J )
+                                    B1( I, J ) = B2( I, J ) - B1( I, J )
                                  END DO
                               END DO
 *
-                              RESULT(1) = SLANGE( 'I', M, N, B1, LDA,
+                              RESULT( 1 ) = SLANGE( 'I', M, N, B1, LDA,
      +                                            S_WORK_SLANGE )
 *
-                              RESULT(1) = RESULT(1) / SQRT( EPS )
-     +                                    / MAX ( MAX( M, N), 1 )
+                              RESULT( 1 ) = RESULT( 1 ) / SQRT( EPS )
+     +                                    / REAL( MAX( M, N, 1 ) )
+     +                                    / MAX( SOLNRM, 1.0E+0 )
 *
-                              IF( RESULT(1).GE.THRESH ) THEN
+                              IF( RESULT( 1 ).GE.THRESH ) THEN
                                  IF( NFAIL.EQ.0 ) THEN
                                     WRITE( NOUT, * )
                                     WRITE( NOUT, FMT = 9999 )
                                  END IF
                                  WRITE( NOUT, FMT = 9997 ) 'STFSM',
      +                              CFORM, SIDE, UPLO, TRANS, DIAG, M,
-     +                              N, RESULT(1)
+     +                              N, RESULT( 1 )
                                  NFAIL = NFAIL + 1
                               END IF
 *

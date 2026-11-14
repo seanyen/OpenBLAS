@@ -155,18 +155,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date January 2015
-*
-*> \ingroup complexOTHERcomputational
+*> \ingroup unm22
 *
 *  =====================================================================
       SUBROUTINE SORM22( SIDE, TRANS, M, N, N1, N2, Q, LDQ, C, LDC,
      $                   WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     January 2015
 *
       IMPLICIT NONE
 *
@@ -190,13 +187,14 @@
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      EXTERNAL           LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SGEMM, SLACPY, STRMM, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
-      INTRINSIC          REAL, MAX, MIN
+      INTRINSIC          MAX, MIN
 *     ..
 *     .. Executable Statements ..
 *
@@ -240,7 +238,7 @@
 *
       IF( INFO.EQ.0 ) THEN
          LWKOPT = M*N
-         WORK( 1 ) = REAL( LWKOPT )
+         WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -433,7 +431,7 @@
          END IF
       END IF
 *
-      WORK( 1 ) = REAL( LWKOPT )
+      WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       RETURN
 *
 *     End of SORM22

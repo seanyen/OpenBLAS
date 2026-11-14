@@ -35,7 +35,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #endif
 
-#if defined(COOPERLAKE)
+#if defined(COOPERLAKE) || defined(SAPPHIRERAPIDS)
 #if defined(DOUBLE)
 #include "dtobf16_microk_cooperlake.c"
 #elif defined(SINGLE)
@@ -144,10 +144,11 @@ void CNAME(BLASLONG n, FLOAT_TYPE * in, BLASLONG inc_in, bfloat16 * out, BLASLON
     if (inc_in == 0 || inc_out == 0 || n <= 100000) {
         nthreads = 1;
     } else {
+        nthreads = num_cpu_avail(1);
         if (n/100000 < 100) {
-            nthreads = 4;
-        } else {
-            nthreads = 16;
+            nthreads = MAX(nthreads,4);
+//        } else {
+//            nthreads = MAX(nthreads,16);
         }
     }
 

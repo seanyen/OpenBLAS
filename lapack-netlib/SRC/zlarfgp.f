@@ -97,17 +97,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
-*> \ingroup complex16OTHERauxiliary
+*> \ingroup larfgp
 *
 *  =====================================================================
       SUBROUTINE ZLARFGP( N, ALPHA, X, INCX, TAU )
 *
-*  -- LAPACK auxiliary routine (version 3.8.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
 *     .. Scalar Arguments ..
       INTEGER            INCX, N
@@ -125,7 +122,7 @@
 *     ..
 *     .. Local Scalars ..
       INTEGER            J, KNT
-      DOUBLE PRECISION   ALPHI, ALPHR, BETA, BIGNUM, SMLNUM, XNORM
+      DOUBLE PRECISION   ALPHI, ALPHR, BETA, BIGNUM, EPS, SMLNUM, XNORM
       COMPLEX*16         SAVEALPHA
 *     ..
 *     .. External Functions ..
@@ -146,37 +143,28 @@
          RETURN
       END IF
 *
+      EPS = DLAMCH( 'Precision' )
       XNORM = DZNRM2( N-1, X, INCX )
       ALPHR = DBLE( ALPHA )
       ALPHI = DIMAG( ALPHA )
 *
-      IF( XNORM.EQ.ZERO ) THEN
+      IF( XNORM.LE.EPS*ABS(ALPHA) .AND. ALPHI.EQ.ZERO ) THEN
 *
 *        H  =  [1-alpha/abs(alpha) 0; 0 I], sign chosen so ALPHA >= 0.
 *
-         IF( ALPHI.EQ.ZERO ) THEN
-            IF( ALPHR.GE.ZERO ) THEN
-*              When TAU.eq.ZERO, the vector is special-cased to be
-*              all zeros in the application routines.  We do not need
-*              to clear it.
-               TAU = ZERO
-            ELSE
-*              However, the application routines rely on explicit
-*              zero checks when TAU.ne.ZERO, and we must clear X.
-               TAU = TWO
-               DO J = 1, N-1
-                  X( 1 + (J-1)*INCX ) = ZERO
-               END DO
-               ALPHA = -ALPHA
-            END IF
+         IF( ALPHR.GE.ZERO ) THEN
+*           When TAU.eq.ZERO, the vector is special-cased to be
+*           all zeros in the application routines.  We do not need
+*           to clear it.
+            TAU = ZERO
          ELSE
-*           Only "reflecting" the diagonal entry to be real and non-negative.
-            XNORM = DLAPY2( ALPHR, ALPHI )
-            TAU = DCMPLX( ONE - ALPHR / XNORM, -ALPHI / XNORM )
+*           However, the application routines rely on explicit
+*           zero checks when TAU.ne.ZERO, and we must clear X.
+            TAU = TWO
             DO J = 1, N-1
                X( 1 + (J-1)*INCX ) = ZERO
             END DO
-            ALPHA = XNORM
+            ALPHA = -ALPHA
          END IF
       ELSE
 *
@@ -238,7 +226,7 @@
                   DO J = 1, N-1
                      X( 1 + (J-1)*INCX ) = ZERO
                   END DO
-                  BETA = -SAVEALPHA
+                  BETA = DBLE( -SAVEALPHA )
                END IF
             ELSE
                XNORM = DLAPY2( ALPHR, ALPHI )

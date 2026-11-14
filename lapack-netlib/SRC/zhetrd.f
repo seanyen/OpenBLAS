@@ -139,9 +139,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complex16HEcomputational
+*> \ingroup hetrd
 *
 *> \par Further Details:
 *  =====================
@@ -190,12 +188,12 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE ZHETRD( UPLO, N, A, LDA, D, E, TAU, WORK, LWORK, INFO )
+      SUBROUTINE ZHETRD( UPLO, N, A, LDA, D, E, TAU, WORK, LWORK,
+     $                   INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO
@@ -252,7 +250,7 @@
 *        Determine the block size.
 *
          NB = ILAENV( 1, 'ZHETRD', UPLO, N, -1, -1, -1 )
-         LWKOPT = N*NB
+         LWKOPT = MAX( 1, N*NB )
          WORK( 1 ) = LWKOPT
       END IF
 *
@@ -328,7 +326,7 @@
 *
             DO 10 J = I, I + NB - 1
                A( J-1, J ) = E( J-1 )
-               D( J ) = A( J, J )
+               D( J ) = DBLE( A( J, J ) )
    10       CONTINUE
    20    CONTINUE
 *
@@ -360,7 +358,7 @@
 *
             DO 30 J = I, I + NB - 1
                A( J+1, J ) = E( J )
-               D( J ) = A( J, J )
+               D( J ) = DBLE( A( J, J ) )
    30       CONTINUE
    40    CONTINUE
 *

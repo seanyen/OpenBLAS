@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download ZGSVJ0 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zgsvj0.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zgsvj0.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -52,10 +50,10 @@
 *>          Specifies whether the output from this procedure is used
 *>          to compute the matrix V:
 *>          = 'V': the product of the Jacobi rotations is accumulated
-*>                 by postmulyiplying the N-by-N array V.
+*>                 by postmultiplying the N-by-N array V.
 *>                (See the description of V.)
 *>          = 'A': the product of the Jacobi rotations is accumulated
-*>                 by postmulyiplying the MV-by-N array V.
+*>                 by postmultiplying the MV-by-N array V.
 *>                (See the descriptions of MV and V.)
 *>          = 'N': the Jacobi rotations are not accumulated.
 *> \endverbatim
@@ -117,7 +115,7 @@
 *> \param[in] MV
 *> \verbatim
 *>          MV is INTEGER
-*>          If JOBV = 'A', then MV rows of V are post-multipled by a
+*>          If JOBV = 'A', then MV rows of V are post-multiplied by a
 *>                           sequence of Jacobi rotations.
 *>          If JOBV = 'N',   then MV is not referenced.
 *> \endverbatim
@@ -125,9 +123,9 @@
 *> \param[in,out] V
 *> \verbatim
 *>          V is COMPLEX*16 array, dimension (LDV,N)
-*>          If JOBV = 'V' then N rows of V are post-multipled by a
+*>          If JOBV = 'V' then N rows of V are post-multiplied by a
 *>                           sequence of Jacobi rotations.
-*>          If JOBV = 'A' then MV rows of V are post-multipled by a
+*>          If JOBV = 'A' then MV rows of V are post-multiplied by a
 *>                           sequence of Jacobi rotations.
 *>          If JOBV = 'N',   then V is not referenced.
 *> \endverbatim
@@ -193,9 +191,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
-*> \ingroup complex16OTHERcomputational
+*> \ingroup gsvj0
 *>
 *> \par Further Details:
 *  =====================
@@ -218,10 +214,9 @@
       SUBROUTINE ZGSVJ0( JOBV, M, N, A, LDA, D, SVA, MV, V, LDV, EPS,
      $                   SFMIN, TOL, NSWEEP, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.8.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
       IMPLICIT NONE
 *     .. Scalar Arguments ..
@@ -324,7 +319,7 @@
 *
 *     .. Row-cyclic Jacobi SVD algorithm with column pivoting ..
 *
-      EMPTSW = ( N*( N-1 ) ) / 2
+      EMPTSW = ( N / 2 )*( N-1 + MOD( N, 2 ) )
       NOTROT = 0
 *
 *     .. Row-cyclic pivot strategy with de Rijk's pivoting ..
@@ -502,7 +497,8 @@
                                     T  = HALF / THETA
                                     CS = ONE
 
-                                    CALL ZROT( M, A(1,p), 1, A(1,q), 1,
+                                    CALL ZROT( M, A(1,p), 1, A(1,q),
+     $                                         1,
      $                                          CS, CONJG(OMPQ)*T )
                                     IF ( RSVEC ) THEN
                                         CALL ZROT( MVL, V(1,p), 1,
@@ -531,7 +527,8 @@
                                     AAPP = AAPP*SQRT( MAX( ZERO,
      $                                      ONE-T*AQOAP*AAPQ1 ) )
 *
-                                    CALL ZROT( M, A(1,p), 1, A(1,q), 1,
+                                    CALL ZROT( M, A(1,p), 1, A(1,q),
+     $                                         1,
      $                                          CS, CONJG(OMPQ)*SN )
                                     IF ( RSVEC ) THEN
                                         CALL ZROT( MVL, V(1,p), 1,
@@ -544,14 +541,17 @@
 *              .. have to use modified Gram-Schmidt like transformation
                                  CALL ZCOPY( M, A( 1, p ), 1,
      $                                       WORK, 1 )
-                                 CALL ZLASCL( 'G', 0, 0, AAPP, ONE, M,
+                                 CALL ZLASCL( 'G', 0, 0, AAPP, ONE,
+     $                                        M,
      $                                        1, WORK, LDA,
      $                                        IERR )
-                                 CALL ZLASCL( 'G', 0, 0, AAQQ, ONE, M,
+                                 CALL ZLASCL( 'G', 0, 0, AAQQ, ONE,
+     $                                        M,
      $                                        1, A( 1, q ), LDA, IERR )
                                  CALL ZAXPY( M, -AAPQ, WORK, 1,
      $                                       A( 1, q ), 1 )
-                                 CALL ZLASCL( 'G', 0, 0, ONE, AAQQ, M,
+                                 CALL ZLASCL( 'G', 0, 0, ONE, AAQQ,
+     $                                        M,
      $                                        1, A( 1, q ), LDA, IERR )
                                  SVA( q ) = AAQQ*SQRT( MAX( ZERO,
      $                                      ONE-AAPQ1*AAPQ1 ) )
@@ -566,7 +566,8 @@
      $                            THEN
                                  IF( ( AAQQ.LT.ROOTBIG ) .AND.
      $                               ( AAQQ.GT.ROOTSFMIN ) ) THEN
-                                    SVA( q ) = DZNRM2( M, A( 1, q ), 1 )
+                                    SVA( q ) = DZNRM2( M, A( 1, q ),
+     $                                   1 )
                                  ELSE
                                     T = ZERO
                                     AAQQ = ONE
@@ -718,7 +719,8 @@
                                  IF( ABS( THETA ).GT.BIGTHETA ) THEN
                                     T  = HALF / THETA
                                     CS = ONE
-                                    CALL ZROT( M, A(1,p), 1, A(1,q), 1,
+                                    CALL ZROT( M, A(1,p), 1, A(1,q),
+     $                                         1,
      $                                          CS, CONJG(OMPQ)*T )
                                     IF( RSVEC ) THEN
                                         CALL ZROT( MVL, V(1,p), 1,
@@ -745,7 +747,8 @@
                                     AAPP = AAPP*SQRT( MAX( ZERO,
      $                                         ONE-T*AQOAP*AAPQ1 ) )
 *
-                                    CALL ZROT( M, A(1,p), 1, A(1,q), 1,
+                                    CALL ZROT( M, A(1,p), 1, A(1,q),
+     $                                         1,
      $                                          CS, CONJG(OMPQ)*SN )
                                     IF( RSVEC ) THEN
                                         CALL ZROT( MVL, V(1,p), 1,
@@ -759,15 +762,18 @@
                                IF( AAPP.GT.AAQQ ) THEN
                                     CALL ZCOPY( M, A( 1, p ), 1,
      $                                          WORK, 1 )
-                                    CALL ZLASCL( 'G', 0, 0, AAPP, ONE,
+                                    CALL ZLASCL( 'G', 0, 0, AAPP,
+     $                                           ONE,
      $                                           M, 1, WORK,LDA,
      $                                           IERR )
-                                    CALL ZLASCL( 'G', 0, 0, AAQQ, ONE,
+                                    CALL ZLASCL( 'G', 0, 0, AAQQ,
+     $                                           ONE,
      $                                           M, 1, A( 1, q ), LDA,
      $                                           IERR )
                                     CALL ZAXPY( M, -AAPQ, WORK,
      $                                          1, A( 1, q ), 1 )
-                                    CALL ZLASCL( 'G', 0, 0, ONE, AAQQ,
+                                    CALL ZLASCL( 'G', 0, 0, ONE,
+     $                                           AAQQ,
      $                                           M, 1, A( 1, q ), LDA,
      $                                           IERR )
                                     SVA( q ) = AAQQ*SQRT( MAX( ZERO,
@@ -776,15 +782,18 @@
                                ELSE
                                    CALL ZCOPY( M, A( 1, q ), 1,
      $                                          WORK, 1 )
-                                    CALL ZLASCL( 'G', 0, 0, AAQQ, ONE,
+                                    CALL ZLASCL( 'G', 0, 0, AAQQ,
+     $                                           ONE,
      $                                           M, 1, WORK,LDA,
      $                                           IERR )
-                                    CALL ZLASCL( 'G', 0, 0, AAPP, ONE,
+                                    CALL ZLASCL( 'G', 0, 0, AAPP,
+     $                                           ONE,
      $                                           M, 1, A( 1, p ), LDA,
      $                                           IERR )
                                     CALL ZAXPY( M, -CONJG(AAPQ),
      $                                   WORK, 1, A( 1, p ), 1 )
-                                    CALL ZLASCL( 'G', 0, 0, ONE, AAPP,
+                                    CALL ZLASCL( 'G', 0, 0, ONE,
+     $                                           AAPP,
      $                                           M, 1, A( 1, p ), LDA,
      $                                           IERR )
                                     SVA( p ) = AAPP*SQRT( MAX( ZERO,
@@ -800,7 +809,8 @@
      $                            THEN
                                  IF( ( AAQQ.LT.ROOTBIG ) .AND.
      $                               ( AAQQ.GT.ROOTSFMIN ) ) THEN
-                                    SVA( q ) = DZNRM2( M, A( 1, q ), 1)
+                                    SVA( q ) = DZNRM2( M, A( 1, q ),
+     $                                   1)
                                   ELSE
                                     T = ZERO
                                     AAQQ = ONE

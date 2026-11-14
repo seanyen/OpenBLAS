@@ -145,8 +145,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
 *> \ingroup complex_lin
 *
 *  =====================================================================
@@ -155,10 +153,9 @@
      $                         NMAX, A, AFAC, AINV, B, X, XACT, WORK,
      $                         RWORK, IWORK, NOUT )
 *
-*  -- LAPACK test routine (version 3.8.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
 *     .. Scalar Arguments ..
       LOGICAL            TSTERR
@@ -403,9 +400,9 @@
 *                    Factor the matrix and solve the system using CHESV_AA.
 *
                      SRNAMT = 'CHESV_AA_2STAGE '
-                     LWORK = MIN(N*NB, 3*NMAX*NMAX)
+                     LWORK = MIN( MAX( 1, N*NB ), 3*NMAX*NMAX)
                      CALL CHESV_AA_2STAGE( UPLO, N, NRHS, AFAC, LDA,
-     $                                 AINV, (3*NB+1)*N, 
+     $                                 AINV, MAX( 1, (3*NB+1)*N ),
      $                                 IWORK, IWORK( 1+N ),
      $                                 X, LDA, WORK, LWORK, INFO )
 *
@@ -449,11 +446,11 @@
 *                    Reconstruct matrix from factors and compute
 *                    residual.
 *
-c                     CALL CHET01_AA( UPLO, N, A, LDA, AFAC, LDA,
-c     $                                  IWORK, AINV, LDA, RWORK,
-c     $                                  RESULT( 2 ) )
-c                     NT = 2
-					  NT = 1
+c                    CALL CHET01_AA( UPLO, N, A, LDA, AFAC, LDA,
+c    $                                  IWORK, AINV, LDA, RWORK,
+c    $                                  RESULT( 2 ) )
+c                    NT = 2
+                     NT = 1
 *
 *                    Print information about the tests that did not pass
 *                    the threshold.

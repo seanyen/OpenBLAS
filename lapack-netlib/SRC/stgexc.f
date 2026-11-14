@@ -195,9 +195,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2017
-*
-*> \ingroup realGEcomputational
+*> \ingroup tgexc
 *
 *> \par Contributors:
 *  ==================
@@ -220,10 +218,9 @@
       SUBROUTINE STGEXC( WANTQ, WANTZ, N, A, LDA, B, LDB, Q, LDQ, Z,
      $                   LDZ, IFST, ILST, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2017
 *
 *     .. Scalar Arguments ..
       LOGICAL            WANTQ, WANTZ
@@ -243,6 +240,10 @@
 *     .. Local Scalars ..
       LOGICAL            LQUERY
       INTEGER            HERE, LWMIN, NBF, NBL, NBNEXT
+*     ..
+*     .. External Functions ..
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           STGEX2, XERBLA
@@ -536,7 +537,7 @@
      $      GO TO 20
       END IF
       ILST = HERE
-      WORK( 1 ) = LWMIN
+      WORK( 1 ) = SROUNDUP_LWORK(LWMIN)
       RETURN
 *
 *     End of STGEXC

@@ -134,8 +134,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
 *> \ingroup complexOTHERauxiliary
 *
 *> \par Further Details:
@@ -169,10 +167,9 @@
       SUBROUTINE CLATDF( IJOB, N, Z, LDZ, RHS, RDSUM, RDSCAL, IPIV,
      $                   JPIV )
 *
-*  -- LAPACK auxiliary routine (version 3.7.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            IJOB, LDZ, N
@@ -230,7 +227,7 @@
             BM = RHS( J ) - CONE
             SPLUS = ONE
 *
-*           Lockahead for L- part RHS(1:N-1) = +-1
+*           Look-ahead for L- part RHS(1:N-1) = +-1
 *           SPLUS and SMIN computed more efficiently than in BSOLVE[1].
 *
             SPLUS = SPLUS + REAL( CDOTC( N-J, Z( J+1, J ), 1, Z( J+1,

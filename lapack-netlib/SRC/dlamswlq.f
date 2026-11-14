@@ -19,7 +19,7 @@
 *>
 *> \verbatim
 *>
-*>    DLAMQRTS overwrites the general real M-by-N matrix C with
+*>    DLAMSWLQ overwrites the general real M-by-N matrix C with
 *>
 *>
 *>                    SIDE = 'L'     SIDE = 'R'
@@ -56,7 +56,7 @@
 *> \param[in] N
 *> \verbatim
 *>          N is INTEGER
-*>          The number of columns of the matrix C. N >= M.
+*>          The number of columns of the matrix C. N >= 0.
 *> \endverbatim
 *>
 *> \param[in] K
@@ -70,23 +70,15 @@
 *> \param[in] MB
 *> \verbatim
 *>          MB is INTEGER
-*>          The row block size to be used in the blocked QR.
+*>          The row block size to be used in the blocked LQ.
 *>          M >= MB >= 1
 *> \endverbatim
 *>
 *> \param[in] NB
 *> \verbatim
 *>          NB is INTEGER
-*>          The column block size to be used in the blocked QR.
+*>          The column block size to be used in the blocked LQ.
 *>          NB > M.
-*> \endverbatim
-*>
-*> \param[in] NB
-*> \verbatim
-*>          NB is INTEGER
-*>          The block size to be used in the blocked QR.
-*>                MB > M.
-*>
 *> \endverbatim
 *>
 *> \param[in] A
@@ -102,9 +94,7 @@
 *> \param[in] LDA
 *> \verbatim
 *>          LDA is INTEGER
-*>          The leading dimension of the array A.
-*>          If SIDE = 'L', LDA >= max(1,M);
-*>          if SIDE = 'R', LDA >= max(1,N).
+*>          The leading dimension of the array A. LDA >= max(1,K).
 *> \endverbatim
 *>
 *> \param[in] T
@@ -137,17 +127,20 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>         (workspace) DOUBLE PRECISION array, dimension (MAX(1,LWORK))
+*>          (workspace) DOUBLE PRECISION array, dimension (MAX(1,LWORK))
+*>          On exit, if INFO = 0, WORK(1) returns the minimal LWORK.
 *> \endverbatim
 *>
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
 *>          The dimension of the array WORK.
-*>          If SIDE = 'L', LWORK >= max(1,NB) * MB;
-*>          if SIDE = 'R', LWORK >= max(1,M) * MB.
+*>
+*>          If MIN(M,N,K) = 0, LWORK >= 1.
+*>          If SIDE = 'L', LWORK >= max(1,NB*MB).
+*>          If SIDE = 'R', LWORK >= max(1,M*MB).
 *>          If LWORK = -1, then a workspace query is assumed; the routine
-*>          only calculates the optimal size of the WORK array, returns
+*>          only calculates the minimal size of the WORK array, returns
 *>          this value as the first entry of the WORK array, and no error
 *>          message related to LWORK is issued by XERBLA.
 *> \endverbatim
@@ -189,7 +182,7 @@
 *> stored in columns [(i-1)*(NB-M)+M+1:i*(NB-M)+M] of A, and by upper triangular
 *> block reflectors, stored in array T(1:LDT,(i-1)*M+1:i*M).
 *> The last Q(k) may use fewer rows.
-*> For more information see Further Details in TPQRT.
+*> For more information see Further Details in TPLQT.
 *>
 *> For more details of the overall algorithm, see the description of
 *> Sequential TSQR in Section 2.2 of [1].
@@ -199,30 +192,31 @@
 *>     SIAM J. Sci. Comput, vol. 34, no. 1, 2012
 *> \endverbatim
 *>
+*> \ingroup lamswlq
+*>
 *  =====================================================================
       SUBROUTINE DLAMSWLQ( SIDE, TRANS, M, N, K, MB, NB, A, LDA, T,
-     $    LDT, C, LDC, WORK, LWORK, INFO )
+     $                     LDT, C, LDC, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2017
 *
 *     .. Scalar Arguments ..
-      CHARACTER         SIDE, TRANS
-      INTEGER           INFO, LDA, M, N, K, MB, NB, LDT, LWORK, LDC
+      CHARACTER          SIDE, TRANS
+      INTEGER            INFO, LDA, M, N, K, MB, NB, LDT, LWORK, LDC
 *     ..
 *     .. Array Arguments ..
-      DOUBLE PRECISION A( LDA, * ), WORK( * ), C(LDC, * ),
-     $      T( LDT, * )
+      DOUBLE PRECISION   A( LDA, * ), WORK( * ), C( LDC, * ),
+     $                   T( LDT, * )
 *     ..
 *
 * =====================================================================
 *
 *     ..
 *     .. Local Scalars ..
-      LOGICAL    LEFT, RIGHT, TRAN, NOTRAN, LQUERY
-      INTEGER    I, II, KK, CTR, LW
+      LOGICAL            LEFT, RIGHT, TRAN, NOTRAN, LQUERY
+      INTEGER            I, II, KK, CTR, LW, MINMNK, LWMIN
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
@@ -234,50 +228,60 @@
 *
 *     Test the input arguments
 *
-      LQUERY  = LWORK.LT.0
+      LQUERY  = ( LWORK.EQ.-1 )
       NOTRAN  = LSAME( TRANS, 'N' )
       TRAN    = LSAME( TRANS, 'T' )
       LEFT    = LSAME( SIDE, 'L' )
       RIGHT   = LSAME( SIDE, 'R' )
-      IF (LEFT) THEN
+      IF( LEFT ) THEN
         LW = N * MB
       ELSE
         LW = M * MB
       END IF
 *
+      MINMNK = MIN( M, N, K )
+      IF( MINMNK.EQ.0 ) THEN
+        LWMIN = 1
+      ELSE
+        LWMIN = MAX( 1, LW )
+      END IF
+*
       INFO = 0
       IF( .NOT.LEFT .AND. .NOT.RIGHT ) THEN
-         INFO = -1
+        INFO = -1
       ELSE IF( .NOT.TRAN .AND. .NOT.NOTRAN ) THEN
-         INFO = -2
-      ELSE IF( M.LT.0 ) THEN
+        INFO = -2
+      ELSE IF( K.LT.0 ) THEN
+        INFO = -5
+      ELSE IF( M.LT.K ) THEN
         INFO = -3
       ELSE IF( N.LT.0 ) THEN
         INFO = -4
-      ELSE IF( K.LT.0 ) THEN
-        INFO = -5
+      ELSE IF( K.LT.MB .OR. MB.LT.1 ) THEN
+        INFO = -6
       ELSE IF( LDA.LT.MAX( 1, K ) ) THEN
         INFO = -9
-      ELSE IF( LDT.LT.MAX( 1, MB) ) THEN
+      ELSE IF( LDT.LT.MAX( 1, MB ) ) THEN
         INFO = -11
       ELSE IF( LDC.LT.MAX( 1, M ) ) THEN
-         INFO = -13
-      ELSE IF(( LWORK.LT.MAX(1,LW)).AND.(.NOT.LQUERY)) THEN
+        INFO = -13
+      ELSE IF( LWORK.LT.LWMIN .AND. (.NOT.LQUERY) ) THEN
         INFO = -15
       END IF
 *
+      IF( INFO.EQ.0 ) THEN
+        WORK( 1 ) = LWMIN
+      END IF
       IF( INFO.NE.0 ) THEN
         CALL XERBLA( 'DLAMSWLQ', -INFO )
-        WORK(1) = LW
         RETURN
-      ELSE IF (LQUERY) THEN
-        WORK(1) = LW
+      ELSE IF( LQUERY ) THEN
         RETURN
       END IF
 *
 *     Quick return if possible
 *
-      IF( MIN(M,N,K).EQ.0 ) THEN
+      IF( MINMNK.EQ.0 ) THEN
         RETURN
       END IF
 *
@@ -411,7 +415,8 @@
 *
       END IF
 *
-      WORK(1) = LW
+      WORK( 1 ) = LWMIN
+*
       RETURN
 *
 *     End of DLAMSWLQ

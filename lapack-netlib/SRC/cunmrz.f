@@ -168,9 +168,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexOTHERcomputational
+*> \ingroup unmrz
 *
 *> \par Contributors:
 *  ==================
@@ -187,10 +185,9 @@
       SUBROUTINE CUNMRZ( SIDE, TRANS, M, N, K, L, A, LDA, TAU, C, LDC,
      $                   WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          SIDE, TRANS
@@ -216,7 +213,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           LSAME, ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CLARZB, CLARZT, CUNMR3, XERBLA
@@ -259,7 +257,7 @@
          INFO = -8
       ELSE IF( LDC.LT.MAX( 1, M ) ) THEN
          INFO = -11
-      ELSE IF( LWORK.LT.MAX( 1, NW ) .AND. .NOT.LQUERY ) THEN
+      ELSE IF( LWORK.LT.NW .AND. .NOT.LQUERY ) THEN
          INFO = -13
       END IF
 *
@@ -274,7 +272,7 @@
      $                               K, -1 ) )
             LWKOPT = NW*NB + TSIZE
          END IF
-         WORK( 1 ) = LWKOPT
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -297,7 +295,7 @@
       NBMIN = 2
       LDWORK = NW
       IF( NB.GT.1 .AND. NB.LT.K ) THEN
-         IF( LWORK.LT.NW*NB+TSIZE ) THEN
+         IF( LWORK.LT.LWKOPT ) THEN
             NB = (LWORK-TSIZE) / LDWORK
             NBMIN = MAX( 2, ILAENV( 2, 'CUNMRQ', SIDE // TRANS, M, N, K,
      $                              -1 ) )
@@ -374,7 +372,7 @@
 *
       END IF
 *
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
 *
       RETURN
 *

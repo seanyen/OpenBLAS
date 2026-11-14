@@ -276,19 +276,16 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date April 2012
-*
-*> \ingroup complexSYsolve
+*> \ingroup hesvx
 *
 *  =====================================================================
       SUBROUTINE CSYSVX( FACT, UPLO, N, NRHS, A, LDA, AF, LDAF, IPIV, B,
      $                   LDB, X, LDX, RCOND, FERR, BERR, WORK, LWORK,
      $                   RWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     April 2012
 *
 *     .. Scalar Arguments ..
       CHARACTER          FACT, UPLO
@@ -316,8 +313,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      REAL               CLANSY, SLAMCH
-      EXTERNAL           ILAENV, LSAME, CLANSY, SLAMCH
+      REAL               CLANSY, SLAMCH, SROUNDUP_LWORK
+      EXTERNAL           ILAENV, LSAME, CLANSY, SLAMCH, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CLACPY, CSYCON, CSYRFS, CSYTRF, CSYTRS, XERBLA
@@ -359,7 +356,7 @@
             NB = ILAENV( 1, 'CSYTRF', UPLO, N, -1, -1, -1 )
             LWKOPT = MAX( LWKOPT, N*NB )
          END IF
-         WORK( 1 ) = LWKOPT
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -408,7 +405,7 @@
       IF( RCOND.LT.SLAMCH( 'Epsilon' ) )
      $   INFO = N + 1
 *
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
 *
       RETURN
 *

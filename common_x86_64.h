@@ -70,7 +70,8 @@
 #define RMB
 #endif
 
-static void __inline blas_lock(volatile BLASULONG *address){
+#ifndef BLAS_LOCK_DEFINED
+static __inline void blas_lock(volatile BLASULONG *address){
 
 	
 #ifndef C_MSVC
@@ -83,11 +84,15 @@ static void __inline blas_lock(volatile BLASULONG *address){
     while (*address) {YIELDING;}
 
 #ifndef C_MSVC
+#ifdef __PIZLONATOR_WAS_HERE__
+    ret=__atomic_exchange_n(address, 1, __ATOMIC_SEQ_CST);
+#else    
     __asm__ __volatile__(
 			 "xchgl %0, %1\n"
 			 : "=r"(ret), "=m"(*address)
 			 : "0"(1), "m"(*address)
 			 : "memory");
+#endif
 #else
     ret=InterlockedExchange64((volatile LONG64 *)(address), 1);
 #endif
@@ -95,6 +100,7 @@ static void __inline blas_lock(volatile BLASULONG *address){
 
 }
 #define BLAS_LOCK_DEFINED
+#endif
 
 static __inline BLASULONG rpcc(void){
 #ifdef C_MSVC
@@ -237,7 +243,7 @@ static __inline unsigned int blas_quickdivide(unsigned int x, unsigned int y){
 	
   y = blas_quick_divide_table[y];
 
-  __asm__ __volatile__  ("mull %0" :"=d" (result), "+a"(x) : "0" (y));
+  __asm__ __volatile__  ("mull %0" :"=d" (result), "+a"(x) : "0" (y) : "cc");
   return result;
 }
 #endif
@@ -253,7 +259,7 @@ static __inline unsigned int blas_quickdivide(unsigned int x, unsigned int y){
 #ifndef BUFFERSIZE
 #define BUFFER_SIZE	(32 << 22)
 #else
-#define BUFFER_SIZE	(32 << BUFFERSIZE)
+#define BUFFER_SIZE	(32UL << BUFFERSIZE)
 #endif
 
 #define SEEK_ADDRESS
@@ -281,6 +287,10 @@ static __inline unsigned int blas_quickdivide(unsigned int x, unsigned int y){
 
 #ifdef F_INTERFACE_INTEL
 #define RETURN_BY_STACK
+#endif
+
+#ifdef F_INTERFACE_CRAYFC
+#define RETURN_BY_PACKED
 #endif
 
 #ifdef F_INTERFACE_FUJITSU
@@ -397,6 +407,7 @@ static __inline unsigned int blas_quickdivide(unsigned int x, unsigned int y){
 
 #ifdef OS_DARWIN
 #define PROLOGUE .text;.align 5; .globl REALNAME; REALNAME:
+#define PROLOGUE_EXPORT .text;.align 5; .globl REALNAME; REALNAME:
 #define EPILOGUE	.subsections_via_symbols
 #define PROFCODE
 #endif
@@ -433,12 +444,23 @@ static __inline unsigned int blas_quickdivide(unsigned int x, unsigned int y){
 #endif
 
 #if defined(OS_WINDOWS) && !defined(C_PGI)
-#define PROLOGUE \
+#define PROLOGUE_EXPORT \
 	.text; \
 	.align 16; \
 	.globl REALNAME ;\
 	.def REALNAME;.scl	2;.type	32;.endef; \
 REALNAME:
+#ifdef __ELF__
+#define PROLOGUE \
+	.text; \
+	.align 16; \
+	.globl REALNAME ;\
+    .hidden REALNAME ; \
+	.def REALNAME;.scl	2;.type	32;.endef; \
+REALNAME:
+#else
+#define PROLOGUE PROLOGUE_EXPORT
+#endif
 
 #define PROFCODE
 
@@ -450,8 +472,18 @@ REALNAME:
 	.text; \
 	.align 512; \
 	.globl REALNAME ;\
-       .type REALNAME, @function; \
-REALNAME:
+	.hidden REALNAME ;\
+    .type REALNAME, @function; \
+REALNAME: \
+	_CET_ENDBR
+
+#define PROLOGUE_EXPORT \
+	.text; \
+	.align 512; \
+	.globl REALNAME ;\
+    .type REALNAME, @function; \
+REALNAME: \
+	_CET_ENDBR
 
 #ifdef PROFILE
 #define PROFCODE call *mcount@GOTPCREL(%rip)

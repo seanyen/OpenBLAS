@@ -187,10 +187,10 @@
 *>          INFO is INTEGER
 *>          = 0:  successful exit
 *>          < 0:  if INFO = -i, the i-th argument had an illegal value
-*>          > 0:  if INFO = i, the leading minor of order i of
-*>                (COMPLEX*16) A is not positive definite, so the
-*>                factorization could not be completed, and the solution
-*>                has not been computed.
+*>          > 0:  if INFO = i, the leading principal minor of order i
+*>                of (COMPLEX*16) A is not positive, so the factorization
+*>                could not be completed, and the solution has not been
+*>                computed.
 *> \endverbatim
 *
 *  Authors:
@@ -201,18 +201,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
 *> \ingroup complex16POsolve
 *
 *  =====================================================================
       SUBROUTINE ZCPOSV( UPLO, N, NRHS, A, LDA, B, LDB, X, LDX, WORK,
      $                   SWORK, RWORK, ITER, INFO )
 *
-*  -- LAPACK driver routine (version 3.8.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO
@@ -452,6 +449,6 @@
 *
       RETURN
 *
-*     End of ZCPOSV.
+*     End of ZCPOSV
 *
       END

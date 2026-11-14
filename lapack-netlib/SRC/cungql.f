@@ -121,17 +121,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexOTHERcomputational
+*> \ingroup ungql
 *
 *  =====================================================================
       SUBROUTINE CUNGQL( M, N, K, A, LDA, TAU, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, K, LDA, LWORK, M, N
@@ -159,7 +156,8 @@
 *     ..
 *     .. External Functions ..
       INTEGER            ILAENV
-      EXTERNAL           ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. Executable Statements ..
 *
@@ -184,7 +182,7 @@
             NB = ILAENV( 1, 'CUNGQL', ' ', M, N, K, -1 )
             LWKOPT = N*NB
          END IF
-         WORK( 1 ) = LWKOPT
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
 *
          IF( LWORK.LT.MAX( 1, N ) .AND. .NOT.LQUERY ) THEN
             INFO = -8

@@ -74,7 +74,7 @@
 *>
 *>          On exit, the tridiagonal matrix is stored in the diagonals
 *>          and the subdiagonals of A just below (or above) the diagonals,
-*>          and L is stored below (or above) the subdiaonals, when UPLO
+*>          and L is stored below (or above) the subdiagonals, when UPLO
 *>          is 'L' (or 'U').
 *> \endverbatim
 *>
@@ -125,17 +125,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
-*> \ingroup complexSYcomputational
+*> \ingroup hetrf_aa
 *
 *  =====================================================================
       SUBROUTINE CSYTRF_AA( UPLO, N, A, LDA, IPIV, WORK, LWORK, INFO)
 *
-*  -- LAPACK computational routine (version 3.8.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
       IMPLICIT NONE
 *
@@ -162,7 +159,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           LSAME, ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CLASYF_AA, CGEMM, CGEMV, CSCAL, CSWAP, CCOPY,
@@ -194,7 +192,7 @@
 *
       IF( INFO.EQ.0 ) THEN
          LWKOPT = (NB+1)*N
-         WORK( 1 ) = LWKOPT
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -460,6 +458,7 @@
       END IF
 *
    20 CONTINUE
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       RETURN
 *
 *     End of CSYTRF_AA

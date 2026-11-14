@@ -38,10 +38,8 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined(__VEC__) || defined(__ALTIVEC__)
 #if defined(POWER8) || defined(POWER9)
 #include "sscal_microk_power8.c"
-#elif defined(POWER10) && (__BYTE_ORDER__ != __ORDER_BIG_ENDIAN__)
-#include "sscal_microk_power10.c"
 #elif defined(POWER10)
-#include "sscal_microk_power8.c"
+#include "sscal_microk_power10.c"
 #endif
 #endif
 
@@ -76,16 +74,58 @@ static void sscal_kernel_16_zero( BLASLONG n, FLOAT *x )
 
         for( i=0; i<n; i+=8 )
         {
-                x[0] = alpha;
-                x[1] = alpha;
-                x[2] = alpha;
-                x[3] = alpha;
-                x[4] = alpha;
-                x[5] = alpha;
-                x[6] = alpha;
-                x[7] = alpha;
+		x[0] = alpha;
+		x[1] = alpha;
+		x[2] = alpha;
+		x[3] = alpha;
+		x[4] = alpha;
+		x[5] = alpha;
+		x[6] = alpha;
+		x[7] = alpha;
+		x[8] = alpha;
+		x[9] = alpha;
+		x[10] = alpha;
+		x[11] = alpha;
+		x[12] = alpha;
+		x[13] = alpha;
+		x[14] = alpha;
+		x[15] = alpha;
+#if 0
+		if (isfinite(x[0]))
+			x[0] = alpha;
+		else
+			x[0] = NAN;
+		if (isfinite(x[1]))
+                	x[1] = alpha;
+		else
+			x[1] = NAN;
+		if (isfinite(x[2]))
+                	x[2] = alpha;
+		else
+			x[2] = NAN;
+		if (isfinite(x[3]))
+                	x[3] = alpha;
+		else
+			x[3] = NAN;
+		if (isfinite(x[4]))
+                	x[4] = alpha;
+		else
+			x[4] = NAN;
+		if (isfinite(x[5]))
+                	x[5] = alpha;
+		else
+			x[5] = NAN;
+		if (isfinite(x[6]))
+                	x[6] = alpha;
+		else
+			x[6] = NAN;
+		if (isfinite(x[7]))
+                	x[7] = alpha;
+		else
+			x[7] = NAN;
                 x+=8;
-        }
+#endif
+    	}
 
 }
 
@@ -106,12 +146,20 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
 		if ( da == 0.0 )
 		{		
 
-#if defined(POWER10) && (__BYTE_ORDER__ != __ORDER_BIG_ENDIAN__)
+#if defined(POWER10)
 			if ( n >= 32 )
 			{
 				BLASLONG align = ((32 - ((uintptr_t)x & (uintptr_t)0x1F)) >> 2) & 0x7;
+				if (dummy2 == 0)
+					for (j = 0; j < align; j++){
+						x[j] = 0.0;
+					}
+				else
 				for (j = 0; j < align; j++) {
-					x[j] = 0.0;
+					if (isfinite(x[j]))
+						x[j] = 0.0;
+					else
+						x[j] = NAN;
 				}
 			}
 			BLASLONG n1 = (n-j) & -32;
@@ -128,11 +176,19 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
 				j=n1;
 			}
 #endif
-
+			if (dummy2 == 0)
 			while(j < n)
 			{
-
-				x[j]=0.0;
+				x[j] = 0.0;
+				j++;
+			}
+			else
+			while(j < n)
+			{	
+				if (isfinite(x[j]))
+					x[j]=0.0;
+				else
+					x[j]=NAN;
 				j++;
 			}
 
@@ -140,7 +196,7 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
 		else
 		{
 
-#if defined(POWER10) && (__BYTE_ORDER__ != __ORDER_BIG_ENDIAN__)
+#if defined(POWER10)
 			if ( n >= 32 )
 			{
 				BLASLONG align = ((32 - ((uintptr_t)x & (uintptr_t)0x1F)) >> 2) & 0x7;
@@ -177,11 +233,20 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
 
 		if ( da == 0.0 )
 		{		
-
+		if (dummy2 == 0)
 			while(j < n)
 			{
-
 				x[i]=0.0;
+				i += inc_x;
+				j++;
+			}
+		else
+			while(j < n)
+			{
+				if (isfinite(x[i]))
+					x[i]=0.0;
+				else
+					x[i]=NAN;
 				i += inc_x ;
 				j++;
 			}

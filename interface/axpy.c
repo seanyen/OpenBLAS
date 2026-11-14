@@ -46,6 +46,25 @@
 #else
 #define MULTI_THREAD_MINIMAL  10000
 #endif
+
+#if defined(SMP) && defined(USE_OPENMP) && defined(ARCH_ARM64) && defined(OS_DARWIN) && \
+    (defined(DYNAMIC_ARCH) || defined(VORTEXM4))
+#ifdef DYNAMIC_ARCH
+extern char *gotoblas_corename(void);
+#endif
+/* Apple M4, OpenMP: libomp parks idle threads on Apple Silicon (KMP_BLOCKTIME
+   defaults to 0 there), and every call wakes the rest of the OpenMP team, about
+   3 us per thread on average. Stay on one thread until the vector takes longer
+   than that, about 128 KB per woken thread; measured on M4 Pro only. */
+static int apple_axpy_threads(BLASLONG n, int nthreads) {
+#ifdef DYNAMIC_ARCH
+  if (strcmp(gotoblas_corename(), "vortexm4") != 0) return nthreads;
+#endif
+  return (size_t)n * sizeof(FLOAT) < (size_t)(nthreads - 1) * 128 * 1024 ? 1 : nthreads;
+}
+#endif
+
+OPENBLAS_EXPORT
 #ifndef CBLAS
 
 void NAME(blasint *N, FLOAT *ALPHA, FLOAT *x, blasint *INCX, FLOAT *y, blasint *INCY){
@@ -98,6 +117,11 @@ void CNAME(blasint n, FLOAT alpha, FLOAT *x, blasint incx, FLOAT *y, blasint inc
   else
 	  nthreads = num_cpu_avail(1);
 
+#if defined(USE_OPENMP) && defined(ARCH_ARM64) && defined(OS_DARWIN) && \
+    (defined(DYNAMIC_ARCH) || defined(VORTEXM4))
+  if (nthreads > 1) nthreads = apple_axpy_threads(n, nthreads);
+#endif
+
   if (nthreads == 1) {
 #endif
 
@@ -115,7 +139,7 @@ void CNAME(blasint n, FLOAT alpha, FLOAT *x, blasint incx, FLOAT *y, blasint inc
 #endif
 
     blas_level1_thread(mode, n, 0, 0, &alpha,
-		       x, incx, y, incy, NULL, 0, (void *)AXPYU_K, nthreads);
+		       x, incx, y, incy, NULL, 0,  (int (*)(void))AXPYU_K, nthreads);
 
   }
 #endif

@@ -197,8 +197,8 @@
 *>                The QZ iteration failed.  No eigenvectors have been
 *>                calculated, but ALPHA(j) and BETA(j) should be
 *>                correct for j=INFO+1,...,N.
-*>          > N:  =N+1: other then QZ iteration failed in SHGEQZ,
-*>                =N+2: error return from STGEVC.
+*>          > N:  =N+1: other then QZ iteration failed in CHGEQZ,
+*>                =N+2: error return from CTGEVC.
 *> \endverbatim
 *
 *  Authors:
@@ -209,18 +209,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date April 2012
-*
-*> \ingroup complexGEeigen
+*> \ingroup ggev
 *
 *  =====================================================================
       SUBROUTINE CGGEV( JOBVL, JOBVR, N, A, LDA, B, LDB, ALPHA, BETA,
      $                  VL, LDVL, VR, LDVR, WORK, LWORK, RWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     April 2012
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBVL, JOBVR
@@ -257,14 +254,13 @@
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CGEQRF, CGGBAK, CGGBAL, CGGHRD, CHGEQZ, CLACPY,
-     $                   CLASCL, CLASET, CTGEVC, CUNGQR, CUNMQR, SLABAD,
-     $                   XERBLA
+     $                   CLASCL, CLASET, CTGEVC, CUNGQR, CUNMQR, XERBLA
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      REAL               CLANGE, SLAMCH
-      EXTERNAL           LSAME, ILAENV, CLANGE, SLAMCH
+      REAL               CLANGE, SLAMCH, SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, CLANGE, SLAMCH, SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, AIMAG, MAX, REAL, SQRT
@@ -339,7 +335,7 @@
             LWKOPT = MAX( LWKOPT, N +
      $                 N*ILAENV( 1, 'CUNGQR', ' ', N, 1, N, -1 ) )
          END IF
-         WORK( 1 ) = LWKOPT
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
 *
          IF( LWORK.LT.LWKMIN .AND. .NOT.LQUERY )
      $      INFO = -15
@@ -362,7 +358,6 @@
       EPS = SLAMCH( 'E' )*SLAMCH( 'B' )
       SMLNUM = SLAMCH( 'S' )
       BIGNUM = ONE / SMLNUM
-      CALL SLABAD( SMLNUM, BIGNUM )
       SMLNUM = SQRT( SMLNUM ) / EPS
       BIGNUM = ONE / SMLNUM
 *
@@ -550,7 +545,7 @@
       IF( ILBSCL )
      $   CALL CLASCL( 'G', 0, 0, BNRMTO, BNRM, N, 1, BETA, N, IERR )
 *
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       RETURN
 *
 *     End of CGGEV

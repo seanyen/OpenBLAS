@@ -154,7 +154,7 @@
 *>                    i off-diagonal elements of an intermediate
 *>                    tridiagonal form did not converge to zero;
 *>             > N:   if INFO = N + i, for 1 <= i <= N, then the leading
-*>                    minor of order i of B is not positive definite.
+*>                    principal minor of order i of B is not positive.
 *>                    The factorization of B could not be completed and
 *>                    no eigenvalues or eigenvectors were computed.
 *> \endverbatim
@@ -167,18 +167,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realSYeigen
+*> \ingroup hegv
 *
 *  =====================================================================
       SUBROUTINE SSYGV( ITYPE, JOBZ, UPLO, N, A, LDA, B, LDB, W, WORK,
      $                  LWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBZ, UPLO
@@ -202,7 +199,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           ILAENV, LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, LSAME, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SPOTRF, SSYEV, SSYGST, STRMM, STRSM, XERBLA
@@ -237,7 +235,7 @@
          LWKMIN = MAX( 1, 3*N - 1 )
          NB = ILAENV( 1, 'SSYTRD', UPLO, N, -1, -1, -1 )
          LWKOPT = MAX( LWKMIN, ( NB + 2 )*N )
-         WORK( 1 ) = LWKOPT
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
 *
          IF( LWORK.LT.LWKMIN .AND. .NOT.LQUERY ) THEN
             INFO = -11
@@ -306,7 +304,7 @@
          END IF
       END IF
 *
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       RETURN
 *
 *     End of SSYGV

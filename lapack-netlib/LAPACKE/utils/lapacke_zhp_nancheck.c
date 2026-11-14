@@ -28,7 +28,6 @@
 ******************************************************************************
 * Contents: Native C interface to LAPACK utility function
 * Author: Intel Corporation
-* Created in February, 2010
 *****************************************************************************/
 #include "lapacke_utils.h"
 
@@ -40,6 +39,6 @@
 lapack_logical LAPACKE_zhp_nancheck( lapack_int n,
                                       const lapack_complex_double *ap )
 {
-    lapack_int len = n*(n+1)/2;
+    lapack_int len = (lapack_int)(((size_t)n*(n+1))/2);
     return LAPACKE_z_nancheck( len, ap, 1 );
 }

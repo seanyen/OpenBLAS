@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download ZHETF2_RK + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zhetf2_rk.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zhetf2_rk.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -208,9 +206,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complex16HEcomputational
+*> \ingroup hetf2_rk
 *
 *> \par Further Details:
 *  =====================
@@ -240,11 +236,11 @@
 *
 *  =====================================================================
       SUBROUTINE ZHETF2_RK( UPLO, N, A, LDA, E, IPIV, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO
@@ -420,7 +416,7 @@
 *
 *                 Case(2)
 *                 Equivalent to testing for
-*                 ABS( REAL( W( IMAX,KW-1 ) ) ).GE.ALPHA*ROWMAX
+*                 ABS( DBLE( W( IMAX,KW-1 ) ) ).GE.ALPHA*ROWMAX
 *                 (used to handle NaN and Inf)
 *
                   IF( .NOT.( ABS( DBLE( A( IMAX, IMAX ) ) )
@@ -483,7 +479,7 @@
                   A( J, K ) = DCONJG( A( P, J ) )
                   A( P, J ) = T
    14          CONTINUE
-*              (3) Swap and conjugate corner elements at row-col interserction
+*              (3) Swap and conjugate corner elements at row-col intersection
                A( P, K ) = DCONJG( A( P, K ) )
 *              (4) Swap diagonal elements at row-col intersection
                R1 = DBLE( A( K, K ) )
@@ -494,7 +490,8 @@
 *              the interchanges in columns k+1:N.
 *
                IF( K.LT.N )
-     $            CALL ZSWAP( N-K, A( K, K+1 ), LDA, A( P, K+1 ), LDA )
+     $            CALL ZSWAP( N-K, A( K, K+1 ), LDA, A( P, K+1 ),
+     $                        LDA )
 *
             END IF
 *
@@ -511,7 +508,7 @@
                   A( J, KK ) = DCONJG( A( KP, J ) )
                   A( KP, J ) = T
    15          CONTINUE
-*              (3) Swap and conjugate corner elements at row-col interserction
+*              (3) Swap and conjugate corner elements at row-col intersection
                A( KP, KK ) = DCONJG( A( KP, KK ) )
 *              (4) Swap diagonal elements at row-col intersection
                R1 = DBLE( A( KK, KK ) )
@@ -563,7 +560,8 @@
 *                       = A - W(k)*1/D(k)*W(k)**T
 *
                      D11 = ONE / DBLE( A( K, K ) )
-                     CALL ZHER( UPLO, K-1, -D11, A( 1, K ), 1, A, LDA )
+                     CALL ZHER( UPLO, K-1, -D11, A( 1, K ), 1, A,
+     $                          LDA )
 *
 *                    Store U(k) in column k
 *
@@ -582,7 +580,8 @@
 *                       = A - W(k)*(1/D(k))*W(k)**T
 *                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
 *
-                     CALL ZHER( UPLO, K-1, -D11, A( 1, K ), 1, A, LDA )
+                     CALL ZHER( UPLO, K-1, -D11, A( 1, K ), 1, A,
+     $                          LDA )
                   END IF
 *
 *                 Store the superdiagonal element of D in array E
@@ -611,31 +610,31 @@
 *                 D = |A12|
                   D = DLAPY2( DBLE( A( K-1, K ) ),
      $                DIMAG( A( K-1, K ) ) )
-                  D11 = A( K, K ) / D
-                  D22 = A( K-1, K-1 ) / D
+                  D11 = DBLE( A( K, K ) / D )
+                  D22 = DBLE( A( K-1, K-1 ) / D )
                   D12 = A( K-1, K ) / D
                   TT = ONE / ( D11*D22-ONE )
 *
                   DO 30 J = K - 2, 1, -1
 *
-*                    Compute  D21 * ( W(k)W(k+1) ) * inv(D(k)) for row J
+*                    Compute  ( W(k)W(k+1) ) * inv(D(k)) for row J
 *
-                     WKM1 = TT*( D11*A( J, K-1 )-DCONJG( D12 )*
-     $                      A( J, K ) )
-                     WK = TT*( D22*A( J, K )-D12*A( J, K-1 ) )
+                     WKM1 = TT*( ( D11*A( J, K-1 )-DCONJG( D12 )*
+     $                      A( J, K ) ) / D )
+                     WK = TT*( ( D22*A( J, K )-D12*A( J, K-1 ) ) / D )
 *
 *                    Perform a rank-2 update of A(1:k-2,1:k-2)
 *
                      DO 20 I = J, 1, -1
                         A( I, J ) = A( I, J ) -
-     $                              ( A( I, K ) / D )*DCONJG( WK ) -
-     $                              ( A( I, K-1 ) / D )*DCONJG( WKM1 )
+     $                              A( I, K )*DCONJG( WK ) -
+     $                              A( I, K-1 )*DCONJG( WKM1 )
    20                CONTINUE
 *
 *                    Store U(k) and U(k-1) in cols k and k-1 for row J
 *
-                     A( J, K ) = WK / D
-                     A( J, K-1 ) = WKM1 / D
+                     A( J, K ) = WK
+                     A( J, K-1 ) = WKM1
 *                    (*) Make sure that diagonal element of pivot is real
                      A( J, J ) = DCMPLX( DBLE( A( J, J ) ), ZERO )
 *
@@ -755,14 +754,16 @@
 *                 Determine both ROWMAX and JMAX.
 *
                   IF( IMAX.NE.K ) THEN
-                     JMAX = K - 1 + IZAMAX( IMAX-K, A( IMAX, K ), LDA )
+                     JMAX = K - 1 + IZAMAX( IMAX-K, A( IMAX, K ),
+     $                                      LDA )
                      ROWMAX = CABS1( A( IMAX, JMAX ) )
                   ELSE
                      ROWMAX = ZERO
                   END IF
 *
                   IF( IMAX.LT.N ) THEN
-                     ITEMP = IMAX + IZAMAX( N-IMAX, A( IMAX+1, IMAX ),
+                     ITEMP = IMAX + IZAMAX( N-IMAX, A( IMAX+1,
+     $                                      IMAX ),
      $                                     1 )
                      DTEMP = CABS1( A( ITEMP, IMAX ) )
                      IF( DTEMP.GT.ROWMAX ) THEN
@@ -773,7 +774,7 @@
 *
 *                 Case(2)
 *                 Equivalent to testing for
-*                 ABS( REAL( W( IMAX,KW-1 ) ) ).GE.ALPHA*ROWMAX
+*                 ABS( DBLE( W( IMAX,KW-1 ) ) ).GE.ALPHA*ROWMAX
 *                 (used to handle NaN and Inf)
 *
                   IF( .NOT.( ABS( DBLE( A( IMAX, IMAX ) ) )
@@ -837,7 +838,7 @@
                   A( J, K ) = DCONJG( A( P, J ) )
                   A( P, J ) = T
    44          CONTINUE
-*              (3) Swap and conjugate corner elements at row-col interserction
+*              (3) Swap and conjugate corner elements at row-col intersection
                A( P, K ) = DCONJG( A( P, K ) )
 *              (4) Swap diagonal elements at row-col intersection
                R1 = DBLE( A( K, K ) )
@@ -858,14 +859,15 @@
             IF( KP.NE.KK ) THEN
 *              (1) Swap columnar parts
                IF( KP.LT.N )
-     $            CALL ZSWAP( N-KP, A( KP+1, KK ), 1, A( KP+1, KP ), 1 )
+     $            CALL ZSWAP( N-KP, A( KP+1, KK ), 1, A( KP+1, KP ),
+     $                        1 )
 *              (2) Swap and conjugate middle parts
                DO 45 J = KK + 1, KP - 1
                   T = DCONJG( A( J, KK ) )
                   A( J, KK ) = DCONJG( A( KP, J ) )
                   A( KP, J ) = T
    45          CONTINUE
-*              (3) Swap and conjugate corner elements at row-col interserction
+*              (3) Swap and conjugate corner elements at row-col intersection
                A( KP, KK ) = DCONJG( A( KP, KK ) )
 *              (4) Swap diagonal elements at row-col intersection
                R1 = DBLE( A( KK, KK ) )
@@ -976,24 +978,24 @@
 *
                   DO 60 J = K + 2, N
 *
-*                    Compute  D21 * ( W(k)W(k+1) ) * inv(D(k)) for row J
+*                    Compute  ( W(k)W(k+1) ) * inv(D(k)) for row J
 *
-                     WK = TT*( D11*A( J, K )-D21*A( J, K+1 ) )
-                     WKP1 = TT*( D22*A( J, K+1 )-DCONJG( D21 )*
-     $                      A( J, K ) )
+                     WK = TT*( ( D11*A( J, K )-D21*A( J, K+1 ) ) / D )
+                     WKP1 = TT*( ( D22*A( J, K+1 )-DCONJG( D21 )*
+     $                      A( J, K ) ) / D )
 *
 *                    Perform a rank-2 update of A(k+2:n,k+2:n)
 *
                      DO 50 I = J, N
                         A( I, J ) = A( I, J ) -
-     $                              ( A( I, K ) / D )*DCONJG( WK ) -
-     $                              ( A( I, K+1 ) / D )*DCONJG( WKP1 )
+     $                              A( I, K )*DCONJG( WK ) -
+     $                              A( I, K+1 )*DCONJG( WKP1 )
    50                CONTINUE
 *
 *                    Store L(k) and L(k+1) in cols k and k+1 for row J
 *
-                     A( J, K ) = WK / D
-                     A( J, K+1 ) = WKP1 / D
+                     A( J, K ) = WK
+                     A( J, K+1 ) = WKP1
 *                    (*) Make sure that diagonal element of pivot is real
                      A( J, J ) = DCMPLX( DBLE( A( J, J ) ), ZERO )
 *

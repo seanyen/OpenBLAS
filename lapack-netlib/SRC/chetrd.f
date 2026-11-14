@@ -139,9 +139,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexHEcomputational
+*> \ingroup hetrd
 *
 *> \par Further Details:
 *  =====================
@@ -190,12 +188,12 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE CHETRD( UPLO, N, A, LDA, D, E, TAU, WORK, LWORK, INFO )
+      SUBROUTINE CHETRD( UPLO, N, A, LDA, D, E, TAU, WORK, LWORK,
+     $                   INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO
@@ -228,7 +226,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           LSAME, ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. Executable Statements ..
 *
@@ -252,8 +251,8 @@
 *        Determine the block size.
 *
          NB = ILAENV( 1, 'CHETRD', UPLO, N, -1, -1, -1 )
-         LWKOPT = N*NB
-         WORK( 1 ) = LWKOPT
+         LWKOPT = MAX( 1, N*NB )
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -328,7 +327,7 @@
 *
             DO 10 J = I, I + NB - 1
                A( J-1, J ) = E( J-1 )
-               D( J ) = A( J, J )
+               D( J ) = REAL( A( J, J ) )
    10       CONTINUE
    20    CONTINUE
 *
@@ -360,7 +359,7 @@
 *
             DO 30 J = I, I + NB - 1
                A( J+1, J ) = E( J )
-               D( J ) = A( J, J )
+               D( J ) = REAL( A( J, J ) )
    30       CONTINUE
    40    CONTINUE
 *
@@ -370,7 +369,7 @@
      $                TAU( I ), IINFO )
       END IF
 *
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       RETURN
 *
 *     End of CHETRD

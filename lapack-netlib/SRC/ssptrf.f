@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download SSPTRF + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/ssptrf.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/ssptrf.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -107,9 +105,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realOTHERcomputational
+*> \ingroup hptrf
 *
 *> \par Further Details:
 *  =====================
@@ -156,11 +152,11 @@
 *>
 *  =====================================================================
       SUBROUTINE SSPTRF( UPLO, N, AP, IPIV, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO
@@ -187,9 +183,9 @@
      $                   ROWMAX, T, WK, WKM1, WKP1
 *     ..
 *     .. External Functions ..
-      LOGICAL            LSAME
+      LOGICAL            LSAME, SISNAN
       INTEGER            ISAMAX
-      EXTERNAL           LSAME, ISAMAX
+      EXTERNAL           LSAME, ISAMAX, SISNAN
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SSCAL, SSPR, SSWAP, XERBLA
@@ -250,9 +246,11 @@
             COLMAX = ZERO
          END IF
 *
-         IF( MAX( ABSAKK, COLMAX ).EQ.ZERO ) THEN
+         IF( (MAX( ABSAKK, COLMAX ).EQ.ZERO) .OR.
+     $       SISNAN(ABSAKK) ) THEN
 *
-*           Column K is zero: set INFO and continue
+*           Column K is zero or underflow, or contains a NaN:
+*           set INFO and continue
 *
             IF( INFO.EQ.0 )
      $         INFO = K
@@ -368,13 +366,12 @@
                   D22 = AP( K-1+( K-2 )*( K-1 ) / 2 ) / D12
                   D11 = AP( K+( K-1 )*K / 2 ) / D12
                   T = ONE / ( D11*D22-ONE )
-                  D12 = T / D12
 *
                   DO 50 J = K - 2, 1, -1
-                     WKM1 = D12*( D11*AP( J+( K-2 )*( K-1 ) / 2 )-
-     $                      AP( J+( K-1 )*K / 2 ) )
-                     WK = D12*( D22*AP( J+( K-1 )*K / 2 )-
-     $                    AP( J+( K-2 )*( K-1 ) / 2 ) )
+                     WKM1 = T*( ( D11*AP( J+( K-2 )*( K-1 ) / 2 )-
+     $                      AP( J+( K-1 )*K / 2 ) ) / D12 )
+                     WK = T*( ( D22*AP( J+( K-1 )*K / 2 )-
+     $                    AP( J+( K-2 )*( K-1 ) / 2 ) ) / D12 )
                      DO 40 I = J, 1, -1
                         AP( I+( J-1 )*J / 2 ) = AP( I+( J-1 )*J / 2 ) -
      $                     AP( I+( K-1 )*K / 2 )*WK -
@@ -438,9 +435,11 @@
             COLMAX = ZERO
          END IF
 *
-         IF( MAX( ABSAKK, COLMAX ).EQ.ZERO ) THEN
+         IF( (MAX( ABSAKK, COLMAX ).EQ.ZERO) .OR.
+     $       SISNAN(ABSAKK) ) THEN
 *
-*           Column K is zero: set INFO and continue
+*           Column K is zero or underflow, or contains a NaN:
+*           set INFO and continue
 *
             IF( INFO.EQ.0 )
      $         INFO = K
@@ -501,7 +500,8 @@
 *              submatrix A(k:n,k:n)
 *
                IF( KP.LT.N )
-     $            CALL SSWAP( N-KP, AP( KNC+KP-KK+1 ), 1, AP( KPC+1 ),
+     $            CALL SSWAP( N-KP, AP( KNC+KP-KK+1 ), 1,
+     $                        AP( KPC+1 ),
      $                        1 )
                KX = KNC + KP - KK
                DO 80 J = KK + 1, KP - 1
@@ -567,13 +567,12 @@
                   D11 = AP( K+1+K*( 2*N-K-1 ) / 2 ) / D21
                   D22 = AP( K+( K-1 )*( 2*N-K ) / 2 ) / D21
                   T = ONE / ( D11*D22-ONE )
-                  D21 = T / D21
 *
                   DO 100 J = K + 2, N
-                     WK = D21*( D11*AP( J+( K-1 )*( 2*N-K ) / 2 )-
-     $                    AP( J+K*( 2*N-K-1 ) / 2 ) )
-                     WKP1 = D21*( D22*AP( J+K*( 2*N-K-1 ) / 2 )-
-     $                      AP( J+( K-1 )*( 2*N-K ) / 2 ) )
+                     WK = T*( ( D11*AP( J+( K-1 )*( 2*N-K ) / 2 )-
+     $                    AP( J+K*( 2*N-K-1 ) / 2 ) ) / D21 )
+                     WKP1 = T*( ( D22*AP( J+K*( 2*N-K-1 ) / 2 )-
+     $                      AP( J+( K-1 )*( 2*N-K ) / 2 ) ) / D21 )
 *
                      DO 90 I = J, N
                         AP( I+( J-1 )*( 2*N-J ) / 2 ) = AP( I+( J-1 )*

@@ -266,8 +266,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date April 2012
-*
 *> \ingroup complexGEcomputational
 *
 *> \par Further Details:
@@ -284,10 +282,9 @@
      $                   ALPHA, BETA, Q, LDQ, Z, LDZ, WORK, LWORK,
      $                   RWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     April 2012
 *
 *     .. Scalar Arguments ..
       CHARACTER          COMPQ, COMPZ, JOB
@@ -518,7 +515,9 @@
          IF( ILAST.EQ.ILO ) THEN
             GO TO 60
          ELSE
-            IF( ABS1( H( ILAST, ILAST-1 ) ).LE.ATOL ) THEN
+            IF( ABS1( H( ILAST, ILAST-1 ) ).LE.MAX( SAFMIN, ULP*( 
+     $         ABS1( H( ILAST, ILAST ) ) + ABS1( H( ILAST-1, ILAST-1 ) 
+     $         ) ) ) ) THEN
                H( ILAST, ILAST-1 ) = CZERO
                GO TO 60
             END IF
@@ -538,7 +537,9 @@
             IF( J.EQ.ILO ) THEN
                ILAZRO = .TRUE.
             ELSE
-               IF( ABS1( H( J, J-1 ) ).LE.ATOL ) THEN
+               IF( ABS1( H( J, J-1 ) ).LE.MAX( SAFMIN, ULP*( 
+     $            ABS1( H( J, J ) ) + ABS1( H( J-1, J-1 ) ) 
+     $            ) ) ) THEN
                   H( J, J-1 ) = CZERO
                   ILAZRO = .TRUE.
                ELSE

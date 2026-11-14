@@ -272,19 +272,16 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
-*> \ingroup realGEeigen
+*> \ingroup geesx
 *
 *  =====================================================================
       SUBROUTINE SGEESX( JOBVS, SORT, SELECT, SENSE, N, A, LDA, SDIM,
      $                   WR, WI, VS, LDVS, RCONDE, RCONDV, WORK, LWORK,
      $                   IWORK, LIWORK, BWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBVS, SENSE, SORT
@@ -320,14 +317,14 @@
       REAL               DUM( 1 )
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           SCOPY, SGEBAK, SGEBAL, SGEHRD, SHSEQR, SLABAD,
+      EXTERNAL           SCOPY, SGEBAK, SGEBAL, SGEHRD, SHSEQR,
      $                   SLACPY, SLASCL, SORGHR, SSWAP, STRSEN, XERBLA
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      REAL               SLAMCH, SLANGE
-      EXTERNAL           LSAME, ILAENV, SLAMCH, SLANGE
+      REAL               SLAMCH, SLANGE, SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, SLAMCH, SLANGE, SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, SQRT
@@ -385,7 +382,7 @@
 *
             CALL SHSEQR( 'S', JOBVS, N, 1, N, A, LDA, WR, WI, VS, LDVS,
      $             WORK, -1, IEVAL )
-            HSWORK = WORK( 1 )
+            HSWORK = INT( WORK( 1 ) )
 *
             IF( .NOT.WANTVS ) THEN
                MAXWRK = MAX( MAXWRK, N + HSWORK )
@@ -401,7 +398,7 @@
      $         LIWRK = ( N*N )/4
          END IF
          IWORK( 1 ) = LIWRK
-         WORK( 1 ) = LWRK
+         WORK( 1 ) = SROUNDUP_LWORK(LWRK)
 *
          IF( LWORK.LT.MINWRK .AND. .NOT.LQUERY ) THEN
             INFO = -16
@@ -429,7 +426,6 @@
       EPS = SLAMCH( 'P' )
       SMLNUM = SLAMCH( 'S' )
       BIGNUM = ONE / SMLNUM
-      CALL SLABAD( SMLNUM, BIGNUM )
       SMLNUM = SQRT( SMLNUM ) / EPS
       BIGNUM = ONE / SMLNUM
 *
@@ -637,7 +633,7 @@
    30    CONTINUE
       END IF
 *
-      WORK( 1 ) = MAXWRK
+      WORK( 1 ) = SROUNDUP_LWORK(MAXWRK)
       IF( WANTSV .OR. WANTSB ) THEN
          IWORK( 1 ) = SDIM*(N-SDIM)
       ELSE

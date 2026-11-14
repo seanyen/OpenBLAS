@@ -66,17 +66,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date April 2012
-*
 *> \ingroup double_lin
 *
 *  =====================================================================
       PROGRAM DCHKAB
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     April 2012
 *
 *  =====================================================================
 *
@@ -353,7 +350,7 @@
      $      I6 )
  9994 FORMAT( ' Tests of the DOUBLE PRECISION LAPACK DSGESV/DSPOSV',
      $  ' routines ',
-     $      / ' LAPACK VERSION ', I1, '.', I1, '.', I1,
+     $      / ' LAPACK VERSION ', I1, '.', I2, '.', I1,
      $      / / ' The following parameter values will be used:' )
  9993 FORMAT( 4X, A4, ':  ', 10I6, / 11X, 10I6 )
  9992 FORMAT( / ' Routines pass computational tests if test ratio is ',

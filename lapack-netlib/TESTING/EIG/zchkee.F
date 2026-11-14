@@ -769,7 +769,10 @@
 *>          printed about each test for which the test ratio is greater
 *>          than or equal to the threshold.
 *>
-*> lines  3-EOF:
+*> line  3: TSTERR, LOGICAL
+*>          Flag indicating whether or not to test the error exits.
+*>
+*> lines  4-EOF:
 *>
 *> Input for testing the eigencondition routines consists of a set of
 *> specially constructed test cases and their solutions.  The data
@@ -1027,8 +1030,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
 *> \ingroup complex16_eig
 *
 *  =====================================================================
@@ -1038,10 +1039,9 @@
       use omp_lib
 #endif
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *  =====================================================================
 *
@@ -1075,12 +1075,14 @@
       CHARACTER*80       LINE
       INTEGER            I, I1, IC, INFO, ITMP, K, LENP, MAXTYP, NEWSD,
      $                   NK, NN, NPARMS, NRHS, NTYPES,
-     $                   VERS_MAJOR, VERS_MINOR, VERS_PATCH, N_THREADS
+     $                   VERS_MAJOR, VERS_MINOR, VERS_PATCH
+      INTEGER*4          N_THREADS, ONE_THREAD
       DOUBLE PRECISION   EPS, S1, S2, THRESH, THRSHN
 *     ..
 *     .. Local Arrays ..
-      LOGICAL            DOTYPE( MAXT ), LOGWRK( NMAX )
-      INTEGER            IOLDSD( 4 ), ISEED( 4 ), IWORK( LIWORK ),
+      LOGICAL            DOTYPE( MAXT ), LOGWRK( NMAX ), DOTYP1( 10 )
+      INTEGER            IOLDSD( 4 ), ISEED( 4 ), ISEED2( 4 ),
+     $                   IWORK( LIWORK ),
      $                   KVAL( MAXIN ), MVAL( MAXIN ), MXBVAL( MAXIN ),
      $                   NBCOL( MAXIN ), NBMIN( MAXIN ), NBVAL( MAXIN ),
      $                   NSVAL( MAXIN ), NVAL( MAXIN ), NXVAL( MAXIN ),
@@ -1105,13 +1107,13 @@
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           ALAREQ, XLAENV, ZCHKBB, ZCHKBD, ZCHKBK, ZCHKBL,
-     $                   ZCHKEC, ZCHKGG, ZCHKGK, ZCHKGL, ZCHKHB, ZCHKHS,
-     $                   ZCHKST, ZCKCSD, ZCKGLM, ZCKGQR, ZCKGSV, ZCKLSE,
-     $                   ZDRGES, ZDRGEV, ZDRGSX, ZDRGVX, ZDRVBD, ZDRVES,
-     $                   ZDRVEV, ZDRVSG, ZDRVST, ZDRVSX, ZDRVVX,
-     $                   ZERRBD, ZERRED, ZERRGG, ZERRHS, ZERRST, ILAVER,
-     $                   ZDRGES3, ZDRGEV3, 
-     $                   ZCHKST2STG, ZDRVST2STG, ZCHKHB2STG
+     $                   ZCHKEC, ZCHKGG, ZCHKGK, ZCHKGL, ZCHKHS, ZCHKST,
+     $                   ZCKCSD, ZCKGLM, ZCKGQR, ZCKGSV, ZCKLSE, ZDRGES,
+     $                   ZDRGEV, ZDRGSX, ZDRGVX, ZDRVBD, ZDRVES, ZDRVEV,
+     $                   ZDRVMR3,
+     $                   ZDRVST, ZDRVSX, ZDRVVX, ZERRBD, ZERRED, ZERRGG,
+     $                   ZERRHS, ZERRST, ILAVER, ZDRGES3, ZDRGEV3,
+     $                   ZCHKST2STG, ZDRVST2STG, ZCHKHB2STG, ZDRVSG2STG
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          LEN, MIN
@@ -1136,22 +1138,41 @@
 *     ..
 *     .. Data statements ..
       DATA               INTSTR / '0123456789' /
+      DATA               DOTYP1 / 10*.TRUE. /
       DATA               IOLDSD / 0, 0, 0, 1 /
 *     ..
 *     .. Allocate memory dynamically ..
 *
       ALLOCATE ( S(NMAX*NMAX), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
       ALLOCATE ( A(NMAX*NMAX,NEED), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
       ALLOCATE ( B(NMAX*NMAX,5), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
       ALLOCATE ( C(NCMAX*NCMAX,NCMAX*NCMAX), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
       ALLOCATE ( RWORK(LWORK), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
       ALLOCATE ( WORK(LWORK), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
 *     ..
 *     .. Executable Statements ..
 *
@@ -1267,9 +1288,9 @@
 *        ZEC:  Eigencondition estimation
 *
          READ( NIN, FMT = * )THRESH
+         READ( NIN, FMT = * )TSTERR
          CALL XLAENV( 1, 1 )
          CALL XLAENV( 12, 1 )
-         TSTERR = .TRUE.
          CALL ZCHKEC( THRESH, TSTERR, NIN, NOUT )
          GO TO 380
       ELSE
@@ -1729,7 +1750,7 @@
 *
       IF( FATAL ) THEN
          WRITE( NOUT, FMT = 9999 )
-         STOP
+         STOP 1
       END IF
 *
 *     Read the input lines indicating the test path and its parameters.
@@ -1845,15 +1866,15 @@
             CALL ZCHKHS( NN, NVAL, MAXTYP, DOTYPE, ISEED, THRESH, NOUT,
      $                   A( 1, 1 ), NMAX, A( 1, 2 ), A( 1, 3 ),
      $                   A( 1, 4 ), A( 1, 5 ), NMAX, A( 1, 6 ),
-     $                   A( 1, 7 ), DC( 1, 1 ), DC( 1, 2 ), A( 1, 8 ),
-     $                   A( 1, 9 ), A( 1, 10 ), A( 1, 11 ), A( 1, 12 ),
-     $                   DC( 1, 3 ), WORK, LWORK, RWORK, IWORK, LOGWRK,
-     $                   RESULT, INFO )
+     $                   A( 1, 7 ), DC( 1, 1 ), DC( 1, 4 ), DC( 1, 2 ),
+     $                   A( 1, 8 ), A( 1, 9 ), A( 1, 10 ), A( 1, 11 ),
+     $                   A( 1, 12 ), DC( 1, 3 ), WORK, LWORK, RWORK,
+     $                   IWORK, LOGWRK, RESULT, INFO )
             IF( INFO.NE.0 )
      $         WRITE( NOUT, FMT = 9980 )'ZCHKHS', INFO
   270    CONTINUE
 *
-      ELSE IF( LSAMEN( 3, C3, 'ZST' ) .OR. LSAMEN( 3, C3, 'SEP' ) 
+      ELSE IF( LSAMEN( 3, C3, 'ZST' ) .OR. LSAMEN( 3, C3, 'SEP' )
      $                                .OR. LSAMEN( 3, C3, 'SE2' ) ) THEN
 *
 *        ----------------------------------
@@ -1864,15 +1885,16 @@
 *           NBMIN = minimum block size
 *           NX    = crossover point
 *
-         MAXTYP = 21
+         MAXTYP = 22
          NTYPES = MIN( MAXTYP, NTYPES )
          CALL ALAREQ( C3, NTYPES, DOTYPE, MAXTYP, NIN, NOUT )
          CALL XLAENV( 1, 1 )
          CALL XLAENV( 9, 25 )
          IF( TSTERR ) THEN
 #if defined(_OPENMP)
-            N_THREADS = OMP_GET_NUM_THREADS()
-            CALL OMP_SET_NUM_THREADS(1)
+            N_THREADS = OMP_GET_MAX_THREADS()
+            ONE_THREAD = 1
+            CALL OMP_SET_NUM_THREADS(ONE_THREAD)
 #endif
             CALL ZERRST( 'ZST', NOUT )
 #if defined(_OPENMP)
@@ -2034,6 +2056,26 @@
      $                      A( 1, 6 ), DR( 1, 1 ), DR( 1, 2 ),
      $                      DR( 1, 3 ), WORK, LWORK, RWORK, IWORK, NOUT,
      $                      INFO )
+*
+*           ZDRVMR3 uses a seed of its own, taken from ISEED at the first
+*           parameter set, so that the matrices generated by ZCHKBD and
+*           ZDRVBD in the following parameter sets are the same as
+*           without it.
+*
+            IF( TSTDRV ) THEN
+               IF( I.EQ.1 .OR. NEWSD.EQ.0 ) THEN
+                  ISEED2( 1 ) = ISEED( 1 )
+                  ISEED2( 2 ) = ISEED( 2 )
+                  ISEED2( 3 ) = ISEED( 3 )
+                  ISEED2( 4 ) = ISEED( 4 )
+               END IF
+               CALL ZDRVMR3( NN, MVAL, NVAL, 10, DOTYP1, ISEED2,
+     $                      THRESH, A( 1, 1 ), NMAX, A( 1, 2 ), NMAX,
+     $                      A( 1, 3 ), NMAX, A( 1, 4 ), A( 1, 5 ),
+     $                      A( 1, 6 ), DR( 1, 1 ), DR( 1, 2 ),
+     $                      DR( 1, 3 ), WORK, LWORK, RWORK, IWORK, NOUT,
+     $                      INFO )
+            END IF
   330    CONTINUE
 *
       ELSE IF( LSAMEN( 3, C3, 'ZEV' ) ) THEN
@@ -2336,8 +2378,9 @@
          CALL ALAREQ( C3, NTYPES, DOTYPE, MAXTYP, NIN, NOUT )
          IF( TSTERR ) THEN
 #if defined(_OPENMP)
-            N_THREADS = OMP_GET_NUM_THREADS()
-            CALL OMP_SET_NUM_THREADS(1)
+            N_THREADS = OMP_GET_MAX_THREADS()
+            ONE_THREAD = 1
+            CALL OMP_SET_NUM_THREADS(ONE_THREAD)
 #endif
             CALL ZERRST( 'ZHB', NOUT )
 #if defined(_OPENMP)
@@ -2349,9 +2392,9 @@
 *     $                A( 1, 2 ), NMAX, WORK, LWORK, RWORK, RESULT,
 *     $                INFO )
          CALL ZCHKHB2STG( NN, NVAL, NK, KVAL, MAXTYP, DOTYPE, ISEED,
-     $                 THRESH, NOUT, A( 1, 1 ), NMAX, DR( 1, 1 ), 
+     $                 THRESH, NOUT, A( 1, 1 ), NMAX, DR( 1, 1 ),
      $                 DR( 1, 2 ), DR( 1, 3 ), DR( 1, 4 ), DR( 1, 5 ),
-     $                 A( 1, 2 ), NMAX, WORK, LWORK, RWORK, RESULT, 
+     $                 A( 1, 2 ), NMAX, WORK, LWORK, RWORK, RESULT,
      $                 INFO )
          IF( INFO.NE.0 )
      $      WRITE( NOUT, FMT = 9980 )'ZCHKHB', INFO
@@ -2522,7 +2565,7 @@
  9974 FORMAT( ' Tests of ZHBTRD', / ' (reduction of a Hermitian band ',
      $      'matrix to real tridiagonal form)' )
  9973 FORMAT( / 1X, 71( '-' ) )
- 9972 FORMAT( / ' LAPACK VERSION ', I1, '.', I1, '.', I1 )
+ 9972 FORMAT( / ' LAPACK VERSION ', I1, '.', I2, '.', I1 )
  9971 FORMAT( / ' Tests of the Generalized Linear Regression Model ',
      $      'routines' )
  9970 FORMAT( / ' Tests of the Generalized QR and RQ routines' )

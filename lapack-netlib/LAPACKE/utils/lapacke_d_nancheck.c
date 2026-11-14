@@ -28,7 +28,6 @@
 ******************************************************************************
 * Contents: Native C interface to LAPACK utility function
 * Author: Intel Corporation
-* Created in February, 2010
 *****************************************************************************/
 #include "lapacke_utils.h"
 
@@ -43,8 +42,8 @@ lapack_logical LAPACKE_d_nancheck( lapack_int n,
     if( incx == 0 ) return (lapack_logical) LAPACK_DISNAN( x[0] );
     inc = ( incx > 0 ) ? incx : -incx ;
 
-    for( i = 0; i < n*inc; i+=inc ) {
-        if( LAPACK_DISNAN( x[i] ) )
+    for( i = 0; i < n; i++ ) {
+        if( LAPACK_DISNAN( x[(size_t)i*inc] ) )
             return (lapack_logical) 1;
     }
     return (lapack_logical) 0;

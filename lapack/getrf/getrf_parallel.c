@@ -69,8 +69,8 @@ double sqrt(double);
 
 
 #ifdef HAVE_C11
-#define	atomic_load_long(p)		__atomic_load_n(p, __ATOMIC_RELAXED)
-#define	atomic_store_long(p, v)		__atomic_store_n(p, v, __ATOMIC_RELAXED)
+#define	atomic_load_long(p)		__atomic_load_n(p, __ATOMIC_ACQUIRE)
+#define	atomic_store_long(p, v)		__atomic_store_n(p, v, __ATOMIC_RELEASE)
 #else
 #define	atomic_load_long(p)		(BLASLONG)(*(volatile BLASLONG*)(p))
 #define	atomic_store_long(p, v)		(*(volatile BLASLONG *)(p)) = (v)
@@ -326,16 +326,15 @@ static int inner_advanced_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *
     min_i = m - is;
     if (min_i >= GEMM_P * 2) {
       min_i = GEMM_P;
-    } else
-      if (min_i > GEMM_P) {
+    } else if (min_i > GEMM_P) {
 	min_i = (((min_i + 1) / 2 + GEMM_UNROLL_M - 1)/GEMM_UNROLL_M) * GEMM_UNROLL_M;
-      }
+    }
 
-      ICOPY_OPERATION(k, min_i, a, lda, 0, is, sa);
+    ICOPY_OPERATION(k, min_i, a, lda, 0, is, sa);
 
-      current = mypos;
+    current = mypos;
 
-      do {
+    do {
 
 	div_n = (range_n[current + 1]  - range_n[current] + DIVIDE_RATE - 1) / DIVIDE_RATE;
 
@@ -365,7 +364,7 @@ static int inner_advanced_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *
 	current ++;
 	if (current >= args -> nthreads) current = 0;
 
-      } while (current != mypos);
+    } while (current != mypos);
   }
 
   for (i = 0; i < args -> nthreads; i++) {
@@ -662,7 +661,7 @@ blasint CNAME(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, FLOAT *sa,
 
     blas_level1_thread(mode, bk, is + bk + offset + 1, mn + offset, (void *)dummyalpha,
 		       a + (- offset + is * lda) * COMPSIZE, lda, NULL, 0,
-		       ipiv, 1, (void *)LASWP_PLUS, args -> nthreads);
+		       ipiv, 1, (int (*)(void))LASWP_PLUS, args -> nthreads);
 
     is += bk;
   }

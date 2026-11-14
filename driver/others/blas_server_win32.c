@@ -40,7 +40,7 @@
 #include <stdlib.h>
 #include "common.h"
 
-#if defined(OS_CYGWIN_NT) && !defined(unlikely)
+#if !defined(unlikely)
 #ifdef __GNUC__
 #define unlikely(x) __builtin_expect(!!(x), 0)
 #else
@@ -57,13 +57,14 @@ typedef struct{
   HANDLE killed;
 
   blas_queue_t	*queue;    /* Parameter Pointer */
+  blas_queue_t	*tail;     /* Last job waiting in "queue", for O(1) append */
   int		shutdown;  /* server shutdown flag */
 
 } blas_pool_t;
 
 /* We need this global for checking if initialization is finished.   */
 int blas_server_avail = 0;
-
+int blas_omp_threads_local = 1;
 /* Local Variables */
 static BLASULONG server_lock       = 0;
 
@@ -72,6 +73,7 @@ static HANDLE	    blas_threads   [MAX_CPU_NUMBER];
 static DWORD	    blas_threads_id[MAX_CPU_NUMBER];
 
 
+static void exec_threads(int cpu, blas_queue_t *queue, int buf_index);
 
 static void legacy_exec(void *func, int mode, blas_arg_t *args, void *sb){
 
@@ -206,13 +208,16 @@ static DWORD WINAPI blas_thread_server(void *arg){
   BLASLONG  cpu = (BLASLONG)arg;
 #endif
 
-  void *buffer, *sa, *sb;
+  void *buffer = NULL, *sa, *sb;
   blas_queue_t	*queue;
   DWORD action;
   HANDLE handles[] = {pool.filled, pool.killed};
 
-  /* Each server needs each buffer */
-  buffer   = blas_memory_alloc(2);
+  /* Each server needs its own buffer, but allocate it on first use rather
+     than at thread start: on Windows the allocation is committed up front
+     (VirtualAlloc with MEM_COMMIT), so an eager buffer per idle thread adds
+     BUFFER_SIZE * (threads - 1) to the commit charge of every process that
+     merely loads the library. The pthreads server allocates lazily too. */
 
 #ifdef SMP_DEBUG
   fprintf(STDERR, "Server[%2ld] Thread is started!\n", cpu);
@@ -239,7 +244,10 @@ static DWORD WINAPI blas_thread_server(void *arg){
     EnterCriticalSection(&pool.lock);
 
     queue = pool.queue;
-    if (queue) pool.queue = queue->next;
+    if (queue) {
+      pool.queue = queue->pool_next;
+      if (pool.queue == NULL) pool.tail = NULL;
+    }
 
     LeaveCriticalSection(&pool.lock);
 
@@ -267,7 +275,10 @@ static DWORD WINAPI blas_thread_server(void *arg){
       main_status[cpu] = MAIN_RUNNING1;
 #endif
 
-      if (sa == NULL) sa = (void *)((BLASLONG)buffer + GEMM_OFFSET_A);
+      if (sa == NULL) {
+	if (buffer == NULL) buffer = blas_memory_alloc(2);
+	sa = (void *)((BLASLONG)buffer + GEMM_OFFSET_A);
+      }
 
       if (sb == NULL) {
 	if (!(queue -> mode & BLAS_COMPLEX)){
@@ -278,12 +289,15 @@ static DWORD WINAPI blas_thread_server(void *arg){
 	  } else
 #endif
 	    if ((queue -> mode & BLAS_PREC) == BLAS_DOUBLE){
+#ifdef BUILD_DOUBLE
 	      sb = (void *)(((BLASLONG)sa + ((DGEMM_P * DGEMM_Q * sizeof(double)
 					  + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
-
+#endif
 	    } else if ((queue -> mode & BLAS_PREC) == BLAS_SINGLE) {
+#ifdef BUILD_SINGLE
 	      sb = (void *)(((BLASLONG)sa + ((SGEMM_P * SGEMM_Q * sizeof(float)
 					  + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
+#endif
 	    } else {
             /* Other types in future */
 	    }
@@ -295,17 +309,22 @@ static DWORD WINAPI blas_thread_server(void *arg){
 	  } else
 #endif
 	    if ((queue -> mode & BLAS_PREC) == BLAS_DOUBLE){
+#ifdef BUILD_COMPLEX16
 	      sb = (void *)(((BLASLONG)sa + ((ZGEMM_P * ZGEMM_Q * 2 * sizeof(double)
 					  + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
+#endif
 	    } else if ((queue -> mode & BLAS_PREC) == BLAS_SINGLE) {
+#ifdef BUILD_COMPLEX
 	      sb = (void *)(((BLASLONG)sa + ((CGEMM_P * CGEMM_Q * 2 * sizeof(float)
 					  + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
+#endif
 	    } else {
             /* Other types in future */
 	    }
 	}
-	queue->sb=sb;
       }
+
+      queue->worker_sb = sb;
 
 #ifdef MONITOR
       main_status[cpu] = MAIN_RUNNING2;
@@ -340,7 +359,7 @@ static DWORD WINAPI blas_thread_server(void *arg){
   fprintf(STDERR, "Server[%2ld] Shutdown!\n",  cpu);
 #endif
 
-  blas_memory_free(buffer);
+  if (buffer != NULL) blas_memory_free(buffer);
 
   return 0;
   }
@@ -366,6 +385,7 @@ int blas_thread_init(void){
 
     pool.shutdown = 0;
     pool.queue    = NULL;
+    pool.tail     = NULL;
 
     for(i = 0; i < blas_cpu_number - 1; i++){
       blas_threads[i] = CreateThread(NULL, 0,
@@ -391,12 +411,13 @@ int blas_thread_init(void){
 
 int exec_blas_async(BLASLONG pos, blas_queue_t *queue){
 
-#if defined(SMP_SERVER) && defined(OS_CYGWIN_NT)
+#if defined(SMP_SERVER)
   // Handle lazy re-init of the thread-pool after a POSIX fork
+  // on Cygwin or as delayed init when a static library	is used
   if (unlikely(blas_server_avail == 0)) blas_thread_init();
 #endif
 
-  blas_queue_t *current;
+  blas_queue_t *current, *last = NULL;
 
   current = queue;
 
@@ -410,19 +431,22 @@ int exec_blas_async(BLASLONG pos, blas_queue_t *queue){
     __asm__ __volatile__ ("stmxcsr %0" : "=m" (current -> sse_mode));
 #endif
 
+    /* Build the pool's own chain over this caller's jobs */
+    current -> pool_next = current -> next;
+    last = current;
+
     current = current -> next;
     pos ++;
   }
 
   EnterCriticalSection(&pool.lock);
 
-  if (pool.queue) {
-    current = pool.queue;
-    while (current -> next) current = current -> next;
-    current -> next = queue;
+  if (pool.tail) {
+    pool.tail -> pool_next = queue;
   } else {
     pool.queue = queue;
   }
+  pool.tail = last;
 
   LeaveCriticalSection(&pool.lock);
 
@@ -472,9 +496,22 @@ int exec_blas(BLASLONG num, blas_queue_t *queue){
 
   if ((num <= 0) || (queue == NULL)) return 0;
 
+
+// Redirect to caller's callback routine
+  if (openblas_threads_callback_) {
+    int buf_index = 0, i = 0;
+#ifndef USE_SIMPLE_THREADED_LEVEL3
+    for (i = 0; i < num; i ++)
+       queue[i].position = i;
+#endif
+    openblas_threads_callback_(1, (openblas_dojob_callback) exec_threads, num, sizeof(blas_queue_t), (void*) queue, buf_index);
+    return 0;
+  }
+
   if ((num > 1) && queue -> next) exec_blas_async(1, queue -> next);
 
   routine = queue -> routine;
+  queue->worker_sb = queue->sb;
 
   if (queue -> mode & BLAS_LEGACY) {
     legacy_exec(routine, queue -> mode, queue -> args, queue -> sb);
@@ -531,6 +568,7 @@ int BLASFUNC(blas_thread_shutdown)(void){
   return 0;
 }
 
+OPENBLAS_EXPORT
 void goto_set_num_threads(int num_threads)
 {
 	long i;
@@ -557,10 +595,11 @@ void goto_set_num_threads(int num_threads)
 
 			pool.shutdown = 0;
 			pool.queue    = NULL;
+			pool.tail     = NULL;
 			blas_server_avail = 1;
 		}
 
-		for(i = blas_num_threads - 1; i < num_threads - 1; i++){
+		for(i = (blas_num_threads > 0) ? blas_num_threads - 1 : 0; i < num_threads - 1; i++){
 
 			blas_threads[i] = CreateThread(NULL, 0,
 				     blas_thread_server, (void *)i,
@@ -575,7 +614,96 @@ void goto_set_num_threads(int num_threads)
 	blas_cpu_number  = num_threads;
 }
 
+OPENBLAS_EXPORT
 void openblas_set_num_threads(int num)
 {
 	goto_set_num_threads(num);
 }
+
+//Indivitual threads work executor, Helps in setting by synchronization environment and calling inner_threads routine
+static void exec_threads(int cpu, blas_queue_t *queue, int buf_index) {
+
+  void *buffer, *sa, *sb;
+
+  buffer = blas_memory_alloc(2);
+  sa = queue -> sa;
+  sb = queue -> sb;
+
+  int (*routine)(blas_arg_t *, void *, void *, void *, void *, BLASLONG) = queue -> routine;
+
+  #ifdef CONSISTENT_FPCSR
+    __asm__ __volatile__ ("ldmxcsr %0" : : "m" (queue -> sse_mode));
+    __asm__ __volatile__ ("fldcw %0"   : : "m" (queue -> x87_mode));
+  #endif
+
+#ifdef DEBUG
+  fprintf(STDERR,"Server[%2ld] Started.  Mode = 0x%03x M = %3ld N=%3ld K=%3ld\n",
+    cpu, queue->mode, queue-> args ->m, queue->args->n, queue->args->k);
+#endif
+
+  // fprintf(stderr, "queue start[%ld]!!!\n", cpu);
+
+  #ifdef MONITOR
+    main_status[cpu] = MAIN_RUNNING1;
+  #endif
+
+  if (sa == NULL)
+    sa = (void *)((BLASLONG)buffer + GEMM_OFFSET_A);
+
+  if (sb == NULL) {
+    if (!(queue -> mode & BLAS_COMPLEX)) {
+#ifdef EXPRECISION
+if ((queue -> mode & BLAS_PREC) == BLAS_XDOUBLE) {
+  sb = (void *)(((BLASLONG)sa + ((XGEMM_P * XGEMM_Q * sizeof(xdouble)
+      + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
+} else
+#endif
+  if ((queue -> mode & BLAS_PREC) == BLAS_DOUBLE) {
+#ifdef BUILD_DOUBLE
+    sb = (void *)(((BLASLONG)sa + ((DGEMM_P * DGEMM_Q * sizeof(double)
+        + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
+#endif
+  } else if ((queue -> mode & BLAS_PREC) == BLAS_SINGLE) {
+#ifdef BUILD_SINGLE
+    sb = (void *)(((BLASLONG)sa + ((SGEMM_P * SGEMM_Q * sizeof(float)
+        + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
+#endif
+  } else {
+        /* Other types in future */
+  }
+} else {
+#ifdef EXPRECISION
+if ((queue -> mode & BLAS_PREC) == BLAS_XDOUBLE){
+  sb = (void *)(((BLASLONG)sa + ((XGEMM_P * XGEMM_Q * 2 * sizeof(xdouble)
+      + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
+} else
+#endif
+  if ((queue -> mode & BLAS_PREC) == BLAS_DOUBLE){
+#ifdef BUILD_COMPLEX16
+    sb = (void *)(((BLASLONG)sa + ((ZGEMM_P * ZGEMM_Q * 2 * sizeof(double)
+        + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
+#endif
+  } else if ((queue -> mode & BLAS_PREC) == BLAS_SINGLE) {
+#ifdef BUILD_COMPLEX
+    sb = (void *)(((BLASLONG)sa + ((CGEMM_P * CGEMM_Q * 2 * sizeof(float)
+        + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
+#endif
+  } else {
+        /* Other types in future */
+  }
+}
+    queue->sb=sb;
+  }
+
+  #ifdef MONITOR
+    main_status[cpu] = MAIN_RUNNING2;
+  #endif
+
+  if (!(queue -> mode & BLAS_LEGACY)) {
+    (routine)(queue -> args, queue -> range_m, queue -> range_n, sa, sb, queue -> position);
+  } else {
+    legacy_exec(routine, queue -> mode, queue -> args, sb);
+  }
+  if (buffer) blas_memory_free(buffer);
+}
+

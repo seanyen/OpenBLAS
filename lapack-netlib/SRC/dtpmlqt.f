@@ -5,15 +5,13 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
-*> Download DTPMQRT + dependencies
+*> Download DTPMLQT + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dtpmlqt.f">
 *> [TGZ]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dtpmlqt.f">
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dtpmlqt.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -103,9 +101,7 @@
 *> \param[in] LDV
 *> \verbatim
 *>          LDV is INTEGER
-*>          The leading dimension of the array V.
-*>          If SIDE = 'L', LDV >= max(1,M);
-*>          if SIDE = 'R', LDV >= max(1,N).
+*>          The leading dimension of the array V. LDV >= K.
 *> \endverbatim
 *>
 *> \param[in] T
@@ -135,8 +131,8 @@
 *> \verbatim
 *>          LDA is INTEGER
 *>          The leading dimension of the array A.
-*>          If SIDE = 'L', LDC >= max(1,K);
-*>          If SIDE = 'R', LDC >= max(1,M).
+*>          If SIDE = 'L', LDA >= max(1,K);
+*>          If SIDE = 'R', LDA >= max(1,M).
 *> \endverbatim
 *>
 *> \param[in,out] B
@@ -175,9 +171,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
-*> \ingroup doubleOTHERcomputational
+*> \ingroup tpmlqt
 *
 *> \par Further Details:
 *  =====================
@@ -213,13 +207,14 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE DTPMLQT( SIDE, TRANS, M, N, K, L, MB, V, LDV, T, LDT,
+      SUBROUTINE DTPMLQT( SIDE, TRANS, M, N, K, L, MB, V, LDV, T,
+     $                    LDT,
      $                    A, LDA, B, LDB, WORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.8.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
 *     .. Scalar Arguments ..
       CHARACTER SIDE, TRANS
@@ -242,7 +237,7 @@
       EXTERNAL           LSAME
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           XERBLA, DLARFB, DTPRFB
+      EXTERNAL           XERBLA, DTPRFB
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, MIN
@@ -303,7 +298,7 @@
             IF( I.GE.L ) THEN
                LB = 0
             ELSE
-               LB = 0
+               LB = NB-M+L-I+1
             END IF
             CALL DTPRFB( 'L', 'T', 'F', 'R', NB, N, IB, LB,
      $                   V( I, 1 ), LDV, T( 1, I ), LDT,
@@ -334,7 +329,7 @@
             IF( I.GE.L ) THEN
                LB = 0
             ELSE
-               LB = 0
+               LB = NB-M+L-I+1
             END IF
             CALL DTPRFB( 'L', 'N', 'F', 'R', NB, N, IB, LB,
      $                   V( I, 1 ), LDV, T( 1, I ), LDT,

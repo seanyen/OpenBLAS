@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download SORCSD2BY1 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/sorcsd2by1.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/sorcsd2by1.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -224,19 +222,18 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date July 2012
-*
-*> \ingroup realOTHERcomputational
+*> \ingroup uncsd2by1
 *
 *  =====================================================================
-      SUBROUTINE SORCSD2BY1( JOBU1, JOBU2, JOBV1T, M, P, Q, X11, LDX11,
+      SUBROUTINE SORCSD2BY1( JOBU1, JOBU2, JOBV1T, M, P, Q, X11,
+     $                       LDX11,
      $                       X21, LDX21, THETA, U1, LDU1, U2, LDU2, V1T,
      $                       LDV1T, WORK, LWORK, IWORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     July 2012
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBU1, JOBU2, JOBV1T
@@ -269,7 +266,9 @@
       REAL               DUM1(1), DUM2(1,1)
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           SBBCSD, SCOPY, SLACPY, SLAPMR, SLAPMT, SORBDB1,
+      EXTERNAL           SBBCSD, SCOPY, SLACPY, SLAPMR, SLAPMT,
+     $                   SLASET,
+     $                   SORBDB1,
      $                   SORBDB2, SORBDB3, SORBDB4, SORGLQ, SORGQR,
      $                   XERBLA
 *     ..
@@ -373,7 +372,8 @@
                LORGLQMIN = MAX( LORGLQMIN, Q-1 )
                LORGLQOPT = MAX( LORGLQOPT, INT( WORK(1) ) )
             END IF
-            CALL SBBCSD( JOBU1, JOBU2, JOBV1T, 'N', 'N', M, P, Q, THETA,
+            CALL SBBCSD( JOBU1, JOBU2, JOBV1T, 'N', 'N', M, P, Q,
+     $                   THETA,
      $                   DUM1, U1, LDU1, U2, LDU2, V1T, LDV1T, DUM2,
      $                   1, DUM1, DUM1, DUM1, DUM1, DUM1,
      $                   DUM1, DUM1, DUM1, WORK(1), -1, CHILDINFO
@@ -402,7 +402,8 @@
                LORGLQMIN = MAX( LORGLQMIN, Q )
                LORGLQOPT = MAX( LORGLQOPT, INT( WORK(1) ) )
             END IF
-            CALL SBBCSD( JOBV1T, 'N', JOBU1, JOBU2, 'T', M, Q, P, THETA,
+            CALL SBBCSD( JOBV1T, 'N', JOBU1, JOBU2, 'T', M, Q, P,
+     $                   THETA,
      $                   DUM1, V1T, LDV1T, DUM2, 1, U1, LDU1, U2,
      $                   LDU2, DUM1, DUM1, DUM1, DUM1, DUM1,
      $                   DUM1, DUM1, DUM1, WORK(1), -1, CHILDINFO
@@ -475,7 +476,7 @@
      $                   IORGQR+LORGQROPT-1,
      $                   IORGLQ+LORGLQOPT-1,
      $                   IBBCSD+LBBCSD-1 )
-         WORK(1) = LWORKOPT
+         WORK(1) = REAL( LWORKOPT )
          IF( LWORK .LT. LWORKMIN .AND. .NOT.LQUERY ) THEN
             INFO = -19
          END IF
@@ -488,6 +489,36 @@
       END IF
       LORGQR = LWORK-IORGQR+1
       LORGLQ = LWORK-IORGLQ+1
+*
+      IF( R .EQ. 0 ) THEN
+*
+*        R = 0: C and S are empty. Handle the trivial CSD directly.
+*
+         IF( Q .EQ. 0 ) THEN
+            IF( WANTU1 .AND. P .GT. 0 )
+     $         CALL SLASET( 'A', P, P, ZERO, ONE, U1, LDU1 )
+            IF( WANTU2 .AND. M-P .GT. 0 )
+     $         CALL SLASET( 'A', M-P, M-P, ZERO, ONE, U2, LDU2 )
+            RETURN
+         END IF
+*
+         IF( P .EQ. 0 .AND. M .EQ. Q ) THEN
+            IF( WANTU2 )
+     $         CALL SLACPY( 'A', M-P, Q, X21, LDX21, U2, LDU2 )
+            IF( WANTV1T )
+     $         CALL SLASET( 'A', Q, Q, ZERO, ONE, V1T, LDV1T )
+            RETURN
+         END IF
+*
+         IF( P .EQ. M .AND. M .EQ. Q ) THEN
+            IF( WANTU1 )
+     $         CALL SLACPY( 'A', P, Q, X11, LDX11, U1, LDU1 )
+            IF( WANTV1T )
+     $         CALL SLASET( 'A', Q, Q, ZERO, ONE, V1T, LDV1T )
+            RETURN
+         END IF
+*
+      END IF
 *
 *     Handle four cases separately: R = Q, R = P, R = M-P, and R = M-Q,
 *     in which R = MIN(P,M-P,Q,M-Q)
@@ -506,7 +537,8 @@
 *
          IF( WANTU1 .AND. P .GT. 0 ) THEN
             CALL SLACPY( 'L', P, Q, X11, LDX11, U1, LDU1 )
-            CALL SORGQR( P, P, Q, U1, LDU1, WORK(ITAUP1), WORK(IORGQR),
+            CALL SORGQR( P, P, Q, U1, LDU1, WORK(ITAUP1),
+     $                   WORK(IORGQR),
      $                   LORGQR, CHILDINFO )
          END IF
          IF( WANTU2 .AND. M-P .GT. 0 ) THEN
@@ -522,7 +554,8 @@
             END DO
             CALL SLACPY( 'U', Q-1, Q-1, X21(1,2), LDX21, V1T(2,2),
      $                   LDV1T )
-            CALL SORGLQ( Q-1, Q-1, Q-1, V1T(2,2), LDV1T, WORK(ITAUQ1),
+            CALL SORGLQ( Q-1, Q-1, Q-1, V1T(2,2), LDV1T,
+     $                   WORK(ITAUQ1),
      $                   WORK(IORGLQ), LORGLQ, CHILDINFO )
          END IF
 *
@@ -565,7 +598,8 @@
                U1(1,J) = ZERO
                U1(J,1) = ZERO
             END DO
-            CALL SLACPY( 'L', P-1, P-1, X11(2,1), LDX11, U1(2,2), LDU1 )
+            CALL SLACPY( 'L', P-1, P-1, X11(2,1), LDX11, U1(2,2),
+     $                   LDU1 )
             CALL SORGQR( P-1, P-1, P-1, U1(2,2), LDU1, WORK(ITAUP1),
      $                   WORK(IORGQR), LORGQR, CHILDINFO )
          END IF
@@ -615,7 +649,8 @@
 *
          IF( WANTU1 .AND. P .GT. 0 ) THEN
             CALL SLACPY( 'L', P, Q, X11, LDX11, U1, LDU1 )
-            CALL SORGQR( P, P, Q, U1, LDU1, WORK(ITAUP1), WORK(IORGQR),
+            CALL SORGQR( P, P, Q, U1, LDU1, WORK(ITAUP1),
+     $                   WORK(IORGQR),
      $                   LORGQR, CHILDINFO )
          END IF
          IF( WANTU2 .AND. M-P .GT. 0 ) THEN
@@ -674,6 +709,9 @@
 *
 *        Accumulate Householder reflectors
 *
+         IF( WANTU2 .AND. M-P .GT. 0 ) THEN
+            CALL SCOPY( M-P, WORK(IORBDB+P), 1, U2, 1 )
+         END IF
          IF( WANTU1 .AND. P .GT. 0 ) THEN
             CALL SCOPY( P, WORK(IORBDB), 1, U1, 1 )
             DO J = 2, P
@@ -685,7 +723,6 @@
      $                   WORK(IORGQR), LORGQR, CHILDINFO )
          END IF
          IF( WANTU2 .AND. M-P .GT. 0 ) THEN
-            CALL SCOPY( M-P, WORK(IORBDB+P), 1, U2, 1 )
             DO J = 2, M-P
                U2(1,J) = ZERO
             END DO
@@ -696,7 +733,8 @@
          END IF
          IF( WANTV1T .AND. Q .GT. 0 ) THEN
             CALL SLACPY( 'U', M-Q, Q, X21, LDX21, V1T, LDV1T )
-            CALL SLACPY( 'U', P-(M-Q), Q-(M-Q), X11(M-Q+1,M-Q+1), LDX11,
+            CALL SLACPY( 'U', P-(M-Q), Q-(M-Q), X11(M-Q+1,M-Q+1),
+     $                   LDX11,
      $                   V1T(M-Q+1,M-Q+1), LDV1T )
             CALL SLACPY( 'U', -P+Q, Q-P, X21(M-Q+1,P+1), LDX21,
      $                   V1T(P+1,P+1), LDV1T )

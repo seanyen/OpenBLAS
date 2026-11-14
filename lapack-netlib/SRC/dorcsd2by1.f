@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download DORCSD2BY1 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dorcsd2by1.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dorcsd2by1.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -224,19 +222,18 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date July 2012
-*
-*> \ingroup doubleOTHERcomputational
+*> \ingroup uncsd2by1
 *
 *  =====================================================================
-      SUBROUTINE DORCSD2BY1( JOBU1, JOBU2, JOBV1T, M, P, Q, X11, LDX11,
+      SUBROUTINE DORCSD2BY1( JOBU1, JOBU2, JOBV1T, M, P, Q, X11,
+     $                       LDX11,
      $                       X21, LDX21, THETA, U1, LDU1, U2, LDU2, V1T,
      $                       LDV1T, WORK, LWORK, IWORK, INFO )
+      IMPLICIT NONE
 *
 *  -- LAPACK computational routine (3.5.0) --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     July 2012
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBU1, JOBU2, JOBV1T
@@ -269,7 +266,9 @@
       DOUBLE PRECISION   DUM1(1), DUM2(1,1)
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           DBBCSD, DCOPY, DLACPY, DLAPMR, DLAPMT, DORBDB1,
+      EXTERNAL           DBBCSD, DCOPY, DLACPY, DLAPMR, DLAPMT,
+     $                   DLASET,
+     $                   DORBDB1,
      $                   DORBDB2, DORBDB3, DORBDB4, DORGLQ, DORGQR,
      $                   XERBLA
 *     ..
@@ -373,7 +372,8 @@
                LORGLQMIN = MAX( LORGLQMIN, Q-1 )
                LORGLQOPT = MAX( LORGLQOPT, INT( WORK(1) ) )
             END IF
-            CALL DBBCSD( JOBU1, JOBU2, JOBV1T, 'N', 'N', M, P, Q, THETA,
+            CALL DBBCSD( JOBU1, JOBU2, JOBV1T, 'N', 'N', M, P, Q,
+     $                   THETA,
      $                   DUM1, U1, LDU1, U2, LDU2, V1T, LDV1T,
      $                   DUM2, 1, DUM1, DUM1, DUM1,
      $                   DUM1, DUM1, DUM1, DUM1,
@@ -402,7 +402,8 @@
                LORGLQMIN = MAX( LORGLQMIN, Q )
                LORGLQOPT = MAX( LORGLQOPT, INT( WORK(1) ) )
             END IF
-            CALL DBBCSD( JOBV1T, 'N', JOBU1, JOBU2, 'T', M, Q, P, THETA,
+            CALL DBBCSD( JOBV1T, 'N', JOBU1, JOBU2, 'T', M, Q, P,
+     $                   THETA,
      $                   DUM1, V1T, LDV1T, DUM2, 1, U1, LDU1,
      $                   U2, LDU2, DUM1, DUM1, DUM1,
      $                   DUM1, DUM1, DUM1, DUM1,
@@ -489,6 +490,36 @@
       LORGQR = LWORK-IORGQR+1
       LORGLQ = LWORK-IORGLQ+1
 *
+      IF( R .EQ. 0 ) THEN
+*
+*        R = 0: C and S are empty. Handle the trivial CSD directly.
+*
+         IF( Q .EQ. 0 ) THEN
+            IF( WANTU1 .AND. P .GT. 0 )
+     $         CALL DLASET( 'A', P, P, ZERO, ONE, U1, LDU1 )
+            IF( WANTU2 .AND. M-P .GT. 0 )
+     $         CALL DLASET( 'A', M-P, M-P, ZERO, ONE, U2, LDU2 )
+            RETURN
+         END IF
+*
+         IF( P .EQ. 0 .AND. M .EQ. Q ) THEN
+            IF( WANTU2 )
+     $         CALL DLACPY( 'A', M-P, Q, X21, LDX21, U2, LDU2 )
+            IF( WANTV1T )
+     $         CALL DLASET( 'A', Q, Q, ZERO, ONE, V1T, LDV1T )
+            RETURN
+         END IF
+*
+         IF( P .EQ. M .AND. M .EQ. Q ) THEN
+            IF( WANTU1 )
+     $         CALL DLACPY( 'A', P, Q, X11, LDX11, U1, LDU1 )
+            IF( WANTV1T )
+     $         CALL DLASET( 'A', Q, Q, ZERO, ONE, V1T, LDV1T )
+            RETURN
+         END IF
+*
+      END IF
+*
 *     Handle four cases separately: R = Q, R = P, R = M-P, and R = M-Q,
 *     in which R = MIN(P,M-P,Q,M-Q)
 *
@@ -506,7 +537,8 @@
 *
          IF( WANTU1 .AND. P .GT. 0 ) THEN
             CALL DLACPY( 'L', P, Q, X11, LDX11, U1, LDU1 )
-            CALL DORGQR( P, P, Q, U1, LDU1, WORK(ITAUP1), WORK(IORGQR),
+            CALL DORGQR( P, P, Q, U1, LDU1, WORK(ITAUP1),
+     $                   WORK(IORGQR),
      $                   LORGQR, CHILDINFO )
          END IF
          IF( WANTU2 .AND. M-P .GT. 0 ) THEN
@@ -522,7 +554,8 @@
             END DO
             CALL DLACPY( 'U', Q-1, Q-1, X21(1,2), LDX21, V1T(2,2),
      $                   LDV1T )
-            CALL DORGLQ( Q-1, Q-1, Q-1, V1T(2,2), LDV1T, WORK(ITAUQ1),
+            CALL DORGLQ( Q-1, Q-1, Q-1, V1T(2,2), LDV1T,
+     $                   WORK(ITAUQ1),
      $                   WORK(IORGLQ), LORGLQ, CHILDINFO )
          END IF
 *
@@ -565,7 +598,8 @@
                U1(1,J) = ZERO
                U1(J,1) = ZERO
             END DO
-            CALL DLACPY( 'L', P-1, P-1, X11(2,1), LDX11, U1(2,2), LDU1 )
+            CALL DLACPY( 'L', P-1, P-1, X11(2,1), LDX11, U1(2,2),
+     $                   LDU1 )
             CALL DORGQR( P-1, P-1, P-1, U1(2,2), LDU1, WORK(ITAUP1),
      $                   WORK(IORGQR), LORGQR, CHILDINFO )
          END IF
@@ -583,7 +617,7 @@
 *        Simultaneously diagonalize X11 and X21.
 *
          CALL DBBCSD( JOBV1T, 'N', JOBU1, JOBU2, 'T', M, Q, P, THETA,
-     $                WORK(IPHI), V1T, LDV1T, DUM2, 1, U1, LDU1, U2,
+     $                WORK(IPHI), V1T, LDV1T, DUM1, 1, U1, LDU1, U2,
      $                LDU2, WORK(IB11D), WORK(IB11E), WORK(IB12D),
      $                WORK(IB12E), WORK(IB21D), WORK(IB21E),
      $                WORK(IB22D), WORK(IB22E), WORK(IBBCSD), LBBCSD,
@@ -615,7 +649,8 @@
 *
          IF( WANTU1 .AND. P .GT. 0 ) THEN
             CALL DLACPY( 'L', P, Q, X11, LDX11, U1, LDU1 )
-            CALL DORGQR( P, P, Q, U1, LDU1, WORK(ITAUP1), WORK(IORGQR),
+            CALL DORGQR( P, P, Q, U1, LDU1, WORK(ITAUP1),
+     $                   WORK(IORGQR),
      $                   LORGQR, CHILDINFO )
          END IF
          IF( WANTU2 .AND. M-P .GT. 0 ) THEN
@@ -638,7 +673,7 @@
 *        Simultaneously diagonalize X11 and X21.
 *
          CALL DBBCSD( 'N', JOBV1T, JOBU2, JOBU1, 'T', M, M-Q, M-P,
-     $                THETA, WORK(IPHI), DUM2, 1, V1T, LDV1T, U2,
+     $                THETA, WORK(IPHI), DUM1, 1, V1T, LDV1T, U2,
      $                LDU2, U1, LDU1, WORK(IB11D), WORK(IB11E),
      $                WORK(IB12D), WORK(IB12E), WORK(IB21D),
      $                WORK(IB21E), WORK(IB22D), WORK(IB22E),
@@ -674,6 +709,9 @@
 *
 *        Accumulate Householder reflectors
 *
+         IF( WANTU2 .AND. M-P .GT. 0 ) THEN
+            CALL DCOPY( M-P, WORK(IORBDB+P), 1, U2, 1 )
+         END IF
          IF( WANTU1 .AND. P .GT. 0 ) THEN
             CALL DCOPY( P, WORK(IORBDB), 1, U1, 1 )
             DO J = 2, P
@@ -685,7 +723,6 @@
      $                   WORK(IORGQR), LORGQR, CHILDINFO )
          END IF
          IF( WANTU2 .AND. M-P .GT. 0 ) THEN
-            CALL DCOPY( M-P, WORK(IORBDB+P), 1, U2, 1 )
             DO J = 2, M-P
                U2(1,J) = ZERO
             END DO
@@ -696,7 +733,8 @@
          END IF
          IF( WANTV1T .AND. Q .GT. 0 ) THEN
             CALL DLACPY( 'U', M-Q, Q, X21, LDX21, V1T, LDV1T )
-            CALL DLACPY( 'U', P-(M-Q), Q-(M-Q), X11(M-Q+1,M-Q+1), LDX11,
+            CALL DLACPY( 'U', P-(M-Q), Q-(M-Q), X11(M-Q+1,M-Q+1),
+     $                   LDX11,
      $                   V1T(M-Q+1,M-Q+1), LDV1T )
             CALL DLACPY( 'U', -P+Q, Q-P, X21(M-Q+1,P+1), LDX21,
      $                   V1T(P+1,P+1), LDV1T )
@@ -707,7 +745,7 @@
 *        Simultaneously diagonalize X11 and X21.
 *
          CALL DBBCSD( JOBU2, JOBU1, 'N', JOBV1T, 'N', M, M-P, M-Q,
-     $                THETA, WORK(IPHI), U2, LDU2, U1, LDU1, DUM2,
+     $                THETA, WORK(IPHI), U2, LDU2, U1, LDU1, DUM1,
      $                1, V1T, LDV1T, WORK(IB11D), WORK(IB11E),
      $                WORK(IB12D), WORK(IB12E), WORK(IB21D),
      $                WORK(IB21E), WORK(IB22D), WORK(IB22E),

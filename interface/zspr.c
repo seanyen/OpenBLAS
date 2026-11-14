@@ -73,6 +73,7 @@ static int (*spr_thread[])(BLASLONG, FLOAT *, FLOAT *, BLASLONG, FLOAT *, FLOAT 
 };
 #endif
 
+OPENBLAS_EXPORT
 void NAME(char *UPLO, blasint *N, FLOAT  *ALPHA,
 	 FLOAT  *x, blasint *INCX, FLOAT *a){
 
@@ -116,12 +117,20 @@ void NAME(char *UPLO, blasint *N, FLOAT  *ALPHA,
 
   FUNCTION_PROFILE_START();
 
-  if (incx < 0 ) x -= (n - 1) * incx;
+  if (incx < 0 ) x -= (n - 1) * incx * COMPSIZE;
 
   buffer = (FLOAT *)blas_memory_alloc(1);
+  if (!buffer) {
+    info = -999;
+    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
+    return;
+  }
 
 #ifdef SMP
   nthreads = num_cpu_avail(2);
+
+  if (n < 50) nthreads = 1;
+  if (nthreads > 2 && n < 500) nthreads = 2;
 
   if (nthreads == 1) {
 #endif

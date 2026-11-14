@@ -775,7 +775,10 @@
 *>          printed about each test for which the test ratio is greater
 *>          than or equal to the threshold.
 *>
-*> lines  3-EOF:
+*> line  3: TSTERR, LOGICAL
+*>          Flag indicating whether or not to test the error exits.
+*>
+*> lines  4-EOF:
 *>
 *> Input for testing the eigencondition routines consists of a set of
 *> specially constructed test cases and their solutions.  The data
@@ -1033,8 +1036,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
 *> \ingroup double_eig
 *
 *  =====================================================================
@@ -1044,10 +1045,9 @@
       use omp_lib
 #endif
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *  =====================================================================
 *
@@ -1081,12 +1081,14 @@
       CHARACTER*80       LINE
       INTEGER            I, I1, IC, INFO, ITMP, K, LENP, MAXTYP, NEWSD,
      $                   NK, NN, NPARMS, NRHS, NTYPES,
-     $                   VERS_MAJOR, VERS_MINOR, VERS_PATCH, N_THREADS
+     $                   VERS_MAJOR, VERS_MINOR, VERS_PATCH
+      INTEGER*4          N_THREADS, ONE_THREAD
       DOUBLE PRECISION   EPS, S1, S2, THRESH, THRSHN
 *     ..
 *     .. Local Arrays ..
-      LOGICAL            DOTYPE( MAXT ), LOGWRK( NMAX )
-      INTEGER            IOLDSD( 4 ), ISEED( 4 ), IWORK( LIWORK ),
+      LOGICAL            DOTYPE( MAXT ), LOGWRK( NMAX ), DOTYP1( 10 )
+      INTEGER            IOLDSD( 4 ), ISEED( 4 ), ISEED2( 4 ),
+     $                   IWORK( LIWORK ),
      $                   KVAL( MAXIN ), MVAL( MAXIN ), MXBVAL( MAXIN ),
      $                   NBCOL( MAXIN ), NBMIN( MAXIN ), NBVAL( MAXIN ),
      $                   NSVAL( MAXIN ), NVAL( MAXIN ), NXVAL( MAXIN ),
@@ -1108,12 +1110,12 @@
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           ALAREQ, DCHKBB, DCHKBD, DCHKBK, DCHKBL, DCHKEC,
-     $                   DCHKGG, DCHKGK, DCHKGL, DCHKHS, DCHKSB, DCHKST,
-     $                   DCKCSD, DCKGLM, DCKGQR, DCKGSV, DCKLSE, DDRGES,
-     $                   DDRGEV, DDRGSX, DDRGVX, DDRVBD, DDRVES, DDRVEV,
-     $                   DDRVSG, DDRVST, DDRVSX, DDRVVX, DERRBD,
-     $                   DERRED, DERRGG, DERRHS, DERRST, ILAVER, XLAENV,
-     $                   DDRGES3, DDRGEV3, 
+     $                   DCHKGG, DCHKGK, DCHKGL, DCHKHS, DCHKST, DCKCSD,
+     $                   DCKGLM, DCKGQR, DCKGSV, DCKLSE, DDRGES, DDRGEV,
+     $                   DDRGSX, DDRGVX, DDRVBD, DDRVES, DDRVEV, DDRVST,
+     $                   DDRVMR3,
+     $                   DDRVSX, DDRVVX, DERRBD, DERRED, DERRGG, DERRHS,
+     $                   DERRST, ILAVER, XLAENV, DDRGES3, DDRGEV3,
      $                   DCHKST2STG, DDRVST2STG, DCHKSB2STG, DDRVSG2STG
 *     ..
 *     .. Intrinsic Functions ..
@@ -1139,18 +1141,31 @@
 *     ..
 *     .. Data statements ..
       DATA               INTSTR / '0123456789' /
+      DATA               DOTYP1 / 10*.TRUE. /
       DATA               IOLDSD / 0, 0, 0, 1 /  
 *     ..
 *     .. Allocate memory dynamically ..
 *
       ALLOCATE ( A(NMAX*NMAX,NEED), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
       ALLOCATE ( B(NMAX*NMAX,5), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
       ALLOCATE ( C(NCMAX*NCMAX,NCMAX*NCMAX), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
       ALLOCATE ( WORK(LWORK), STAT = AllocateStatus )
-      IF (AllocateStatus /= 0) STOP "*** Not enough memory ***"
+      IF (AllocateStatus /= 0) THEN
+         WRITE( NOUT, FMT = * )'*** Not enough memory ***'
+         STOP 1
+      END IF
 *     ..
 *     .. Executable Statements ..
 *
@@ -1266,13 +1281,13 @@
 *        DEC:  Eigencondition estimation
 *
          READ( NIN, FMT = * )THRESH
+         READ( NIN, FMT = * )TSTERR
          CALL XLAENV( 1, 1 )
          CALL XLAENV( 12, 11 )
          CALL XLAENV( 13, 2 )
          CALL XLAENV( 14, 0 )
          CALL XLAENV( 15, 2 )
          CALL XLAENV( 16, 2 )
-         TSTERR = .TRUE.
          CALL DCHKEC( THRESH, TSTERR, NIN, NOUT )
          GO TO 10
       ELSE
@@ -1733,7 +1748,7 @@
 *
       IF( FATAL ) THEN
          WRITE( NOUT, FMT = 9999 )
-         STOP
+         STOP 1
       END IF
 *
 *     Read the input lines indicating the test path and its parameters.
@@ -1869,15 +1884,16 @@
 *           NBMIN = minimum block size
 *           NX    = crossover point
 *
-         MAXTYP = 21
+         MAXTYP = 22
          NTYPES = MIN( MAXTYP, NTYPES )
          CALL ALAREQ( C3, NTYPES, DOTYPE, MAXTYP, NIN, NOUT )
          CALL XLAENV( 1, 1 )
          CALL XLAENV( 9, 25 )
          IF( TSTERR ) THEN
 #if defined(_OPENMP)
-            N_THREADS = OMP_GET_NUM_THREADS()
-            CALL OMP_SET_NUM_THREADS(1)
+            N_THREADS = OMP_GET_MAX_THREADS()
+            ONE_THREAD = 1
+            CALL OMP_SET_NUM_THREADS(ONE_THREAD)
 #endif
             CALL DERRST( 'DST', NOUT )
 #if defined(_OPENMP)
@@ -1926,7 +1942,7 @@
      $                      A( 1, 3 ), D( 1, 12 ), A( 1, 4 ), WORK,
      $                      LWORK, IWORK, LIWORK, RESULT, INFO )
                ELSE
-               CALL DDRVST( NN, NVAL, 18, DOTYPE, ISEED, THRESH, NOUT,
+               CALL DDRVST( NN, NVAL, 19, DOTYPE, ISEED, THRESH, NOUT,
      $                      A( 1, 1 ), NMAX, D( 1, 3 ), D( 1, 4 ),
      $                      D( 1, 5 ), D( 1, 6 ), D( 1, 8 ), D( 1, 9 ),
      $                      D( 1, 10 ), D( 1, 11 ), A( 1, 2 ), NMAX,
@@ -2033,6 +2049,25 @@
      $                      A( 1, 3 ), NMAX, A( 1, 4 ), A( 1, 5 ),
      $                      A( 1, 6 ), D( 1, 1 ), D( 1, 2 ), D( 1, 3 ),
      $                      WORK, LWORK, IWORK, NOUT, INFO )
+*
+*           DDRVMR3 uses a seed of its own, taken from ISEED at the first
+*           parameter set, so that the matrices generated by DCHKBD and
+*           DDRVBD in the following parameter sets are the same as
+*           without it.
+*
+            IF( TSTDRV ) THEN
+               IF( I.EQ.1 .OR. NEWSD.EQ.0 ) THEN
+                  ISEED2( 1 ) = ISEED( 1 )
+                  ISEED2( 2 ) = ISEED( 2 )
+                  ISEED2( 3 ) = ISEED( 3 )
+                  ISEED2( 4 ) = ISEED( 4 )
+               END IF
+               CALL DDRVMR3( NN, MVAL, NVAL, 10, DOTYP1, ISEED2,
+     $                      THRESH, A( 1, 1 ), NMAX, A( 1, 2 ), NMAX,
+     $                      A( 1, 3 ), NMAX, A( 1, 4 ), A( 1, 5 ),
+     $                      A( 1, 6 ), D( 1, 1 ), D( 1, 2 ), D( 1, 3 ),
+     $                      WORK, LWORK, IWORK, NOUT, INFO )
+            END IF
   330    CONTINUE
 *
       ELSE IF( LSAMEN( 3, C3, 'DEV' ) ) THEN
@@ -2509,7 +2544,7 @@
  9974 FORMAT( ' Tests of DSBTRD', / ' (reduction of a symmetric band ',
      $      'matrix to tridiagonal form)' )
  9973 FORMAT( / 1X, 71( '-' ) )
- 9972 FORMAT( / ' LAPACK VERSION ', I1, '.', I1, '.', I1 )
+ 9972 FORMAT( / ' LAPACK VERSION ', I1, '.', I2, '.', I1 )
  9971 FORMAT( / ' Tests of the Generalized Linear Regression Model ',
      $      'routines' )
  9970 FORMAT( / ' Tests of the Generalized QR and RQ routines' )

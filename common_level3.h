@@ -1,5 +1,6 @@
 /*********************************************************************/
 /* Copyright 2009, 2010 The University of Texas at Austin.           */
+/* Copyright 2025-2026 The OpenBLAS Project.                         */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -52,9 +53,120 @@ void sgemm_direct(BLASLONG M, BLASLONG N, BLASLONG K,
 	float * B, BLASLONG strideB,
 	float * R, BLASLONG strideR);
 
+void sgemm_direct_alpha_beta(BLASLONG M, BLASLONG N, BLASLONG K,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB,
+	float beta,
+	float * R, BLASLONG strideR);
+
+void ssymm_direct_alpha_betaLU(BLASLONG M, BLASLONG N,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB,
+	float beta,
+	float * R, BLASLONG strideR);
+void ssymm_direct_alpha_betaLL(BLASLONG M, BLASLONG N,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB,
+	float beta,
+	float * R, BLASLONG strideR);
+
+void strmm_direct_LNUN(BLASLONG M, BLASLONG N,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB);
+void strmm_direct_LNLN(BLASLONG M, BLASLONG N,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB);
+void strmm_direct_LTUN(BLASLONG M, BLASLONG N,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB);
+void strmm_direct_LTLN(BLASLONG M, BLASLONG N,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB);
+
+void ssyrk_direct_alpha_betaUN(BLASLONG N, BLASLONG K,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float beta,
+	float * C, BLASLONG strideC);
+void ssyrk_direct_alpha_betaUT(BLASLONG N, BLASLONG K,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float beta,
+	float * C, BLASLONG strideC);
+void ssyrk_direct_alpha_betaLN(BLASLONG N, BLASLONG K,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float beta,
+	float * C, BLASLONG strideC);
+void ssyrk_direct_alpha_betaLT(BLASLONG N, BLASLONG K,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float beta,
+	float * C, BLASLONG strideC);
+
+void ssyr2k_direct_alpha_betaUN(BLASLONG N, BLASLONG K,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB,
+	float beta,
+	float * R, BLASLONG strideR);
+void ssyr2k_direct_alpha_betaUT(BLASLONG N, BLASLONG K,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB,
+	float beta,
+	float * R, BLASLONG strideR);
+void ssyr2k_direct_alpha_betaLN(BLASLONG N, BLASLONG K,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB,
+	float beta,
+	float * R, BLASLONG strideR);
+void ssyr2k_direct_alpha_betaLT(BLASLONG N, BLASLONG K,
+	float alpha,
+	float * A, BLASLONG strideA,
+	float * B, BLASLONG strideB,
+	float beta,
+	float * R, BLASLONG strideR);
+
+void sme_sgemm_kernel(char*, char*, BLASLONG M, BLASLONG N, BLASLONG K,
+	float * alpha,
+	float * A, BLASLONG ldA,
+	float * B, BLASLONG ldB,
+	float * beta,
+	float * C, BLASLONG ldC);
+void sme_dgemm_kernel(const char*, const char*, const BLASLONG M, const BLASLONG N, const BLASLONG K,
+	const double * alpha,
+	const double * A, const BLASLONG ldA,
+	const double * B, const BLASLONG ldB,
+	const double * beta,
+	double * C, const BLASLONG ldC);
+void sme_cgemm_kernel(const char*, const char*, const BLASLONG M, const BLASLONG N, const BLASLONG K,
+	const float alpha_r, const float alpha_i,
+	const float * A, const BLASLONG ldA,
+	const float * B, const BLASLONG ldB,
+	const float beta_r, const float beta_i,
+	float * C, const BLASLONG ldC);
+void sme_zgemm_kernel(const char*, const char*, const BLASLONG M, const BLASLONG N, const BLASLONG K,
+	const double alpha_r, const double alpha_i,
+	const double * A, const BLASLONG ldA,
+	const double * B, const BLASLONG ldB,
+	const double beta_r, const double beta_i,
+	double * C, const BLASLONG ldC);
+
 int sgemm_direct_performant(BLASLONG M, BLASLONG N, BLASLONG K);
 
-
+int shgemm_beta(BLASLONG, BLASLONG, BLASLONG, float,
+	       hfloat16 *, BLASLONG, hfloat16 *, BLASLONG, float *, BLASLONG);
+int bgemm_beta(BLASLONG, BLASLONG, BLASLONG, bfloat16,
+	       bfloat16 *, BLASLONG, bfloat16 *, BLASLONG, bfloat16 *, BLASLONG);
 int sbgemm_beta(BLASLONG, BLASLONG, BLASLONG, float,
 	       bfloat16 *, BLASLONG, bfloat16 *, BLASLONG, float *, BLASLONG);
 int sgemm_beta(BLASLONG, BLASLONG, BLASLONG, float,
@@ -78,6 +190,14 @@ int xgemm_beta(BLASLONG, BLASLONG, BLASLONG, xdouble *,
 	       xdouble *, BLASLONG, xdouble  *, BLASLONG, xdouble *, BLASLONG);
 #endif
 
+int shgemm_incopy(BLASLONG m, BLASLONG n, hfloat16 *a, BLASLONG lda, hfloat16 *b);
+int shgemm_itcopy(BLASLONG m, BLASLONG n, hfloat16 *a, BLASLONG lda, hfloat16 *b);
+int shgemm_oncopy(BLASLONG m, BLASLONG n, hfloat16 *a, BLASLONG lda, hfloat16 *b);
+int shgemm_otcopy(BLASLONG m, BLASLONG n, hfloat16 *a, BLASLONG lda, hfloat16 *b);
+int bgemm_incopy(BLASLONG m, BLASLONG n, bfloat16 *a, BLASLONG lda, bfloat16 *b);
+int bgemm_itcopy(BLASLONG m, BLASLONG n, bfloat16 *a, BLASLONG lda, bfloat16 *b);
+int bgemm_oncopy(BLASLONG m, BLASLONG n, bfloat16 *a, BLASLONG lda, bfloat16 *b);
+int bgemm_otcopy(BLASLONG m, BLASLONG n, bfloat16 *a, BLASLONG lda, bfloat16 *b);
 int sbgemm_incopy(BLASLONG m, BLASLONG n, bfloat16 *a, BLASLONG lda, bfloat16 *b);
 int sbgemm_itcopy(BLASLONG m, BLASLONG n, bfloat16 *a, BLASLONG lda, bfloat16 *b);
 int sbgemm_oncopy(BLASLONG m, BLASLONG n, bfloat16 *a, BLASLONG lda, bfloat16 *b);
@@ -215,6 +335,10 @@ int strmm_ilnucopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX
 int strmm_ilnncopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
 int strmm_iltucopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
 int strmm_iltncopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
+int ssymm_incopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, float *b);
+int ssymm_itcopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, float *b);
+int strmm_incopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, float *b);
+int strmm_itcopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, float *b);
 int strmm_olnucopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
 int strmm_olnncopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
 int strmm_oltucopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
@@ -232,6 +356,10 @@ int dtrmm_ilnucopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG pos
 int dtrmm_ilnncopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
 int dtrmm_iltucopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
 int dtrmm_iltncopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
+int dsymm_itcopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, double *b);
+int dsymm_incopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, double *b);
+int dtrmm_itcopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, double *b);
+int dtrmm_incopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, double *b);
 int dtrmm_olnucopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
 int dtrmm_olnncopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
 int dtrmm_oltucopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
@@ -266,6 +394,10 @@ int ctrmm_ilnucopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX
 int ctrmm_ilnncopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
 int ctrmm_iltucopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
 int ctrmm_iltncopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
+int csymm_itcopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, float *b);
+int csymm_incopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, float *b);
+int ctrmm_itcopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, float *b);
+int ctrmm_incopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, float *b);
 int ctrmm_olnucopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
 int ctrmm_olnncopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
 int ctrmm_oltucopy(BLASLONG m, BLASLONG n, float *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, float *b);
@@ -283,6 +415,10 @@ int ztrmm_ilnucopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG pos
 int ztrmm_ilnncopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
 int ztrmm_iltucopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
 int ztrmm_iltncopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
+int zsymm_itcopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, double *b);
+int zsymm_incopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, double *b);
+int ztrmm_itcopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, double *b);
+int ztrmm_incopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, double *b);
 int ztrmm_olnucopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
 int ztrmm_olnncopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
 int ztrmm_oltucopy(BLASLONG m, BLASLONG n, double *a, BLASLONG lda, BLASLONG posX, BLASLONG posY, double *b);
@@ -505,14 +641,143 @@ int xher2k_kernel_UC(BLASLONG m, BLASLONG n, BLASLONG k, xdouble alpha_r, xdoubl
 int xher2k_kernel_LN(BLASLONG m, BLASLONG n, BLASLONG k, xdouble alpha_r, xdouble alpha_i, xdouble *a, xdouble *b, xdouble *c, BLASLONG ldc, BLASLONG offset, int flag);
 int xher2k_kernel_LC(BLASLONG m, BLASLONG n, BLASLONG k, xdouble alpha_r, xdouble alpha_i, xdouble *a, xdouble *b, xdouble *c, BLASLONG ldc, BLASLONG offset, int flag);
 
+int shgemm_kernel(BLASLONG, BLASLONG, BLASLONG, float,  hfloat16 *, hfloat16 *, float *, BLASLONG);
+int bgemm_kernel(BLASLONG, BLASLONG, BLASLONG, bfloat16,  bfloat16 *, bfloat16 *, bfloat16 *, BLASLONG);
 int sbgemm_kernel(BLASLONG, BLASLONG, BLASLONG, float,  bfloat16 *, bfloat16 *, float *, BLASLONG);
 int sgemm_kernel(BLASLONG, BLASLONG, BLASLONG, float,  float  *, float  *, float  *, BLASLONG);
 int dgemm_kernel(BLASLONG, BLASLONG, BLASLONG, double, double *, double *, double *, BLASLONG);
+int ssymm_kernel(BLASLONG, BLASLONG, BLASLONG, float,  float  *, float  *, float  *, BLASLONG);
+int dsymm_kernel(BLASLONG, BLASLONG, BLASLONG, double, double *, double *, double *, BLASLONG);
+int strmm_gemm_kernel(BLASLONG, BLASLONG, BLASLONG, float,  float  *, float  *, float  *, BLASLONG);
+int dtrmm_gemm_kernel(BLASLONG, BLASLONG, BLASLONG, double, double *, double *, double *, BLASLONG);
 
 #ifdef QUAD_PRECISION
 int qgemm_kernel(BLASLONG, BLASLONG, BLASLONG, xidouble *, xidouble *, xidouble *, xdouble *, BLASLONG);
 #else
 int qgemm_kernel(BLASLONG, BLASLONG, BLASLONG, xdouble, xdouble *, xdouble *, xdouble *, BLASLONG);
+#endif
+
+#ifdef SMALL_MATRIX_OPT
+int sbgemm_small_matrix_permit(int transa, int transb, BLASLONG m, BLASLONG n, BLASLONG k, float alpha, float beta);
+
+int sbgemm_small_kernel_nn(BLASLONG m, BLASLONG n, BLASLONG k, bfloat16 * A, BLASLONG lda, float alpha, bfloat16 * B, BLASLONG ldb, float beta, float * C, BLASLONG ldc);
+int sbgemm_small_kernel_nt(BLASLONG m, BLASLONG n, BLASLONG k, bfloat16 * A, BLASLONG lda, float alpha, bfloat16 * B, BLASLONG ldb, float beta, float * C, BLASLONG ldc);
+int sbgemm_small_kernel_tn(BLASLONG m, BLASLONG n, BLASLONG k, bfloat16 * A, BLASLONG lda, float alpha, bfloat16 * B, BLASLONG ldb, float beta, float * C, BLASLONG ldc);
+int sbgemm_small_kernel_tt(BLASLONG m, BLASLONG n, BLASLONG k, bfloat16 * A, BLASLONG lda, float alpha, bfloat16 * B, BLASLONG ldb, float beta, float * C, BLASLONG ldc);
+
+int sgemm_small_matrix_permit(int transa, int transb, BLASLONG m, BLASLONG n, BLASLONG k, float alpha, float beta);
+
+int sgemm_small_kernel_nn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha, float * B, BLASLONG ldb, float beta, float * C, BLASLONG ldc);
+int sgemm_small_kernel_nt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha, float * B, BLASLONG ldb, float beta, float * C, BLASLONG ldc);
+int sgemm_small_kernel_tn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha, float * B, BLASLONG ldb, float beta, float * C, BLASLONG ldc);
+int sgemm_small_kernel_tt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha, float * B, BLASLONG ldb, float beta, float * C, BLASLONG ldc);
+
+int dgemm_small_matrix_permit(int transa, int transb, BLASLONG m, BLASLONG n, BLASLONG k, double alpha, double beta);
+
+int dgemm_small_kernel_nn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha, double * B, BLASLONG ldb, double beta, double * C, BLASLONG ldc);
+int dgemm_small_kernel_nt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha, double * B, BLASLONG ldb, double beta, double * C, BLASLONG ldc);
+int dgemm_small_kernel_tn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha, double * B, BLASLONG ldb, double beta, double * C, BLASLONG ldc);
+int dgemm_small_kernel_tt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha, double * B, BLASLONG ldb, double beta, double * C, BLASLONG ldc);
+
+int sbgemm_small_kernel_b0_nn(BLASLONG m, BLASLONG n, BLASLONG k, bfloat16 * A, BLASLONG lda, float alpha, bfloat16 * B, BLASLONG ldb, float * C, BLASLONG ldc);
+int sbgemm_small_kernel_b0_nt(BLASLONG m, BLASLONG n, BLASLONG k, bfloat16 * A, BLASLONG lda, float alpha, bfloat16 * B, BLASLONG ldb, float * C, BLASLONG ldc);
+int sbgemm_small_kernel_b0_tn(BLASLONG m, BLASLONG n, BLASLONG k, bfloat16 * A, BLASLONG lda, float alpha, bfloat16 * B, BLASLONG ldb, float * C, BLASLONG ldc);
+int sbgemm_small_kernel_b0_tt(BLASLONG m, BLASLONG n, BLASLONG k, bfloat16 * A, BLASLONG lda, float alpha, bfloat16 * B, BLASLONG ldb, float * C, BLASLONG ldc);
+
+int sgemm_small_kernel_b0_nn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha, float * B, BLASLONG ldb, float * C, BLASLONG ldc);
+int sgemm_small_kernel_b0_nt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha, float * B, BLASLONG ldb, float * C, BLASLONG ldc);
+int sgemm_small_kernel_b0_tn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha, float * B, BLASLONG ldb, float * C, BLASLONG ldc);
+int sgemm_small_kernel_b0_tt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha, float * B, BLASLONG ldb, float * C, BLASLONG ldc);
+
+int dgemm_small_kernel_b0_nn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha, double * B, BLASLONG ldb, double * C, BLASLONG ldc);
+int dgemm_small_kernel_b0_nt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha, double * B, BLASLONG ldb, double * C, BLASLONG ldc);
+int dgemm_small_kernel_b0_tn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha, double * B, BLASLONG ldb, double * C, BLASLONG ldc);
+int dgemm_small_kernel_b0_tt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha, double * B, BLASLONG ldb, double * C, BLASLONG ldc);
+
+int cgemm_small_matrix_permit(int transa, int transb, BLASLONG m, BLASLONG n, BLASLONG k, float alpha0, float alpha1, float beta0, float beta1);
+
+int cgemm_small_kernel_nn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_nt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_nr(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_nc(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+	
+int cgemm_small_kernel_tn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_tt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_tr(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_tc(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+
+int cgemm_small_kernel_rn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_rt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_rr(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_rc(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+
+int cgemm_small_kernel_cn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_ct(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_cr(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+int cgemm_small_kernel_cc(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb, float beta0, float beta1, float * C, BLASLONG ldc);
+
+int zgemm_small_matrix_permit(int transa, int transb, BLASLONG m, BLASLONG n, BLASLONG k, double alpha0, double alpha1, double beta0, double beta1);
+
+int zgemm_small_kernel_nn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_nt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_nr(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_nc(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+	
+int zgemm_small_kernel_tn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_tt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_tr(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_tc(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+
+int zgemm_small_kernel_rn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_rt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_rr(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_rc(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+
+int zgemm_small_kernel_cn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_ct(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_cr(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+int zgemm_small_kernel_cc(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb, double beta0, double beta1, double * C, BLASLONG ldc);
+
+int cgemm_small_kernel_b0_nn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);	
+int cgemm_small_kernel_b0_nt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_nr(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_nc(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+	
+int cgemm_small_kernel_b0_tn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_tt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_tr(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_tc(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+
+int cgemm_small_kernel_b0_rn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_rt(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_rr(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_rc(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+
+int cgemm_small_kernel_b0_cn(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_ct(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_cr(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+int cgemm_small_kernel_b0_cc(BLASLONG m, BLASLONG n, BLASLONG k, float * A, BLASLONG lda, float alpha0, float alpha1, float * B, BLASLONG ldb,  float * C, BLASLONG ldc);
+
+int zgemm_small_kernel_b0_nn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);	
+int zgemm_small_kernel_b0_nt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_nr(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_nc(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+	
+int zgemm_small_kernel_b0_tn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_tt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_tr(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_tc(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+
+int zgemm_small_kernel_b0_rn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_rt(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_rr(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_rc(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+
+int zgemm_small_kernel_b0_cn(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_ct(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_cr(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+int zgemm_small_kernel_b0_cc(BLASLONG m, BLASLONG n, BLASLONG k, double * A, BLASLONG lda, double alpha0, double alpha1, double * B, BLASLONG ldb,  double * C, BLASLONG ldc);
+
 #endif
 
 int cgemm_kernel_n(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
@@ -533,6 +798,36 @@ int xgemm_kernel_b(BLASLONG, BLASLONG, BLASLONG, xdouble, xdouble, xdouble *, xd
 int cgemm3m_kernel(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
 int zgemm3m_kernel(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG);
 int xgemm3m_kernel(BLASLONG, BLASLONG, BLASLONG, xdouble, xdouble, xdouble *, xdouble *, xdouble *, BLASLONG);
+
+int csymm_kernel_n(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
+int csymm_kernel_l(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
+int csymm_kernel_r(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
+int csymm_kernel_b(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
+
+int ctrmm_gemm_kernel_n(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
+int ctrmm_gemm_kernel_l(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
+int ctrmm_gemm_kernel_r(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
+int ctrmm_gemm_kernel_b(BLASLONG, BLASLONG, BLASLONG, float,  float,  float  *, float  *, float  *, BLASLONG);
+
+int zsymm_kernel_n(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG);
+int zsymm_kernel_l(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG);
+int zsymm_kernel_r(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG);
+int zsymm_kernel_b(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG);
+
+int ztrmm_gemm_kernel_n(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG);
+int ztrmm_gemm_kernel_l(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG);
+int ztrmm_gemm_kernel_r(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG);
+int ztrmm_gemm_kernel_b(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG);
+
+int shgemm_nn(blas_arg_t *, BLASLONG *, BLASLONG *, hfloat16 *, hfloat16 *, BLASLONG);
+int shgemm_nt(blas_arg_t *, BLASLONG *, BLASLONG *, hfloat16 *, hfloat16 *, BLASLONG);
+int shgemm_tn(blas_arg_t *, BLASLONG *, BLASLONG *, hfloat16 *, hfloat16 *, BLASLONG);
+int shgemm_tt(blas_arg_t *, BLASLONG *, BLASLONG *, hfloat16 *, hfloat16 *, BLASLONG);
+
+int bgemm_nn(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
+int bgemm_nt(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
+int bgemm_tn(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
+int bgemm_tt(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
 
 int sbgemm_nn(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
 int sbgemm_nt(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
@@ -630,6 +925,16 @@ int xgemm_ct(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLON
 int xgemm_cr(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
 int xgemm_cc(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
 #endif
+
+int shgemm_thread_nn(blas_arg_t *, BLASLONG *, BLASLONG *, hfloat16 *, hfloat16 *, BLASLONG);
+int shgemm_thread_nt(blas_arg_t *, BLASLONG *, BLASLONG *, hfloat16 *, hfloat16 *, BLASLONG);
+int shgemm_thread_tn(blas_arg_t *, BLASLONG *, BLASLONG *, hfloat16 *, hfloat16 *, BLASLONG);
+int shgemm_thread_tt(blas_arg_t *, BLASLONG *, BLASLONG *, hfloat16 *, hfloat16 *, BLASLONG);
+
+int bgemm_thread_nn(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
+int bgemm_thread_nt(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
+int bgemm_thread_tn(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
+int bgemm_thread_tt(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
 
 int sbgemm_thread_nn(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
 int sbgemm_thread_nt(blas_arg_t *, BLASLONG *, BLASLONG *, bfloat16 *, bfloat16 *, BLASLONG);
@@ -1425,6 +1730,151 @@ int ssyrk_thread_LN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLAS
 int ssyrk_thread_LT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
 
 int dsyrk_thread_UN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+
+int qgemmt_UNN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int qgemmt_UNT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int qgemmt_UTN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int qgemmt_UTT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int qgemmt_LNN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int qgemmt_LNT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int qgemmt_LTN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int qgemmt_LTT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+
+int dgemmt_UNN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int dgemmt_UNT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int dgemmt_UTN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int dgemmt_UTT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int dgemmt_LNN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int dgemmt_LNT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int dgemmt_LTN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int dgemmt_LTT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+
+int sgemmt_UNN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int sgemmt_UNT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int sgemmt_UTN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int sgemmt_UTT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int sgemmt_LNN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int sgemmt_LNT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int sgemmt_LTN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int sgemmt_LTT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+
+int xgemmt_UNN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UNT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UNR(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UNC(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UTN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UTT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UTR(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UTC(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_URN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_URT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_URR(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_URC(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UCN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UCT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UCR(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_UCC(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LNN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LNT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LNR(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LNC(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LTN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LTT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LTR(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LTC(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LRN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LRT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LRR(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LRC(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LCN(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LCT(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LCR(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_LCC(blas_arg_t *, BLASLONG *, BLASLONG *, xdouble *, xdouble *, BLASLONG);
+int xgemmt_kernel_UCN(BLASLONG, BLASLONG, BLASLONG, xdouble, xdouble, xdouble *, xdouble *, xdouble *, BLASLONG, BLASLONG);
+int xgemmt_kernel_UNC(BLASLONG, BLASLONG, BLASLONG, xdouble, xdouble, xdouble *, xdouble *, xdouble *, BLASLONG, BLASLONG);
+int xgemmt_kernel_UCC(BLASLONG, BLASLONG, BLASLONG, xdouble, xdouble, xdouble *, xdouble *, xdouble *, BLASLONG, BLASLONG);
+int xgemmt_kernel_LCN(BLASLONG, BLASLONG, BLASLONG, xdouble, xdouble, xdouble *, xdouble *, xdouble *, BLASLONG, BLASLONG);
+int xgemmt_kernel_LNC(BLASLONG, BLASLONG, BLASLONG, xdouble, xdouble, xdouble *, xdouble *, xdouble *, BLASLONG, BLASLONG);
+int xgemmt_kernel_LCC(BLASLONG, BLASLONG, BLASLONG, xdouble, xdouble, xdouble *, xdouble *, xdouble *, BLASLONG, BLASLONG);
+
+int zgemmt_UNN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UNT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UNR(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UNC(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UTN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UTT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UTR(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UTC(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_URN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_URT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_URR(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_URC(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UCN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UCT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UCR(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_UCC(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LNN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LNT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LNR(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LNC(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LTN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LTT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LTR(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LTC(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LRN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LRT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LRR(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LRC(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LCN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LCT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LCR(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_LCC(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
+int zgemmt_kernel_UCN(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG, BLASLONG);
+int zgemmt_kernel_UNC(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG, BLASLONG);
+int zgemmt_kernel_UCC(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG, BLASLONG);
+int zgemmt_kernel_LCN(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG, BLASLONG);
+int zgemmt_kernel_LNC(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG, BLASLONG);
+int zgemmt_kernel_LCC(BLASLONG, BLASLONG, BLASLONG, double, double, double *, double *, double *, BLASLONG, BLASLONG);
+
+int cgemmt_UNN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UNT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UNR(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UNC(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UTN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UTT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UTR(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UTC(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_URN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_URT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_URR(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_URC(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UCN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UCT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UCR(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_UCC(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LNN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LNT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LNR(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LNC(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LTN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LTT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LTR(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LTC(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LRN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LRT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LRR(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LRC(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LCN(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LCT(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LCR(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_LCC(blas_arg_t *, BLASLONG *, BLASLONG *, float *, float *, BLASLONG);
+int cgemmt_kernel_UCN(BLASLONG, BLASLONG, BLASLONG, float, float, float *, float *, float *, BLASLONG, BLASLONG);
+int cgemmt_kernel_UNC(BLASLONG, BLASLONG, BLASLONG, float, float, float *, float *, float *, BLASLONG, BLASLONG);
+int cgemmt_kernel_UCC(BLASLONG, BLASLONG, BLASLONG, float, float, float *, float *, float *, BLASLONG, BLASLONG);
+int cgemmt_kernel_LCN(BLASLONG, BLASLONG, BLASLONG, float, float, float *, float *, float *, BLASLONG, BLASLONG);
+int cgemmt_kernel_LNC(BLASLONG, BLASLONG, BLASLONG, float, float, float *, float *, float *, BLASLONG, BLASLONG);
+int cgemmt_kernel_LCC(BLASLONG, BLASLONG, BLASLONG, float, float, float *, float *, float *, BLASLONG, BLASLONG);
+
 int dsyrk_thread_UT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
 int dsyrk_thread_LN(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
 int dsyrk_thread_LT(blas_arg_t *, BLASLONG *, BLASLONG *, double *, double *, BLASLONG);
@@ -1811,11 +2261,17 @@ int zimatcopy_k_rnc(BLASLONG, BLASLONG,  double, double, double *, BLASLONG);
 int zimatcopy_k_ctc(BLASLONG, BLASLONG,  double, double, double *, BLASLONG);
 int zimatcopy_k_rtc(BLASLONG, BLASLONG,  double, double, double *, BLASLONG);
 
-int sgeadd_k(BLASLONG, BLASLONG, float, float*, BLASLONG, float, float *, BLASLONG); 
-int dgeadd_k(BLASLONG, BLASLONG, double, double*, BLASLONG, double, double *, BLASLONG); 
-int cgeadd_k(BLASLONG, BLASLONG, float, float, float*, BLASLONG, float, float, float *, BLASLONG); 
-int zgeadd_k(BLASLONG, BLASLONG, double,double, double*, BLASLONG, double, double, double *, BLASLONG); 
+int sgeadd_k(BLASLONG, BLASLONG, float, float*, BLASLONG, float, float *, BLASLONG,BLASLONG,BLASLONG); 
+int dgeadd_k(BLASLONG, BLASLONG, double, double*, BLASLONG, double, double *, BLASLONG,BLASLONG,BLASLONG); 
+int cgeadd_k(BLASLONG, BLASLONG, float, float, float*, BLASLONG, float, float, float *, BLASLONG,BLASLONG,BLASLONG); 
+int zgeadd_k(BLASLONG, BLASLONG, double,double, double*, BLASLONG, double, double, double *, BLASLONG,BLASLONG,BLASLONG);
 
+int sgemm_batch_thread(blas_arg_t * queue, BLASLONG nums);
+int dgemm_batch_thread(blas_arg_t * queue, BLASLONG nums);
+int cgemm_batch_thread(blas_arg_t * queue, BLASLONG nums);
+int zgemm_batch_thread(blas_arg_t * queue, BLASLONG nums);
+int sbgemm_batch_thread(blas_arg_t * queue, BLASLONG nums);
+// int shgemm_batch_thread(blas_arg_t * queue, BLASLONG nums);
 
 #ifdef __CUDACC__
 }

@@ -351,8 +351,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup complexOTHERcomputational
 *
 *> \par Further Details:
@@ -379,10 +377,9 @@
      $                   LDB, TOLA, TOLB, ALPHA, BETA, U, LDU, V, LDV,
      $                   Q, LDQ, WORK, NCYCLE, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBQ, JOBU, JOBV
@@ -401,7 +398,7 @@
 *     .. Parameters ..
       INTEGER            MAXIT
       PARAMETER          ( MAXIT = 40 )
-      REAL               ZERO, ONE
+      REAL               ZERO, ONE, HUGENUM
       PARAMETER          ( ZERO = 0.0E+0, ONE = 1.0E+0 )
       COMPLEX            CZERO, CONE
       PARAMETER          ( CZERO = ( 0.0E+0, 0.0E+0 ),
@@ -417,7 +414,8 @@
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      EXTERNAL           LSAME
+      REAL               SLAMCH
+      EXTERNAL           LSAME, SLAMCH
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CCOPY, CLAGS2, CLAPLL, CLASET, CROT, CSSCAL,
@@ -427,6 +425,8 @@
       INTRINSIC          ABS, CONJG, MAX, MIN, REAL
 *     ..
 *     .. Executable Statements ..
+*
+      HUGENUM = SLAMCH( 'O' )
 *
 *     Decode and test the input parameters
 *
@@ -610,9 +610,9 @@
 *
          A1 = REAL( A( K+I, N-L+I ) )
          B1 = REAL( B( I, N-L+I ) )
+         GAMMA = B1 / A1
 *
-         IF( A1.NE.ZERO ) THEN
-            GAMMA = B1 / A1
+         IF( (GAMMA.LE.HUGENUM).AND.(GAMMA.GE.-HUGENUM) ) THEN
 *
             IF( GAMMA.LT.ZERO ) THEN
                CALL CSSCAL( L-I+1, -ONE, B( I, N-L+I ), LDB )

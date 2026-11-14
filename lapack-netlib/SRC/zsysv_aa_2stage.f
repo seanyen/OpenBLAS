@@ -7,11 +7,11 @@
 *
 *> \htmlonly
 *> Download ZSYSV_AA_2STAGE + dependencies
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zsysv_aasen_2stage.f">
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zsysv_aa_2stage.f">
 *> [TGZ]</a>
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/zsysv_aasen_2stage.f">
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/zsysv_aa_2stage.f">
 *> [ZIP]</a>
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zsysv_aasen_2stage.f">
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zsysv_aa_2stage.f">
 *> [TXT]</a>
 *> \endhtmlonly
 *
@@ -87,7 +87,7 @@
 *>          triangular part of the matrix A, and the strictly upper
 *>          triangular part of A is not referenced.
 *>
-*>          On exit, L is stored below (or above) the subdiaonal blocks,
+*>          On exit, L is stored below (or above) the subdiagonal blocks,
 *>          when UPLO  is 'L' (or 'U').
 *> \endverbatim
 *>
@@ -177,8 +177,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
 *> \ingroup complex16SYcomputational
 *
 *  =====================================================================
@@ -186,10 +184,9 @@
      $                            IPIV, IPIV2, B, LDB, WORK, LWORK,
      $                            INFO )
 *
-*  -- LAPACK computational routine (version 3.8.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
       IMPLICIT NONE
 *

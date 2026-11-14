@@ -47,17 +47,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup single_eig
 *
 *  =====================================================================
       SUBROUTINE SCHKBL( NIN, NOUT )
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            NIN, NOUT
@@ -135,7 +132,7 @@
 *
       DO 50 I = 1, N
          DO 40 J = 1, N
-            TEMP = MAX( A( I, J ), AIN( I, J ) )
+            TEMP = MAX( ABS( A( I, J ) ), ABS( AIN( I, J )  ) )
             TEMP = MAX( TEMP, SFMIN )
             VMAX = MAX( VMAX, ABS( A( I, J )-AIN( I, J ) ) / TEMP )
    40    CONTINUE

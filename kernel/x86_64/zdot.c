@@ -25,15 +25,17 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *****************************************************************************/
 
-
 #include "common.h"
 
+#if (defined(__GNUC__) && __GNUC__ > 11) 
+#pragma GCC optimize("no-tree-vectorize")
+#endif
 
 #if defined(BULLDOZER) 
 #include "zdot_microk_bulldozer-2.c"
 #elif defined(STEAMROLLER) || defined(PILEDRIVER) || defined(EXCAVATOR)
 #include "zdot_microk_steamroller-2.c"
-#elif defined(HASWELL) || defined(ZEN) || defined (SKYLAKEX) || defined (COOPERLAKE)
+#elif defined(HASWELL) || defined(ZEN) || defined (SKYLAKEX) || defined (COOPERLAKE) || defined (SAPPHIRERAPIDS)
 #include "zdot_microk_haswell-2.c"
 #elif defined(SANDYBRIDGE)
 #include "zdot_microk_sandy-2.c"
@@ -90,7 +92,7 @@ static void zdot_kernel_8(BLASLONG n, FLOAT *x, FLOAT *y, FLOAT *d)
 #if defined(SMP)
 extern int blas_level1_thread_with_return_value(int mode, BLASLONG m, BLASLONG n,
         BLASLONG k, void *alpha, void *a, BLASLONG lda, void *b, BLASLONG ldb,
-        void *c, BLASLONG ldc, int (*function)(), int nthreads);
+        void *c, BLASLONG ldc, int (*function)(void), int nthreads);
 #endif
                 
                 
@@ -215,7 +217,7 @@ OPENBLAS_COMPLEX_FLOAT CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x, FLOAT *y, BLA
 
 		blas_level1_thread_with_return_value(mode, n, 0, 0, &dummy_alpha,
 				   x, inc_x, y, inc_y, result, 0,
-				   ( void *)zdot_thread_function, nthreads);
+				   (int (*)(void))zdot_thread_function, nthreads);
 
 		ptr = (OPENBLAS_COMPLEX_FLOAT *)result;
 		for (i = 0; i < nthreads; i++) {

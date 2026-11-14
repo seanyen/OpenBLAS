@@ -37,8 +37,10 @@
 /*********************************************************************/
 
 #include <ctype.h>
+#include "exports.h"
 
-int NAME(char *A, char *B){
+OPENBLAS_EXPORT
+int NAME(const char *A, const char *B){
 
   char a = *A;
   char b = *B;

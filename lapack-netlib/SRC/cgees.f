@@ -189,18 +189,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexGEeigen
+*> \ingroup gees
 *
 *  =====================================================================
       SUBROUTINE CGEES( JOBVS, SORT, SELECT, N, A, LDA, SDIM, W, VS,
      $                  LDVS, WORK, LWORK, RWORK, BWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBVS, SORT
@@ -233,13 +230,13 @@
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CCOPY, CGEBAK, CGEBAL, CGEHRD, CHSEQR, CLACPY,
-     $                   CLASCL, CTRSEN, CUNGHR, SLABAD, XERBLA
+     $                   CLASCL, CTRSEN, CUNGHR, XERBLA
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      REAL               CLANGE, SLAMCH
-      EXTERNAL           LSAME, ILAENV, CLANGE, SLAMCH
+      REAL               CLANGE, SLAMCH, SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, CLANGE, SLAMCH, SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, SQRT
@@ -285,7 +282,7 @@
 *
             CALL CHSEQR( 'S', JOBVS, N, 1, N, A, LDA, W, VS, LDVS,
      $             WORK, -1, IEVAL )
-            HSWORK = WORK( 1 )
+            HSWORK = INT( WORK( 1 ) )
 *
             IF( .NOT.WANTVS ) THEN
                MAXWRK = MAX( MAXWRK, HSWORK )
@@ -295,7 +292,7 @@
                MAXWRK = MAX( MAXWRK, HSWORK )
             END IF
          END IF
-         WORK( 1 ) = MAXWRK
+         WORK( 1 ) = SROUNDUP_LWORK(MAXWRK)
 *
          IF( LWORK.LT.MINWRK .AND. .NOT.LQUERY ) THEN
             INFO = -12
@@ -321,7 +318,6 @@
       EPS = SLAMCH( 'P' )
       SMLNUM = SLAMCH( 'S' )
       BIGNUM = ONE / SMLNUM
-      CALL SLABAD( SMLNUM, BIGNUM )
       SMLNUM = SQRT( SMLNUM ) / EPS
       BIGNUM = ONE / SMLNUM
 *
@@ -416,7 +412,7 @@
          CALL CCOPY( N, A, LDA+1, W, 1 )
       END IF
 *
-      WORK( 1 ) = MAXWRK
+      WORK( 1 ) = SROUNDUP_LWORK(MAXWRK)
       RETURN
 *
 *     End of CGEES

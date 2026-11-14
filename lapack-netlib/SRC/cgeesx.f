@@ -230,19 +230,16 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
-*> \ingroup complexGEeigen
+*> \ingroup geesx
 *
 *  =====================================================================
       SUBROUTINE CGEESX( JOBVS, SORT, SELECT, SENSE, N, A, LDA, SDIM, W,
      $                   VS, LDVS, RCONDE, RCONDV, WORK, LWORK, RWORK,
      $                   BWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBVS, SENSE, SORT
@@ -277,13 +274,13 @@
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CCOPY, CGEBAK, CGEBAL, CGEHRD, CHSEQR, CLACPY,
-     $                   CLASCL, CTRSEN, CUNGHR, SLABAD, SLASCL, XERBLA
+     $                   CLASCL, CTRSEN, CUNGHR, SLASCL, XERBLA
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      REAL               CLANGE, SLAMCH
-      EXTERNAL           LSAME, ILAENV, CLANGE, SLAMCH
+      REAL               CLANGE, SLAMCH, SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, CLANGE, SLAMCH, SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, SQRT
@@ -340,7 +337,7 @@
 *
             CALL CHSEQR( 'S', JOBVS, N, 1, N, A, LDA, W, VS, LDVS,
      $             WORK, -1, IEVAL )
-            HSWORK = WORK( 1 )
+            HSWORK = INT( WORK( 1 ) )
 *
             IF( .NOT.WANTVS ) THEN
                MAXWRK = MAX( MAXWRK, HSWORK )
@@ -353,7 +350,7 @@
             IF( .NOT.WANTSN )
      $         LWRK = MAX( LWRK, ( N*N )/2 )
          END IF
-         WORK( 1 ) = LWRK
+         WORK( 1 ) = SROUNDUP_LWORK(LWRK)
 *
          IF( LWORK.LT.MINWRK .AND. .NOT.LQUERY ) THEN
             INFO = -15
@@ -379,7 +376,6 @@
       EPS = SLAMCH( 'P' )
       SMLNUM = SLAMCH( 'S' )
       BIGNUM = ONE / SMLNUM
-      CALL SLABAD( SMLNUM, BIGNUM )
       SMLNUM = SQRT( SMLNUM ) / EPS
       BIGNUM = ONE / SMLNUM
 *
@@ -491,7 +487,7 @@
          END IF
       END IF
 *
-      WORK( 1 ) = MAXWRK
+      WORK( 1 ) = SROUNDUP_LWORK(MAXWRK)
       RETURN
 *
 *     End of CGEESX

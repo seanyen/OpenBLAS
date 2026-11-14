@@ -485,8 +485,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
 *> \ingroup complex_eig
 *
 *  =====================================================================
@@ -495,11 +493,11 @@
      $                   LDVR, LRE, LDLRE, RCONDV, RCNDV1, RCDVIN,
      $                   RCONDE, RCNDE1, RCDEIN, SCALE, SCALE1, RESULT,
      $                   WORK, NWORK, RWORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LDLRE, LDVL, LDVR, NIUNIT, NOUNIT,
@@ -551,8 +549,8 @@
       EXTERNAL           SLAMCH
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           CGET23, CLATME, CLATMR, CLATMS, CLASET, SLABAD,
-     $                   SLASUM, XERBLA
+      EXTERNAL           CGET23, CLATME, CLATMR, CLATMS, CLASET, SLASUM,
+     $                   XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, CMPLX, MAX, MIN, SQRT
@@ -627,7 +625,6 @@
 *
       UNFL = SLAMCH( 'Safe minimum' )
       OVFL = ONE / UNFL
-      CALL SLABAD( UNFL, OVFL )
       ULP = SLAMCH( 'Precision' )
       ULPINV = ONE / ULP
       RTULP = SQRT( ULP )
@@ -972,8 +969,7 @@
      $      / ' 2 = | transpose(A) VL - VL W | / ( n |A| ulp ) ',
      $      / ' 3 = | |VR(i)| - 1 | / ulp ',
      $      / ' 4 = | |VL(i)| - 1 | / ulp ',
-     $      / ' 5 = 0 if W same no matter if VR or VL computed,',
-     $      ' 1/ulp otherwise', /
+     $      / ' 5 = | W - W(other JOBVL/JOBVR) | / ( n |W| ulp ) ', /
      $      ' 6 = 0 if VR same no matter what else computed,',
      $      '  1/ulp otherwise', /
      $      ' 7 = 0 if VL same no matter what else computed,',

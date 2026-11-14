@@ -188,18 +188,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realOTHERcomputational
+*> \ingroup unmbr
 *
 *  =====================================================================
       SUBROUTINE SORMBR( VECT, SIDE, TRANS, M, N, K, A, LDA, TAU, C,
      $                   LDC, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          SIDE, TRANS, VECT
@@ -220,7 +217,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           ILAENV, LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, LSAME, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SORMLQ, SORMQR, XERBLA
@@ -242,10 +240,10 @@
 *
       IF( LEFT ) THEN
          NQ = M
-         NW = N
+         NW = MAX( 1, N )
       ELSE
          NQ = N
-         NW = M
+         NW = MAX( 1, M )
       END IF
       IF( .NOT.APPLYQ .AND. .NOT.LSAME( VECT, 'P' ) ) THEN
          INFO = -1
@@ -265,7 +263,7 @@
          INFO = -8
       ELSE IF( LDC.LT.MAX( 1, M ) ) THEN
          INFO = -11
-      ELSE IF( LWORK.LT.MAX( 1, NW ) .AND. .NOT.LQUERY ) THEN
+      ELSE IF( LWORK.LT.NW .AND. .NOT.LQUERY ) THEN
          INFO = -13
       END IF
 *
@@ -287,8 +285,8 @@
      $                      -1 )
             END IF
          END IF
-         LWKOPT = MAX( 1, NW )*NB
-         WORK( 1 ) = LWKOPT
+         LWKOPT = NW*NB
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -366,7 +364,7 @@
      $                   TAU, C( I1, I2 ), LDC, WORK, LWORK, IINFO )
          END IF
       END IF
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       RETURN
 *
 *     End of SORMBR

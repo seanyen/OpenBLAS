@@ -45,7 +45,8 @@
 
 #ifndef ASSEMBLER
 
-static void __inline blas_lock(volatile unsigned long *address){
+#ifndef BLAS_LOCK_DEFINED
+static __inline void blas_lock(volatile unsigned long *address){
 
   long int ret = 1;
 
@@ -60,6 +61,7 @@ static void __inline blas_lock(volatile unsigned long *address){
   } while (ret);
 }
 #define BLAS_LOCK_DEFINED
+#endif
 
 static __inline unsigned long rpcc(void){
   unsigned long clocks;
@@ -202,6 +204,14 @@ static __inline int blas_quickdivide(blasint x, blasint y){
 
 #ifdef sparc
 #define PROLOGUE \
+	.section	".text"; \
+	.align 32; \
+	.global REALNAME;\
+	.type	REALNAME, #function; \
+	.proc	07; \
+REALNAME:;
+
+#define PROLOGUE_EXPORT \
 	.section	".text"; \
 	.align 32; \
 	.global REALNAME;\

@@ -123,18 +123,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
-*> \ingroup complexSYcomputational
+*> \ingroup hetrs_aa
 *
 *  =====================================================================
       SUBROUTINE CSYTRS_AA( UPLO, N, NRHS, A, LDA, IPIV, B, LDB,
      $                      WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.8.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
       IMPLICIT NONE
 *
@@ -158,7 +155,8 @@
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      EXTERNAL           LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CLACPY, CGTSV, CSWAP, CTRSM, XERBLA
@@ -189,7 +187,7 @@
          RETURN
       ELSE IF( LQUERY ) THEN
          LWKOPT = (3*N-2)
-         WORK( 1 ) = LWKOPT
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
          RETURN
       END IF
 *

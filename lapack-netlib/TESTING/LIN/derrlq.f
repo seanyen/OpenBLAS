@@ -48,17 +48,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup double_lin
 *
 *  =====================================================================
       SUBROUTINE DERRLQ( PATH, NUNIT )
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*3        PATH
@@ -79,7 +76,7 @@
      $                   W( NMAX ), X( NMAX )
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           ALAESM, CHKXER, DGELQ2, DGELQF, DGELQS, DORGL2,
+      EXTERNAL           ALAESM, CHKXER, DGELQ2, DGELQF, DORGL2,
      $                   DORGLQ, DORML2, DORMLQ
 *     ..
 *     .. Scalars in Common ..
@@ -142,31 +139,6 @@
       INFOT = 4
       CALL DGELQ2( 2, 1, A, 1, B, W, INFO )
       CALL CHKXER( 'DGELQ2', INFOT, NOUT, LERR, OK )
-*
-*     DGELQS
-*
-      SRNAMT = 'DGELQS'
-      INFOT = 1
-      CALL DGELQS( -1, 0, 0, A, 1, X, B, 1, W, 1, INFO )
-      CALL CHKXER( 'DGELQS', INFOT, NOUT, LERR, OK )
-      INFOT = 2
-      CALL DGELQS( 0, -1, 0, A, 1, X, B, 1, W, 1, INFO )
-      CALL CHKXER( 'DGELQS', INFOT, NOUT, LERR, OK )
-      INFOT = 2
-      CALL DGELQS( 2, 1, 0, A, 2, X, B, 1, W, 1, INFO )
-      CALL CHKXER( 'DGELQS', INFOT, NOUT, LERR, OK )
-      INFOT = 3
-      CALL DGELQS( 0, 0, -1, A, 1, X, B, 1, W, 1, INFO )
-      CALL CHKXER( 'DGELQS', INFOT, NOUT, LERR, OK )
-      INFOT = 5
-      CALL DGELQS( 2, 2, 0, A, 1, X, B, 2, W, 1, INFO )
-      CALL CHKXER( 'DGELQS', INFOT, NOUT, LERR, OK )
-      INFOT = 8
-      CALL DGELQS( 1, 2, 0, A, 1, X, B, 1, W, 1, INFO )
-      CALL CHKXER( 'DGELQS', INFOT, NOUT, LERR, OK )
-      INFOT = 10
-      CALL DGELQS( 1, 1, 2, A, 1, X, B, 1, W, 1, INFO )
-      CALL CHKXER( 'DGELQS', INFOT, NOUT, LERR, OK )
 *
 *     DORGLQ
 *

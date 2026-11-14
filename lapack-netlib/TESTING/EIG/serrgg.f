@@ -23,7 +23,7 @@
 *>
 *> SERRGG tests the error exits for SGGES, SGGESX, SGGEV, SGGEVX,
 *> SGGES3, SGGEV3, SGGGLM, SGGHRD, SGGLSE, SGGQRF, SGGRQF,
-*> SGGSVD3, SGGSVP3, SHGEQZ, SORCSD, STGEVC, STGEXC, STGSEN,
+*> SGGSVD3, SGGSVP3, SHGEQZ, SORBDB, SORCSD, STGEVC, STGEXC, STGSEN,
 *> STGSJA, STGSNA, and STGSYL.
 *> \endverbatim
 *
@@ -50,17 +50,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
 *> \ingroup single_eig
 *
 *  =====================================================================
       SUBROUTINE SERRGG( PATH, NUNIT )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*3        PATH
@@ -72,8 +70,8 @@
 *     .. Parameters ..
       INTEGER            NMAX, LW
       PARAMETER          ( NMAX = 3, LW = 6*NMAX )
-      REAL               ONE, ZERO
-      PARAMETER          ( ONE = 1.0E+0, ZERO = 0.0E+0 )
+      REAL               ZERO, ONE
+      PARAMETER          ( ZERO = 0.0E+0, ONE = 1.0E+0 )
 *     ..
 *     .. Local Scalars ..
       CHARACTER*2        C2
@@ -97,9 +95,9 @@
 *     .. External Subroutines ..
       EXTERNAL           CHKXER, SGGES, SGGESX, SGGEV, SGGEVX, SGGGLM,
      $                   SGGHRD, SGGLSE, SGGQRF, SGGRQF,
-     $                   SHGEQZ, SORCSD, STGEVC, STGEXC, STGSEN, STGSJA,
-     $                   STGSNA, STGSYL, SGGES3, SGGEV3, SGGHD3,
-     $                   SGGSVD3, SGGSVP3
+     $                   SHGEQZ, SORBDB, SORCSD, STGEVC, STGEXC, STGSEN,
+     $                   STGSJA, STGSNA, STGSYL, SGGES3, SGGEV3, SGGHD3,
+     $                   SGGSVD3, SGGSVP3, XLAENV
 *     ..
 *     .. Scalars in Common ..
       LOGICAL            LERR, OK
@@ -130,12 +128,20 @@
          B( I, I ) = ONE
    30 CONTINUE
       OK = .TRUE.
-      TOLA = 1.0E0
-      TOLB = 1.0E0
+      TOLA = ONE
+      TOLB = ONE
       IFST = 1
       ILST = 1
       NT = 0
       LWORK = 1
+*
+*     Call XLAENV to set the parameters used in CLAQZ0
+*
+      CALL XLAENV( 12, 10 )
+      CALL XLAENV( 13, 12 )
+      CALL XLAENV( 14, 13 )
+      CALL XLAENV( 15, 2 )
+      CALL XLAENV( 17, 10 )
 *
 *     Test error exits for the GG path.
 *
@@ -599,6 +605,23 @@
      $                 -1, W, LW, IW, INFO )
          CALL CHKXER( 'SORCSD', INFOT, NOUT, LERR, OK )
          NT = NT + 8
+*
+*        SORBDB
+*
+         SRNAMT = 'SORBDB'
+         INFOT = 3
+         CALL SORBDB( 'N', 'N', -1, 0, 0, A, 1, A, 1, A, 1, A, 1,
+     $                A, A, A, A, A, A, W, LW, INFO )
+         CALL CHKXER( 'SORBDB', INFOT, NOUT, LERR, OK )
+         INFOT = 4
+         CALL SORBDB( 'N', 'N', 1, -1, 0, A, 1, A, 1, A, 1, A, 1,
+     $                A, A, A, A, A, A, W, LW, INFO )
+         CALL CHKXER( 'SORBDB', INFOT, NOUT, LERR, OK )
+         INFOT = 5
+         CALL SORBDB( 'N', 'N', 1, 1, -1, A, 1, A, 1, A, 1, A, 1,
+     $                A, A, A, A, A, A, W, LW, INFO )
+         CALL CHKXER( 'SORBDB', INFOT, NOUT, LERR, OK )
+         NT = NT + 3
 *
 *     Test error exits for the GQR path.
 *

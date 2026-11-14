@@ -174,7 +174,8 @@
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
-*>          The dimension of the array WORK.
+*>          The dimension of the array WORK. LWORK >= MAX(1,2*N).
+*>          For good performance, LWORK must generally be larger.
 *>
 *>          If LWORK = -1, then a workspace query is assumed; the routine
 *>          only calculates the optimal size of the WORK array, returns
@@ -196,8 +197,8 @@
 *>                The QZ iteration failed.  No eigenvectors have been
 *>                calculated, but ALPHA(j) and BETA(j) should be
 *>                correct for j=INFO+1,...,N.
-*>          > N:  =N+1: other then QZ iteration failed in SHGEQZ,
-*>                =N+2: error return from STGEVC.
+*>          > N:  =N+1: other then QZ iteration failed in CHGEQZ,
+*>                =N+2: error return from CTGEVC.
 *> \endverbatim
 *
 *  Authors:
@@ -208,18 +209,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date January 2015
-*
-*> \ingroup complexGEeigen
+*> \ingroup ggev3
 *
 *  =====================================================================
       SUBROUTINE CGGEV3( JOBVL, JOBVR, N, A, LDA, B, LDB, ALPHA, BETA,
      $                   VL, LDVL, VR, LDVR, WORK, LWORK, RWORK, INFO )
 *
-*  -- LAPACK driver routine (version 3.6.1) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     January 2015
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBVL, JOBVR
@@ -246,7 +244,7 @@
       CHARACTER          CHTEMP
       INTEGER            ICOLS, IERR, IHI, IJOBVL, IJOBVR, ILEFT, ILO,
      $                   IN, IRIGHT, IROWS, IRWRK, ITAU, IWRK, JC, JR,
-     $                   LWKOPT
+     $                   LWKOPT, LWKMIN
       REAL               ANRM, ANRMTO, BIGNUM, BNRM, BNRMTO, EPS,
      $                   SMLNUM, TEMP
       COMPLEX            X
@@ -255,14 +253,13 @@
       LOGICAL            LDUMMA( 1 )
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           CGEQRF, CGGBAK, CGGBAL, CGGHD3, CHGEQZ, CLACPY,
-     $                   CLASCL, CLASET, CTGEVC, CUNGQR, CUNMQR, SLABAD,
-     $                   XERBLA
+      EXTERNAL           CGEQRF, CGGBAK, CGGBAL, CGGHD3, CLAQZ0, CLACPY,
+     $                   CLASCL, CLASET, CTGEVC, CUNGQR, CUNMQR, XERBLA
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      REAL               CLANGE, SLAMCH
-      EXTERNAL           LSAME, CLANGE, SLAMCH
+      REAL               CLANGE, SLAMCH, SROUNDUP_LWORK
+      EXTERNAL           LSAME, CLANGE, SLAMCH, SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, AIMAG, MAX, REAL, SQRT
@@ -304,6 +301,7 @@
 *
       INFO = 0
       LQUERY = ( LWORK.EQ.-1 )
+      LWKMIN = MAX( 1, 2*N )
       IF( IJOBVL.LE.0 ) THEN
          INFO = -1
       ELSE IF( IJOBVR.LE.0 ) THEN
@@ -318,7 +316,7 @@
          INFO = -11
       ELSE IF( LDVR.LT.1 .OR. ( ILVR .AND. LDVR.LT.N ) ) THEN
          INFO = -13
-      ELSE IF( LWORK.LT.MAX( 1, 2*N ) .AND. .NOT.LQUERY ) THEN
+      ELSE IF( LWORK.LT.LWKMIN .AND. .NOT.LQUERY ) THEN
          INFO = -15
       END IF
 *
@@ -326,7 +324,7 @@
 *
       IF( INFO.EQ.0 ) THEN
          CALL CGEQRF( N, N, B, LDB, WORK, WORK, -1, IERR )
-         LWKOPT = MAX( N,  N+INT( WORK( 1 ) ) )
+         LWKOPT = MAX( LWKMIN, N+INT( WORK( 1 ) ) )
          CALL CUNMQR( 'L', 'C', N, N, N, B, LDB, WORK, A, LDA, WORK,
      $                -1, IERR )
          LWKOPT = MAX( LWKOPT, N+INT( WORK( 1 ) ) )
@@ -338,20 +336,24 @@
             CALL CGGHD3( JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB, VL,
      $                   LDVL, VR, LDVR, WORK, -1, IERR )
             LWKOPT = MAX( LWKOPT, N+INT( WORK( 1 ) ) )
-            CALL CHGEQZ( 'S', JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB,
+            CALL CLAQZ0( 'S', JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB,
      $                   ALPHA, BETA, VL, LDVL, VR, LDVR, WORK, -1,
-     $                   RWORK, IERR )
+     $                   RWORK, 0, IERR )
             LWKOPT = MAX( LWKOPT, N+INT( WORK( 1 ) ) )
          ELSE
             CALL CGGHD3( 'N', 'N', N, 1, N, A, LDA, B, LDB, VL, LDVL,
      $                   VR, LDVR, WORK, -1, IERR )
             LWKOPT = MAX( LWKOPT, N+INT( WORK( 1 ) ) )
-            CALL CHGEQZ( 'E', JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB,
+            CALL CLAQZ0( 'E', JOBVL, JOBVR, N, 1, N, A, LDA, B, LDB,
      $                   ALPHA, BETA, VL, LDVL, VR, LDVR, WORK, -1,
-     $                   RWORK, IERR )
+     $                   RWORK, 0, IERR )
             LWKOPT = MAX( LWKOPT, N+INT( WORK( 1 ) ) )
          END IF
-         WORK( 1 ) = CMPLX( LWKOPT )
+         IF( N.EQ.0 ) THEN
+            WORK( 1 ) = 1
+         ELSE
+            WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
+         END IF
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -371,7 +373,6 @@
       EPS = SLAMCH( 'E' )*SLAMCH( 'B' )
       SMLNUM = SLAMCH( 'S' )
       BIGNUM = ONE / SMLNUM
-      CALL SLABAD( SMLNUM, BIGNUM )
       SMLNUM = SQRT( SMLNUM ) / EPS
       BIGNUM = ONE / SMLNUM
 *
@@ -471,9 +472,9 @@
       ELSE
          CHTEMP = 'E'
       END IF
-      CALL CHGEQZ( CHTEMP, JOBVL, JOBVR, N, ILO, IHI, A, LDA, B, LDB,
+      CALL CLAQZ0( CHTEMP, JOBVL, JOBVR, N, ILO, IHI, A, LDA, B, LDB,
      $             ALPHA, BETA, VL, LDVL, VR, LDVR, WORK( IWRK ),
-     $             LWORK+1-IWRK, RWORK( IRWRK ), IERR )
+     $             LWORK+1-IWRK, RWORK( IRWRK ), 0, IERR )
       IF( IERR.NE.0 ) THEN
          IF( IERR.GT.0 .AND. IERR.LE.N ) THEN
             INFO = IERR
@@ -552,7 +553,7 @@
       IF( ILBSCL )
      $   CALL CLASCL( 'G', 0, 0, BNRMTO, BNRM, N, 1, BETA, N, IERR )
 *
-      WORK( 1 ) = CMPLX( LWKOPT )
+      WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       RETURN
 *
 *     End of CGGEV3

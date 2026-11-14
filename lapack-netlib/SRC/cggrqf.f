@@ -172,9 +172,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexOTHERcomputational
+*> \ingroup ggrqf
 *
 *> \par Further Details:
 *  =====================
@@ -214,10 +212,9 @@
       SUBROUTINE CGGRQF( M, P, N, A, LDA, TAUA, B, LDB, TAUB, WORK,
      $                   LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LDB, LWORK, M, N, P
@@ -238,7 +235,8 @@
 *     ..
 *     .. External Functions ..
       INTEGER            ILAENV
-      EXTERNAL           ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          INT, MAX, MIN
@@ -252,8 +250,8 @@
       NB2 = ILAENV( 1, 'CGEQRF', ' ', P, N, -1, -1 )
       NB3 = ILAENV( 1, 'CUNMRQ', ' ', M, N, P, -1 )
       NB = MAX( NB1, NB2, NB3 )
-      LWKOPT = MAX( N, M, P)*NB
-      WORK( 1 ) = LWKOPT
+      LWKOPT = MAX( 1, MAX( N, M, P )*NB )
+      WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       LQUERY = ( LWORK.EQ.-1 )
       IF( M.LT.0 ) THEN
          INFO = -1
@@ -278,7 +276,7 @@
 *     RQ factorization of M-by-N matrix A: A = R*Q
 *
       CALL CGERQF( M, N, A, LDA, TAUA, WORK, LWORK, INFO )
-      LOPT = WORK( 1 )
+      LOPT = INT( WORK( 1 ) )
 *
 *     Update B := B*Q**H
 *
@@ -290,7 +288,7 @@
 *     QR factorization of P-by-N matrix B: B = Z*T
 *
       CALL CGEQRF( P, N, B, LDB, TAUB, WORK, LWORK, INFO )
-      WORK( 1 ) = MAX( LOPT, INT( WORK( 1 ) ) )
+      WORK( 1 ) = SROUNDUP_LWORK( MAX( LOPT, INT( WORK( 1 ) ) ) )
 *
       RETURN
 *

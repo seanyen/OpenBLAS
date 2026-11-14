@@ -1,3 +1,42 @@
+/*********************************************************************/
+/* Copyright 2009, 2010 The University of Texas at Austin.           */
+/* Copyright 2025-2026 The OpenBLAS Project.                         */
+/* All rights reserved.                                              */
+/*                                                                   */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
+/*                                                                   */
+/*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
+/*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
+/*    INCLUDING, BUT  NOT LIMITED  TO, THE IMPLIED  WARRANTIES OF    */
+/*    MERCHANTABILITY  AND FITNESS FOR  A PARTICULAR  PURPOSE ARE    */
+/*    DISCLAIMED.  IN  NO EVENT SHALL THE UNIVERSITY  OF TEXAS AT    */
+/*    AUSTIN OR CONTRIBUTORS BE  LIABLE FOR ANY DIRECT, INDIRECT,    */
+/*    INCIDENTAL,  SPECIAL, EXEMPLARY,  OR  CONSEQUENTIAL DAMAGES    */
+/*    (INCLUDING, BUT  NOT LIMITED TO,  PROCUREMENT OF SUBSTITUTE    */
+/*    GOODS  OR  SERVICES; LOSS  OF  USE,  DATA,  OR PROFITS;  OR    */
+/*    BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON ANY THEORY OF    */
+/*    LIABILITY, WHETHER  IN CONTRACT, STRICT  LIABILITY, OR TORT    */
+/*    (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT    */
+/*    OF  THE  USE OF  THIS  SOFTWARE,  EVEN  IF ADVISED  OF  THE    */
+/*    POSSIBILITY OF SUCH DAMAGE.                                    */
+/*                                                                   */
+/* The views and conclusions contained in the software and           */
+/* documentation are those of the authors and should not be          */
+/* interpreted as representing official policies, either expressed   */
+/* or implied, of The University of Texas at Austin.                 */
+/*********************************************************************/
+
 #ifndef COMMON_S_H
 #define COMMON_S_H
 
@@ -24,6 +63,7 @@
 #define	SSCAL_K			sscal_k
 #define	SSWAP_K			sswap_k
 #define	SROT_K			srot_k
+#define	SROTM_K			srotm_k
 
 #define	SGEMV_N			sgemv_n
 #define	SGEMV_T			sgemv_t
@@ -48,6 +88,21 @@
 
 #define SGEMM_DIRECT_PERFORMANT    sgemm_direct_performant
 #define SGEMM_DIRECT		sgemm_direct
+#define  SGEMM_DIRECT_ALPHA_BETA		sgemm_direct_alpha_beta
+#define  SSYMM_DIRECT_ALPHA_BETA_LU		ssymm_direct_alpha_betaLU
+#define  SSYMM_DIRECT_ALPHA_BETA_LL		ssymm_direct_alpha_betaLL
+#define  STRMM_DIRECT_LNUN		strmm_direct_LNUN
+#define  STRMM_DIRECT_LNLN		strmm_direct_LNLN
+#define  STRMM_DIRECT_LTUN		strmm_direct_LTUN
+#define  STRMM_DIRECT_LTLN		strmm_direct_LTLN
+#define  SSYRK_DIRECT_ALPHA_BETA_UN         ssyrk_direct_alpha_betaUN
+#define  SSYRK_DIRECT_ALPHA_BETA_UT         ssyrk_direct_alpha_betaUT
+#define  SSYRK_DIRECT_ALPHA_BETA_LN         ssyrk_direct_alpha_betaLN
+#define  SSYRK_DIRECT_ALPHA_BETA_LT         ssyrk_direct_alpha_betaLT
+#define  SSYR2K_DIRECT_ALPHA_BETA_UN         ssyr2k_direct_alpha_betaUN
+#define  SSYR2K_DIRECT_ALPHA_BETA_UT         ssyr2k_direct_alpha_betaUT
+#define  SSYR2K_DIRECT_ALPHA_BETA_LN         ssyr2k_direct_alpha_betaLN
+#define  SSYR2K_DIRECT_ALPHA_BETA_LT         ssyr2k_direct_alpha_betaLT
 
 #define	SGEMM_ONCOPY		sgemm_oncopy
 #define	SGEMM_OTCOPY		sgemm_otcopy
@@ -59,6 +114,12 @@
 #define	SGEMM_INCOPY		sgemm_incopy
 #define	SGEMM_ITCOPY		sgemm_itcopy
 #endif
+
+#define SME_SGEMM_KERNEL	sme_sgemm_kernel
+#define	SSYMM_INCOPY		    ssymm_incopy
+#define	SSYMM_ITCOPY	    	ssymm_itcopy
+#define	STRMM_INCOPY		strmm_incopy
+#define	STRMM_ITCOPY		strmm_itcopy
 
 #define	STRMM_OUNUCOPY		strmm_ounucopy
 #define	STRMM_OUNNCOPY		strmm_ounncopy
@@ -119,6 +180,8 @@
 #define	SGEMM_BETA		sgemm_beta
 
 #define	SGEMM_KERNEL		sgemm_kernel
+#define	SSYMM_KERNEL		ssymm_kernel
+#define	STRMM_GEMM_KERNEL	strmm_gemm_kernel
 
 #define	STRMM_KERNEL_LN		strmm_kernel_LN
 #define	STRMM_KERNEL_LT		strmm_kernel_LT
@@ -164,6 +227,8 @@
 
 #define SGEADD_K                sgeadd_k 
 
+#define SGEMM_SMALL_MATRIX_PERMIT	sgemm_small_matrix_permit
+
 #else
 
 #define	SAMAX_K			gotoblas -> samax_k
@@ -187,6 +252,7 @@
 #define	SSCAL_K			gotoblas -> sscal_k
 #define	SSWAP_K			gotoblas -> sswap_k
 #define	SROT_K			gotoblas -> srot_k
+#define	SROTM_K			gotoblas -> srotm_k
 
 #define	SGEMV_N			gotoblas -> sgemv_n
 #define	SGEMV_T			gotoblas -> sgemv_t
@@ -211,9 +277,25 @@
 #ifdef ARCH_X86_64
 #define SGEMM_DIRECT_PERFORMANT gotoblas -> sgemm_direct_performant
 #define  SGEMM_DIRECT		gotoblas -> sgemm_direct
-#else
-#define SGEMM_DIRECT_PERFORMANT    sgemm_direct_performant
-#define  SGEMM_DIRECT		sgemm_direct
+#elif ARCH_ARM64
+#define SGEMM_DIRECT_PERFORMANT gotoblas -> sgemm_direct_performant
+#define  SGEMM_DIRECT		gotoblas -> sgemm_direct
+#define  SGEMM_DIRECT_ALPHA_BETA		gotoblas -> sgemm_direct_alpha_beta
+#define  SSYMM_DIRECT_ALPHA_BETA_LU		gotoblas -> ssymm_direct_alpha_betaLU
+#define  SSYMM_DIRECT_ALPHA_BETA_LL		gotoblas -> ssymm_direct_alpha_betaLL
+#define  STRMM_DIRECT_LNUN		gotoblas -> strmm_direct_LNUN
+#define  STRMM_DIRECT_LNLN		gotoblas -> strmm_direct_LNLN
+#define  STRMM_DIRECT_LTUN		gotoblas -> strmm_direct_LTUN
+#define  STRMM_DIRECT_LTLN		gotoblas -> strmm_direct_LTLN
+#define  SSYRK_DIRECT_ALPHA_BETA_UN     gotoblas -> ssyrk_direct_alpha_betaUN
+#define  SSYRK_DIRECT_ALPHA_BETA_UT     gotoblas -> ssyrk_direct_alpha_betaUT
+#define  SSYRK_DIRECT_ALPHA_BETA_LN     gotoblas -> ssyrk_direct_alpha_betaLN
+#define  SSYRK_DIRECT_ALPHA_BETA_LT     gotoblas -> ssyrk_direct_alpha_betaLT
+#define  SSYR2K_DIRECT_ALPHA_BETA_UN     gotoblas -> ssyr2k_direct_alpha_betaUN
+#define  SSYR2K_DIRECT_ALPHA_BETA_UT     gotoblas -> ssyr2k_direct_alpha_betaUT
+#define  SSYR2K_DIRECT_ALPHA_BETA_LN     gotoblas -> ssyr2k_direct_alpha_betaLN
+#define  SSYR2K_DIRECT_ALPHA_BETA_LT     gotoblas -> ssyr2k_direct_alpha_betaLT
+#define SME_SGEMM_KERNEL	gotoblas -> sme_sgemm_kernel
 #endif
 
 #define	SGEMM_ONCOPY		gotoblas -> sgemm_oncopy
@@ -252,13 +334,20 @@
 #define	STRMM_IUTNCOPY		gotoblas -> strmm_iutncopy
 #define	STRMM_ILNNCOPY		gotoblas -> strmm_ilnncopy
 #define	STRMM_ILTNCOPY		gotoblas -> strmm_iltncopy
+#define	SSYMM_INCOPY		    gotoblas -> ssymm_incopy
+#define	SSYMM_ITCOPY	     	gotoblas -> ssymm_itcopy
+#define	STRMM_INCOPY		gotoblas -> strmm_incopy
+#define	STRMM_ITCOPY		gotoblas -> strmm_itcopy
+
 #define	STRSM_IUNNCOPY		gotoblas -> strsm_iunncopy
 #define	STRSM_IUTNCOPY		gotoblas -> strsm_iutncopy
 #define	STRSM_ILNNCOPY		gotoblas -> strsm_ilnncopy
 #define	STRSM_ILTNCOPY		gotoblas -> strsm_iltncopy
 
-#define	SGEMM_BETA		gotoblas -> sgemm_beta
+#define	SGEMM_BETA		    gotoblas -> sgemm_beta
 #define	SGEMM_KERNEL		gotoblas -> sgemm_kernel
+#define	SSYMM_KERNEL		gotoblas -> ssymm_kernel
+#define	STRMM_GEMM_KERNEL	gotoblas -> strmm_gemm_kernel
 
 #define	STRMM_KERNEL_LN		gotoblas -> strmm_kernel_LN
 #define	STRMM_KERNEL_LT		gotoblas -> strmm_kernel_LT
@@ -299,7 +388,20 @@
 
 #define SGEADD_K                gotoblas -> sgeadd_k 
 
+#define SGEMM_SMALL_MATRIX_PERMIT	gotoblas -> sgemm_small_matrix_permit
+
 #endif
+
+#define SGEMM_SMALL_KERNEL_NN		FUNC_OFFSET(sgemm_small_kernel_nn)
+#define SGEMM_SMALL_KERNEL_NT		FUNC_OFFSET(sgemm_small_kernel_nt)
+#define SGEMM_SMALL_KERNEL_TN		FUNC_OFFSET(sgemm_small_kernel_tn)
+#define SGEMM_SMALL_KERNEL_TT		FUNC_OFFSET(sgemm_small_kernel_tt)
+
+#define SGEMM_SMALL_KERNEL_B0_NN	FUNC_OFFSET(sgemm_small_kernel_b0_nn)
+#define SGEMM_SMALL_KERNEL_B0_NT	FUNC_OFFSET(sgemm_small_kernel_b0_nt)
+#define SGEMM_SMALL_KERNEL_B0_TN	FUNC_OFFSET(sgemm_small_kernel_b0_tn)
+#define SGEMM_SMALL_KERNEL_B0_TT	FUNC_OFFSET(sgemm_small_kernel_b0_tt)
+
 
 #define	SGEMM_NN		sgemm_nn
 #define	SGEMM_CN		sgemm_tn
@@ -339,6 +441,15 @@
 
 #define	SSYRK_KERNEL_U		ssyrk_kernel_U
 #define	SSYRK_KERNEL_L		ssyrk_kernel_L
+
+#define	SGEMMT_UNN		sgemmt_UNN
+#define	SGEMMT_UNT		sgemmt_UNT
+#define	SGEMMT_UTN		sgemmt_UTN
+#define	SGEMMT_UTT		sgemmt_UTT
+#define	SGEMMT_LNN		sgemmt_LNN
+#define	SGEMMT_LNT		sgemmt_LNT
+#define	SGEMMT_LTN		sgemmt_LTN
+#define	SGEMMT_LTT		sgemmt_LTT
 
 #define	SHERK_UN		ssyrk_UN
 #define	SHERK_LN		ssyrk_LN

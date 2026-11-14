@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download ZHPEVX + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zhpevx.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zhpevx.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -219,8 +217,11 @@
 *>          INFO is INTEGER
 *>          = 0:  successful exit
 *>          < 0:  if INFO = -i, the i-th argument had an illegal value
-*>          > 0:  if INFO = i, then i eigenvectors failed to converge.
-*>                Their indices are stored in array IFAIL.
+*>          > 0:  if INFO = i, and i is:
+*>                <= N: then i eigenvectors failed to converge in
+*>                     ZSTEIN; their indices are stored in IFAIL.
+*>                > N: DSTEBZ returned INFO = INFO - N;
+*>                     see DSTEBZ for details.
 *> \endverbatim
 *
 *  Authors:
@@ -231,19 +232,17 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
-*> \ingroup complex16OTHEReigen
+*> \ingroup hpevx
 *
 *  =====================================================================
       SUBROUTINE ZHPEVX( JOBZ, RANGE, UPLO, N, AP, VL, VU, IL, IU,
      $                   ABSTOL, M, W, Z, LDZ, WORK, RWORK, IWORK,
      $                   IFAIL, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBZ, RANGE, UPLO
@@ -267,7 +266,7 @@
 *     .. Local Scalars ..
       LOGICAL            ALLEIG, INDEIG, TEST, VALEIG, WANTZ
       CHARACTER          ORDER
-      INTEGER            I, IINFO, IMAX, INDD, INDE, INDEE, INDIBL,
+      INTEGER            I, IINFO, INDD, INDE, INDEE,
      $                   INDISP, INDIWK, INDRWK, INDTAU, INDWRK, ISCALE,
      $                   ITMP1, J, JJ, NSPLIT
       DOUBLE PRECISION   ABSTLL, ANRM, BIGNUM, EPS, RMAX, RMIN, SAFMIN,
@@ -279,7 +278,8 @@
       EXTERNAL           LSAME, DLAMCH, ZLANHP
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           DCOPY, DSCAL, DSTEBZ, DSTERF, XERBLA, ZDSCAL,
+      EXTERNAL           DCOPY, DSCAL, DSTEBZ, DSTERF, XERBLA,
+     $                   ZDSCAL,
      $                   ZHPTRD, ZSTEIN, ZSTEQR, ZSWAP, ZUPGTR, ZUPMTR
 *     ..
 *     .. Intrinsic Functions ..
@@ -299,7 +299,8 @@
          INFO = -1
       ELSE IF( .NOT.( ALLEIG .OR. VALEIG .OR. INDEIG ) ) THEN
          INFO = -2
-      ELSE IF( .NOT.( LSAME( UPLO, 'L' ) .OR. LSAME( UPLO, 'U' ) ) )
+      ELSE IF( .NOT.( LSAME( UPLO, 'L' ) .OR.
+     $         LSAME( UPLO, 'U' ) ) )
      $          THEN
          INFO = -3
       ELSE IF( N.LT.0 ) THEN
@@ -335,11 +336,11 @@
       IF( N.EQ.1 ) THEN
          IF( ALLEIG .OR. INDEIG ) THEN
             M = 1
-            W( 1 ) = AP( 1 )
+            W( 1 ) = DBLE( AP( 1 ) )
          ELSE
             IF( VL.LT.DBLE( AP( 1 ) ) .AND. VU.GE.DBLE( AP( 1 ) ) ) THEN
                M = 1
-               W( 1 ) = AP( 1 )
+               W( 1 ) = DBLE( AP( 1 ) )
             END IF
          END IF
          IF( WANTZ )
@@ -372,8 +373,11 @@
          ISCALE = 1
          SIGMA = RMIN / ANRM
       ELSE IF( ANRM.GT.RMAX ) THEN
-         ISCALE = 1
+*        An infinite norm gives SIGMA = 0; leave such a matrix
+*        unscaled so that VL and VU remain a valid interval.
          SIGMA = RMAX / ANRM
+         IF( SIGMA.GT.ZERO )
+     $      ISCALE = 1
       END IF
       IF( ISCALE.EQ.1 ) THEN
          CALL ZDSCAL( ( N*( N+1 ) ) / 2, SIGMA, AP, 1 )
@@ -437,38 +441,39 @@
       ELSE
          ORDER = 'E'
       END IF
-      INDIBL = 1
-      INDISP = INDIBL + N
+      INDISP = 1 + N
       INDIWK = INDISP + N
       CALL DSTEBZ( RANGE, ORDER, N, VLL, VUU, IL, IU, ABSTLL,
      $             RWORK( INDD ), RWORK( INDE ), M, NSPLIT, W,
-     $             IWORK( INDIBL ), IWORK( INDISP ), RWORK( INDRWK ),
-     $             IWORK( INDIWK ), INFO )
+     $             IWORK( 1 ), IWORK( INDISP ), RWORK( INDRWK ),
+     $             IWORK( INDIWK ), IINFO )
+      IF( IINFO.NE.0 ) THEN
+         INFO = N + IINFO
+         IF( IINFO.NE.1 )
+     $      GO TO 20
+      END IF
 *
       IF( WANTZ ) THEN
          CALL ZSTEIN( N, RWORK( INDD ), RWORK( INDE ), M, W,
-     $                IWORK( INDIBL ), IWORK( INDISP ), Z, LDZ,
-     $                RWORK( INDRWK ), IWORK( INDIWK ), IFAIL, INFO )
+     $                IWORK( 1 ), IWORK( INDISP ), Z, LDZ,
+     $                RWORK( INDRWK ), IWORK( INDIWK ), IFAIL, IINFO )
+         IF( IINFO.NE.0 .AND. INFO.EQ.0 )
+     $      INFO = IINFO
 *
 *        Apply unitary matrix used in reduction to tridiagonal
 *        form to eigenvectors returned by ZSTEIN.
 *
          INDWRK = INDTAU + N
-         CALL ZUPMTR( 'L', UPLO, 'N', N, M, AP, WORK( INDTAU ), Z, LDZ,
+         CALL ZUPMTR( 'L', UPLO, 'N', N, M, AP, WORK( INDTAU ), Z,
+     $                LDZ,
      $                WORK( INDWRK ), IINFO )
       END IF
 *
 *     If matrix was scaled, then rescale eigenvalues appropriately.
 *
    20 CONTINUE
-      IF( ISCALE.EQ.1 ) THEN
-         IF( INFO.EQ.0 ) THEN
-            IMAX = M
-         ELSE
-            IMAX = INFO - 1
-         END IF
-         CALL DSCAL( IMAX, ONE / SIGMA, W, 1 )
-      END IF
+      IF( ISCALE.EQ.1 )
+     $   CALL DSCAL( M, ONE / SIGMA, W, 1 )
 *
 *     If eigenvalues are not in order, then sort them, along with
 *     eigenvectors.
@@ -485,11 +490,11 @@
    30       CONTINUE
 *
             IF( I.NE.0 ) THEN
-               ITMP1 = IWORK( INDIBL+I-1 )
+               ITMP1 = IWORK( 1 + I-1 )
                W( I ) = W( J )
-               IWORK( INDIBL+I-1 ) = IWORK( INDIBL+J-1 )
+               IWORK( 1 + I-1 ) = IWORK( 1 + J-1 )
                W( J ) = TMP1
-               IWORK( INDIBL+J-1 ) = ITMP1
+               IWORK( 1 + J-1 ) = ITMP1
                CALL ZSWAP( N, Z( 1, I ), 1, Z( 1, J ), 1 )
                IF( INFO.NE.0 ) THEN
                   ITMP1 = IFAIL( I )

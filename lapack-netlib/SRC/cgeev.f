@@ -169,21 +169,19 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
 *
 *  @generated from zgeev.f, fortran z -> c, Tue Apr 19 01:47:44 2016
 *
-*> \ingroup complexGEeigen
+*> \ingroup geev
 *
 *  =====================================================================
       SUBROUTINE CGEEV( JOBVL, JOBVR, N, A, LDA, W, VL, LDVL, VR, LDVR,
      $                  WORK, LWORK, RWORK, INFO )
       implicit none
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBVL, JOBVR
@@ -214,14 +212,15 @@
       REAL   DUM( 1 )
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           SLABAD, XERBLA, CSSCAL, CGEBAK, CGEBAL, CGEHRD,
+      EXTERNAL           XERBLA, CSSCAL, CGEBAK, CGEBAL, CGEHRD,
      $                   CHSEQR, CLACPY, CLASCL, CSCAL, CTREVC3, CUNGHR
 *     ..
 *     .. External Functions ..
-      LOGICAL            LSAME
+      LOGICAL            LSAME, SISNAN
       INTEGER            ISAMAX, ILAENV
-      REAL   SLAMCH, SCNRM2, CLANGE
-      EXTERNAL           LSAME, ISAMAX, ILAENV, SLAMCH, SCNRM2, CLANGE
+      REAL               SLAMCH, SCNRM2, CLANGE, SROUNDUP_LWORK
+      EXTERNAL           LSAME, ISAMAX, ILAENV, SLAMCH, SCNRM2, CLANGE,
+     $                   SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          REAL, CMPLX, CONJG, AIMAG, MAX, SQRT
@@ -293,7 +292,7 @@
             HSWORK = INT( WORK(1) )
             MAXWRK = MAX( MAXWRK, HSWORK, MINWRK )
          END IF
-         WORK( 1 ) = MAXWRK
+         WORK( 1 ) = SROUNDUP_LWORK(MAXWRK)
 *
          IF( LWORK.LT.MINWRK .AND. .NOT.LQUERY ) THEN
             INFO = -12
@@ -317,7 +316,6 @@
       EPS = SLAMCH( 'P' )
       SMLNUM = SLAMCH( 'S' )
       BIGNUM = ONE / SMLNUM
-      CALL SLABAD( SMLNUM, BIGNUM )
       SMLNUM = SQRT( SMLNUM ) / EPS
       BIGNUM = ONE / SMLNUM
 *
@@ -331,6 +329,10 @@
       ELSE IF( ANRM.GT.BIGNUM ) THEN
          SCALEA = .TRUE.
          CSCALE = BIGNUM
+      ELSE IF ( SISNAN( ANRM ) ) THEN
+         INFO = -4
+         CALL XERBLA( 'CGEEV', -INFO )
+         RETURN
       END IF
       IF( SCALEA )
      $   CALL CLASCL( 'G', 0, 0, ANRM, CSCALE, N, N, A, LDA, IERR )
@@ -495,7 +497,7 @@
          END IF
       END IF
 *
-      WORK( 1 ) = MAXWRK
+      WORK( 1 ) = SROUNDUP_LWORK(MAXWRK)
       RETURN
 *
 *     End of CGEEV

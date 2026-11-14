@@ -37,15 +37,15 @@
 *> \param[in] SIDE
 *> \verbatim
 *>          SIDE is CHARACTER*1
-*>          = 'L': apply Q or Q**T from the Left;
-*>          = 'R': apply Q or Q**T from the Right.
+*>          = 'L': apply Q or Q**H from the Left;
+*>          = 'R': apply Q or Q**H from the Right.
 *> \endverbatim
 *>
 *> \param[in] TRANS
 *> \verbatim
 *>          TRANS is CHARACTER*1
 *>          = 'N':  No transpose, apply Q;
-*>          = 'T':  Transpose, apply Q**T.
+*>          = 'C':  Conjugate transpose, apply Q**H.
 *> \endverbatim
 *>
 *> \param[in] M
@@ -99,7 +99,7 @@
 *> \verbatim
 *>          C is COMPLEX array, dimension (LDC,N)
 *>          On entry, the M-by-N matrix C.
-*>          On exit, C is overwritten by Q*C or Q**T*C or C*Q**T or C*Q.
+*>          On exit, C is overwritten by Q*C or Q**H*C or C*Q**H or C*Q.
 *> \endverbatim
 *>
 *> \param[in] LDC
@@ -110,16 +110,17 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>         (workspace) COMPLEX array, dimension (MAX(1,LWORK))
+*>          (workspace) COMPLEX array, dimension (MAX(1,LWORK))
+*>          On exit, if INFO = 0, WORK(1) returns the minimal LWORK.
 *> \endverbatim
 *>
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
-*>          The dimension of the array WORK.
+*>          The dimension of the array WORK. LWORK >= 1.
 *>          If LWORK = -1, then a workspace query is assumed. The routine
 *>          only calculates the size of the WORK array, returns this
-*>          value as WORK(1), and no error message related to WORK 
+*>          value as WORK(1), and no error message related to WORK
 *>          is issued by XERBLA.
 *> \endverbatim
 *>
@@ -143,7 +144,7 @@
 *>
 *> \verbatim
 *>
-*> These details are particular for this LAPACK implementation. Users should not 
+*> These details are particular for this LAPACK implementation. Users should not
 *> take them for granted. These details may change in the future, and are not likely
 *> true for another LAPACK implementation. These details are relevant if one wants
 *> to try to understand the code. They are not part of the interface.
@@ -159,19 +160,20 @@
 *>  block sizes MB and NB returned by ILAENV, CGELQ will use either
 *>  CLASWLQ (if the matrix is wide-and-short) or CGELQT to compute
 *>  the LQ factorization.
-*>  This version of CGEMLQ will use either CLAMSWLQ or CGEMLQT to 
+*>  This version of CGEMLQ will use either CLAMSWLQ or CGEMLQT to
 *>  multiply matrix Q by another matrix.
 *>  Further Details in CLAMSWLQ or CGEMLQT.
 *> \endverbatim
+*>
+*> \ingroup gemlq
 *>
 *  =====================================================================
       SUBROUTINE CGEMLQ( SIDE, TRANS, M, N, K, A, LDA, T, TSIZE,
      $                   C, LDC, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          SIDE, TRANS
@@ -186,11 +188,12 @@
 *     ..
 *     .. Local Scalars ..
       LOGICAL            LEFT, RIGHT, TRAN, NOTRAN, LQUERY
-      INTEGER            MB, NB, LW, NBLCKS, MN
+      INTEGER            MB, NB, LW, NBLCKS, MN, MINMNK, LWMIN
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      EXTERNAL           LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           CLAMSWLQ, CGEMLQT, XERBLA
@@ -202,7 +205,7 @@
 *
 *     Test the input arguments
 *
-      LQUERY  = LWORK.EQ.-1
+      LQUERY  = ( LWORK.EQ.-1 )
       NOTRAN  = LSAME( TRANS, 'N' )
       TRAN    = LSAME( TRANS, 'C' )
       LEFT    = LSAME( SIDE, 'L' )
@@ -216,6 +219,13 @@
       ELSE
         LW = M * MB
         MN = N
+      END IF
+*
+      MINMNK = MIN( M, N, K )
+      IF( MINMNK.EQ.0 ) THEN
+         LWMIN = 1
+      ELSE
+         LWMIN = MAX( 1, LW )
       END IF
 *
       IF( ( NB.GT.K ) .AND. ( MN.GT.K ) ) THEN
@@ -245,12 +255,12 @@
         INFO = -9
       ELSE IF( LDC.LT.MAX( 1, M ) ) THEN
         INFO = -11
-      ELSE IF( ( LWORK.LT.MAX( 1, LW ) ) .AND. ( .NOT.LQUERY ) ) THEN
+      ELSE IF( ( LWORK.LT.LWMIN ) .AND. ( .NOT.LQUERY ) ) THEN
         INFO = -13
       END IF
 *
       IF( INFO.EQ.0 ) THEN
-        WORK( 1 ) = REAL( LW )
+        WORK( 1 ) = SROUNDUP_LWORK( LWMIN )
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -262,7 +272,7 @@
 *
 *     Quick return if possible
 *
-      IF( MIN( M, N, K ).EQ.0 ) THEN
+      IF( MINMNK.EQ.0 ) THEN
         RETURN
       END IF
 *
@@ -275,7 +285,7 @@
      $                 MB, C, LDC, WORK, LWORK, INFO )
       END IF
 *
-      WORK( 1 ) = REAL( LW )
+      WORK( 1 ) = SROUNDUP_LWORK( LWMIN )
 *
       RETURN
 *

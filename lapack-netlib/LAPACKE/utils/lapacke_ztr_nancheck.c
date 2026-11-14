@@ -28,7 +28,6 @@
 ******************************************************************************
 * Contents: Native C interface to LAPACK utility function
 * Author: Intel Corporation
-* Created in February, 2010
 *****************************************************************************/
 #include "lapacke_utils.h"
 
@@ -69,14 +68,14 @@ lapack_logical LAPACKE_ztr_nancheck( int matrix_layout, char uplo, char diag,
     if( ( colmaj || lower ) && !( colmaj && lower ) ) {
         for( j = st; j < n; j++ ) {
             for( i = 0; i < MIN( j+1-st, lda ); i++ ) {
-                if( LAPACK_ZISNAN( a[i+j*lda] ) )
+                if( LAPACK_ZISNAN( a[i+(size_t)j*lda] ) )
                     return (lapack_logical) 1;
             }
         }
     } else {
         for( j = 0; j < n-st; j++ ) {
             for( i = j+st; i < MIN( n, lda ); i++ ) {
-                if( LAPACK_ZISNAN( a[i+j*lda] ) )
+                if( LAPACK_ZISNAN( a[i+(size_t)j*lda] ) )
                     return (lapack_logical) 1;
             }
         }

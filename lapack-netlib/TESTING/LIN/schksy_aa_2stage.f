@@ -65,7 +65,7 @@
 *>
 *> \param[in] NBVAL
 *> \verbatim
-*>          NBVAL is INTEGER array, dimension (NBVAL)
+*>          NBVAL is INTEGER array, dimension (NNB)
 *>          The values of the blocksize NB.
 *> \endverbatim
 *>
@@ -162,8 +162,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
 *> \ingroup real_lin
 *
 *  =====================================================================
@@ -171,10 +169,9 @@
      $                      NSVAL, THRESH, TSTERR, NMAX, A, AFAC, AINV,
      $                      B, X, XACT, WORK, RWORK, IWORK, NOUT )
 *
-*  -- LAPACK test routine (version 3.8.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
       IMPLICIT NONE
 *
@@ -426,9 +423,9 @@
 *                 block factorization, LWORK is the length of AINV.
 *
                   SRNAMT = 'SSYTRF_AA_2STAGE'
-                  LWORK = MIN(N*NB, 3*NMAX*NMAX)
+                  LWORK = MIN( MAX( 1, N*NB ), 3*NMAX*NMAX )
                   CALL SSYTRF_AA_2STAGE( UPLO, N, AFAC, LDA, 
-     $                                   AINV, (3*NB+1)*N, 
+     $                                   AINV, MAX( 1, (3*NB+1)*N ),
      $                                   IWORK, IWORK( 1+N ),
      $                                   WORK, LWORK,
      $                                   INFO )
@@ -508,7 +505,6 @@
                      CALL SLACPY( 'Full', N, NRHS, B, LDA, X, LDA )
 *
                      SRNAMT = 'SSYTRS_AA_2STAGE'
-                     LWORK = MAX( 1, 3*N-2 )
                      CALL SSYTRS_AA_2STAGE( UPLO, N, NRHS, AFAC, LDA,
      $                            AINV, (3*NB+1)*N, IWORK, IWORK( 1+N ),
      $                            X, LDA, INFO )
@@ -567,6 +563,6 @@
      $      I6 )
       RETURN
 *
-*     End of DCHKSY_AA_2STAGE
+*     End of SCHKSY_AA_2STAGE
 *
       END

@@ -25,13 +25,15 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *****************************************************************************/
 
-
 #include "common.h"
 
+#if (defined(__GNUC__) && __GNUC__ > 11) 
+#pragma GCC optimize("no-tree-vectorize")
+#endif
 
 #if defined(BULLDOZER) || defined(PILEDRIVER) || defined(STEAMROLLER)  || defined(EXCAVATOR)
 #include "zgemv_t_microk_bulldozer-4.c"
-#elif defined(HASWELL) || defined(ZEN) || defined (SKYLAKEX) || defined (COOPERLAKE)
+#elif defined(HASWELL) || defined(ZEN) || defined (SKYLAKEX) || defined (COOPERLAKE) || defined (SAPPHIRERAPIDS)
 #include "zgemv_t_microk_haswell-4.c"
 #endif
 

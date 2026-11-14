@@ -227,7 +227,7 @@
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
-*>          The dimension of the array WORK.
+*>          The dimension of the array WORK. LWORK >= 1.
 *>
 *>          If LWORK = -1, then a workspace query is assumed; the routine
 *>          only calculates the optimal size of the WORK array, returns
@@ -250,9 +250,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date August 2015
-*
-*> \ingroup realOTHERcomputational
+*> \ingroup ggsvp3
 *
 *> \par Further Details:
 *  =====================
@@ -272,10 +270,9 @@
      $                    TOLA, TOLB, K, L, U, LDU, V, LDV, Q, LDQ,
      $                    IWORK, TAU, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     August 2015
 *
       IMPLICIT NONE
 *
@@ -304,6 +301,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       EXTERNAL           LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SGEQP3, SGEQR2, SGERQ2, SLACPY, SLAPMT,
@@ -368,7 +367,7 @@
          CALL SGEQP3( M, N, A, LDA, IWORK, TAU, WORK, -1, INFO )
          LWKOPT = MAX( LWKOPT, INT( WORK ( 1 ) ) )
          LWKOPT = MAX( 1, LWKOPT )
-         WORK( 1 ) = REAL( LWKOPT )
+         WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -563,7 +562,7 @@
 *
       END IF
 *
-      WORK( 1 ) = REAL( LWKOPT )
+      WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       RETURN
 *
 *     End of SGGSVP3

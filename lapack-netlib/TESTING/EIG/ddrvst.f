@@ -214,7 +214,7 @@
 *>          Not modified.
 *>
 *>  D1      DOUBLE PRECISION array, dimension (max(NN))
-*>          The eigenvalues of A, as computed by DSTEQR simlutaneously
+*>          The eigenvalues of A, as computed by DSTEQR simultaneously
 *>          with Z.  On exit, the eigenvalues in D1 correspond with the
 *>          matrix in A.
 *>          Modified.
@@ -443,8 +443,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup double_eig
 *
 *  =====================================================================
@@ -452,11 +450,11 @@
      $                   NOUNIT, A, LDA, D1, D2, D3, D4, EVEIGS, WA1,
      $                   WA2, WA3, U, LDU, V, TAU, Z, WORK, LWORK,
      $                   IWORK, LIWORK, RESULT, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LDU, LIWORK, LWORK, NOUNIT, NSIZES,
@@ -481,7 +479,7 @@
       DOUBLE PRECISION   HALF
       PARAMETER          ( HALF = 0.5D0 )
       INTEGER            MAXTYP
-      PARAMETER          ( MAXTYP = 18 )
+      PARAMETER          ( MAXTYP = 19 )
 *     ..
 *     .. Local Scalars ..
       LOGICAL            BADNN
@@ -505,11 +503,11 @@
       EXTERNAL           DLAMCH, DLARND, DSXT1
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           ALASVM, DLABAD, DLACPY, DLAFTS, DLASET, DLATMR,
-     $                   DLATMS, DSBEV, DSBEVD, DSBEVX, DSPEV, DSPEVD,
-     $                   DSPEVX, DSTEV, DSTEVD, DSTEVR, DSTEVX, DSTT21,
-     $                   DSTT22, DSYEV, DSYEVD, DSYEVR, DSYEVX, DSYT21,
-     $                   DSYT22, XERBLA
+      EXTERNAL           ALASVM, DLACPY, DLAFTS, DLASET, DLATMR, DLATMS,
+     $                   DSBEV, DSBEVD, DSBEVX, DSPEV, DSPEVD, DSPEVX,
+     $                   DSTEV, DSTEVD, DSTEVR, DSTEVX, DSTT21, DSTT22,
+     $                   DSYEV, DSYEVD, DSYEVR, DSYEVX, DSYT21, DSYT22,
+     $                   XERBLA
 *     ..
 *     .. Scalars in Common ..
       CHARACTER*32       SRNAMT
@@ -521,11 +519,11 @@
       INTRINSIC          ABS, DBLE, INT, LOG, MAX, MIN, SQRT
 *     ..
 *     .. Data statements ..
-      DATA               KTYPE / 1, 2, 5*4, 5*5, 3*8, 3*9 /
+      DATA               KTYPE / 1, 2, 5*4, 5*5, 3*8, 3*9, 10 /
       DATA               KMAGN / 2*1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1,
-     $                   2, 3, 1, 2, 3 /
+     $                   2, 3, 1, 2, 3, 2 /
       DATA               KMODE / 2*0, 4, 3, 1, 4, 4, 4, 3, 1, 4, 4, 0,
-     $                   0, 0, 4, 4, 4 /
+     $                   0, 0, 4, 4, 4, 0 /
 *     ..
 *     .. Executable Statements ..
 *
@@ -577,7 +575,6 @@
 *
       UNFL = DLAMCH( 'Safe minimum' )
       OVFL = DLAMCH( 'Overflow' )
-      CALL DLABAD( UNFL, OVFL )
       ULP = DLAMCH( 'Epsilon' )*DLAMCH( 'Base' )
       ULPINV = ONE / ULP
       RTUNFL = SQRT( UNFL )
@@ -744,6 +741,22 @@ c           LIWEDC = 12
                      A( I, J ) = U( IROW, J )
    90             CONTINUE
   100          CONTINUE
+*
+            ELSE IF( ITYPE.EQ.10 ) THEN
+*
+*              Tridiagonal with equal diagonal entries and half that
+*              off the diagonal, so that the absolute tolerance below
+*              is a meaningful fraction of the spread of the
+*              eigenvalues.
+*
+               DO 105 JCOL = 1, N
+                  A( JCOL, JCOL ) = ANORM
+  105          CONTINUE
+               DO 106 JCOL = 1, N - 1
+                  A( JCOL, JCOL+1 ) = ANORM / TWO
+                  A( JCOL+1, JCOL ) = A( JCOL, JCOL+1 )
+  106          CONTINUE
+*
             ELSE
                IINFO = 1
             END IF
@@ -758,12 +771,19 @@ c           LIWEDC = 12
   110       CONTINUE
 *
             ABSTOL = UNFL + UNFL
+*
+*           A tolerance at or below the smallest pivot is inert in the
+*           bisection, so type 19 asks for one that the routine has to
+*           scale along with the matrix.
+*
+            IF( JTYPE.EQ.19 )
+     $         ABSTOL = TEN*ULP*ANORM
             IF( N.LE.1 ) THEN
                IL = 1
                IU = N
             ELSE
-               IL = 1 + ( N-1 )*INT( DLARND( 1, ISEED2 ) )
-               IU = 1 + ( N-1 )*INT( DLARND( 1, ISEED2 ) )
+               IL = 1 + INT( N*DLARND( 1, ISEED2 ) )
+               IU = 1 + INT( N*DLARND( 1, ISEED2 ) )
                IF( IL.GT.IU ) THEN
                   ITEMP = IL
                   IL = IU
@@ -773,13 +793,13 @@ c           LIWEDC = 12
 *
 *           3)      If matrix is tridiagonal, call DSTEV and DSTEVX.
 *
-            IF( JTYPE.LE.7 ) THEN
+            IF( JTYPE.LE.7 .OR. JTYPE.EQ.19 ) THEN
                NTEST = 1
                DO 120 I = 1, N
-                  D1( I ) = DBLE( A( I, I ) )
+                  D1( I ) = A( I, I )
   120          CONTINUE
                DO 130 I = 1, N - 1
-                  D2( I ) = DBLE( A( I+1, I ) )
+                  D2( I ) = A( I+1, I )
   130          CONTINUE
                SRNAMT = 'DSTEV'
                CALL DSTEV( 'V', N, D1, D2, Z, LDU, WORK, IINFO )
@@ -800,17 +820,17 @@ c           LIWEDC = 12
 *              Do tests 1 and 2.
 *
                DO 140 I = 1, N
-                  D3( I ) = DBLE( A( I, I ) )
+                  D3( I ) = A( I, I )
   140          CONTINUE
                DO 150 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   150          CONTINUE
                CALL DSTT21( N, 0, D3, D4, D1, D2, Z, LDU, WORK,
      $                      RESULT( 1 ) )
 *
                NTEST = 3
                DO 160 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   160          CONTINUE
                SRNAMT = 'DSTEV'
                CALL DSTEV( 'N', N, D3, D4, Z, LDU, WORK, IINFO )
@@ -842,10 +862,10 @@ c           LIWEDC = 12
                NTEST = 4
                DO 190 I = 1, N
                   EVEIGS( I ) = D3( I )
-                  D1( I ) = DBLE( A( I, I ) )
+                  D1( I ) = A( I, I )
   190          CONTINUE
                DO 200 I = 1, N - 1
-                  D2( I ) = DBLE( A( I+1, I ) )
+                  D2( I ) = A( I+1, I )
   200          CONTINUE
                SRNAMT = 'DSTEVX'
                CALL DSTEVX( 'V', 'A', N, D1, D2, VL, VU, IL, IU, ABSTOL,
@@ -873,17 +893,17 @@ c           LIWEDC = 12
 *              Do tests 4 and 5.
 *
                DO 210 I = 1, N
-                  D3( I ) = DBLE( A( I, I ) )
+                  D3( I ) = A( I, I )
   210          CONTINUE
                DO 220 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   220          CONTINUE
                CALL DSTT21( N, 0, D3, D4, WA1, D2, Z, LDU, WORK,
      $                      RESULT( 4 ) )
 *
                NTEST = 6
                DO 230 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   230          CONTINUE
                SRNAMT = 'DSTEVX'
                CALL DSTEVX( 'N', 'A', N, D3, D4, VL, VU, IL, IU, ABSTOL,
@@ -917,10 +937,10 @@ c           LIWEDC = 12
 *
                NTEST = 7
                DO 260 I = 1, N
-                  D1( I ) = DBLE( A( I, I ) )
+                  D1( I ) = A( I, I )
   260          CONTINUE
                DO 270 I = 1, N - 1
-                  D2( I ) = DBLE( A( I+1, I ) )
+                  D2( I ) = A( I+1, I )
   270          CONTINUE
                SRNAMT = 'DSTEVR'
                CALL DSTEVR( 'V', 'A', N, D1, D2, VL, VU, IL, IU, ABSTOL,
@@ -947,17 +967,17 @@ c           LIWEDC = 12
 *              Do tests 7 and 8.
 *
                DO 280 I = 1, N
-                  D3( I ) = DBLE( A( I, I ) )
+                  D3( I ) = A( I, I )
   280          CONTINUE
                DO 290 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   290          CONTINUE
                CALL DSTT21( N, 0, D3, D4, WA1, D2, Z, LDU, WORK,
      $                      RESULT( 7 ) )
 *
                NTEST = 9
                DO 300 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   300          CONTINUE
                SRNAMT = 'DSTEVR'
                CALL DSTEVR( 'N', 'A', N, D3, D4, VL, VU, IL, IU, ABSTOL,
@@ -992,10 +1012,10 @@ c           LIWEDC = 12
 *
                NTEST = 10
                DO 330 I = 1, N
-                  D1( I ) = DBLE( A( I, I ) )
+                  D1( I ) = A( I, I )
   330          CONTINUE
                DO 340 I = 1, N - 1
-                  D2( I ) = DBLE( A( I+1, I ) )
+                  D2( I ) = A( I+1, I )
   340          CONTINUE
                SRNAMT = 'DSTEVX'
                CALL DSTEVX( 'V', 'I', N, D1, D2, VL, VU, IL, IU, ABSTOL,
@@ -1018,10 +1038,10 @@ c           LIWEDC = 12
 *              Do tests 10 and 11.
 *
                DO 350 I = 1, N
-                  D3( I ) = DBLE( A( I, I ) )
+                  D3( I ) = A( I, I )
   350          CONTINUE
                DO 360 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   360          CONTINUE
                CALL DSTT22( N, M2, 0, D3, D4, WA2, D2, Z, LDU, WORK,
      $                      MAX( 1, M2 ), RESULT( 10 ) )
@@ -1029,7 +1049,7 @@ c           LIWEDC = 12
 *
                NTEST = 12
                DO 370 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   370          CONTINUE
                SRNAMT = 'DSTEVX'
                CALL DSTEVX( 'N', 'I', N, D3, D4, VL, VU, IL, IU, ABSTOL,
@@ -1079,10 +1099,10 @@ c           LIWEDC = 12
                END IF
 *
                DO 390 I = 1, N
-                  D1( I ) = DBLE( A( I, I ) )
+                  D1( I ) = A( I, I )
   390          CONTINUE
                DO 400 I = 1, N - 1
-                  D2( I ) = DBLE( A( I+1, I ) )
+                  D2( I ) = A( I+1, I )
   400          CONTINUE
                SRNAMT = 'DSTEVX'
                CALL DSTEVX( 'V', 'V', N, D1, D2, VL, VU, IL, IU, ABSTOL,
@@ -1112,17 +1132,17 @@ c           LIWEDC = 12
 *              Do tests 13 and 14.
 *
                DO 410 I = 1, N
-                  D3( I ) = DBLE( A( I, I ) )
+                  D3( I ) = A( I, I )
   410          CONTINUE
                DO 420 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   420          CONTINUE
                CALL DSTT22( N, M2, 0, D3, D4, WA2, D2, Z, LDU, WORK,
      $                      MAX( 1, M2 ), RESULT( 13 ) )
 *
                NTEST = 15
                DO 430 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   430          CONTINUE
                SRNAMT = 'DSTEVX'
                CALL DSTEVX( 'N', 'V', N, D3, D4, VL, VU, IL, IU, ABSTOL,
@@ -1150,10 +1170,10 @@ c           LIWEDC = 12
 *
                NTEST = 16
                DO 450 I = 1, N
-                  D1( I ) = DBLE( A( I, I ) )
+                  D1( I ) = A( I, I )
   450          CONTINUE
                DO 460 I = 1, N - 1
-                  D2( I ) = DBLE( A( I+1, I ) )
+                  D2( I ) = A( I+1, I )
   460          CONTINUE
                SRNAMT = 'DSTEVD'
                CALL DSTEVD( 'V', N, D1, D2, Z, LDU, WORK, LWEDC, IWORK,
@@ -1175,17 +1195,17 @@ c           LIWEDC = 12
 *              Do tests 16 and 17.
 *
                DO 470 I = 1, N
-                  D3( I ) = DBLE( A( I, I ) )
+                  D3( I ) = A( I, I )
   470          CONTINUE
                DO 480 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   480          CONTINUE
                CALL DSTT21( N, 0, D3, D4, D1, D2, Z, LDU, WORK,
      $                      RESULT( 16 ) )
 *
                NTEST = 18
                DO 490 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   490          CONTINUE
                SRNAMT = 'DSTEVD'
                CALL DSTEVD( 'N', N, D3, D4, Z, LDU, WORK, LWEDC, IWORK,
@@ -1218,10 +1238,10 @@ c           LIWEDC = 12
 *
                NTEST = 19
                DO 520 I = 1, N
-                  D1( I ) = DBLE( A( I, I ) )
+                  D1( I ) = A( I, I )
   520          CONTINUE
                DO 530 I = 1, N - 1
-                  D2( I ) = DBLE( A( I+1, I ) )
+                  D2( I ) = A( I+1, I )
   530          CONTINUE
                SRNAMT = 'DSTEVR'
                CALL DSTEVR( 'V', 'I', N, D1, D2, VL, VU, IL, IU, ABSTOL,
@@ -1244,10 +1264,10 @@ c           LIWEDC = 12
 *              DO tests 19 and 20.
 *
                DO 540 I = 1, N
-                  D3( I ) = DBLE( A( I, I ) )
+                  D3( I ) = A( I, I )
   540          CONTINUE
                DO 550 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   550          CONTINUE
                CALL DSTT22( N, M2, 0, D3, D4, WA2, D2, Z, LDU, WORK,
      $                      MAX( 1, M2 ), RESULT( 19 ) )
@@ -1255,7 +1275,7 @@ c           LIWEDC = 12
 *
                NTEST = 21
                DO 560 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   560          CONTINUE
                SRNAMT = 'DSTEVR'
                CALL DSTEVR( 'N', 'I', N, D3, D4, VL, VU, IL, IU, ABSTOL,
@@ -1305,10 +1325,10 @@ c           LIWEDC = 12
                END IF
 *
                DO 580 I = 1, N
-                  D1( I ) = DBLE( A( I, I ) )
+                  D1( I ) = A( I, I )
   580          CONTINUE
                DO 590 I = 1, N - 1
-                  D2( I ) = DBLE( A( I+1, I ) )
+                  D2( I ) = A( I+1, I )
   590          CONTINUE
                SRNAMT = 'DSTEVR'
                CALL DSTEVR( 'V', 'V', N, D1, D2, VL, VU, IL, IU, ABSTOL,
@@ -1338,17 +1358,17 @@ c           LIWEDC = 12
 *              Do tests 22 and 23.
 *
                DO 600 I = 1, N
-                  D3( I ) = DBLE( A( I, I ) )
+                  D3( I ) = A( I, I )
   600          CONTINUE
                DO 610 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   610          CONTINUE
                CALL DSTT22( N, M2, 0, D3, D4, WA2, D2, Z, LDU, WORK,
      $                      MAX( 1, M2 ), RESULT( 22 ) )
 *
                NTEST = 24
                DO 620 I = 1, N - 1
-                  D4( I ) = DBLE( A( I+1, I ) )
+                  D4( I ) = A( I+1, I )
   620          CONTINUE
                SRNAMT = 'DSTEVR'
                CALL DSTEVR( 'N', 'V', N, D3, D4, VL, VU, IL, IU, ABSTOL,
@@ -2054,7 +2074,7 @@ c           LIWEDC = 12
 *
 *              6)      Call DSBEV and DSBEVX.
 *
-               IF( JTYPE.LE.7 ) THEN
+               IF( JTYPE.LE.7 .OR. JTYPE.EQ.19 ) THEN
                   KD = 1
                ELSE IF( JTYPE.GE.8 .AND. JTYPE.LE.15 ) THEN
                   KD = MAX( N-1, 0 )
@@ -2558,7 +2578,7 @@ c           LIWEDC = 12
 *
 *              9)      Call DSBEVD.
 *
-               IF( JTYPE.LE.7 ) THEN
+               IF( JTYPE.LE.7 .OR. JTYPE.EQ.19 ) THEN
                   KD = 1
                ELSE IF( JTYPE.GE.8 .AND. JTYPE.LE.15 ) THEN
                   KD = MAX( N-1, 0 )
@@ -2776,7 +2796,7 @@ c           LIWEDC = 12
                      RESULT( NTEST ) = ULPINV
                      RESULT( NTEST+1 ) = ULPINV
                      RESULT( NTEST+2 ) = ULPINV
-                     GO TO 700
+                     GO TO 1750
                   END IF
                END IF
 *
@@ -2801,13 +2821,13 @@ c           LIWEDC = 12
                      RETURN
                   ELSE
                      RESULT( NTEST ) = ULPINV
-                     GO TO 700
+                     GO TO 1750
                   END IF
                END IF
 *
                IF( M3.EQ.0 .AND. N.GT.0 ) THEN
                   RESULT( NTEST ) = ULPINV
-                  GO TO 700
+                  GO TO 1750
                END IF
 *
 *              Do test 78 (or +54)
@@ -2823,6 +2843,8 @@ c           LIWEDC = 12
      $                           MAX( UNFL, TEMP3*ULP )
 *
                CALL DLACPY( ' ', N, N, V, LDU, A, LDA )
+*
+ 1750       CONTINUE
 *
  1720       CONTINUE
 *

@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download CGGSVD3 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/cggsvd3.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/cggsvd3.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -278,7 +276,7 @@
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
-*>          The dimension of the array WORK.
+*>          The dimension of the array WORK. LWORK >= 1.
 *>
 *>          If LWORK = -1, then a workspace query is assumed; the routine
 *>          only calculates the optimal size of the WORK array, returns
@@ -333,9 +331,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date August 2015
-*
-*> \ingroup complexGEsing
+*> \ingroup ggsvd3
 *
 *> \par Contributors:
 *  ==================
@@ -353,11 +349,11 @@
       SUBROUTINE CGGSVD3( JOBU, JOBV, JOBQ, M, N, P, K, L, A, LDA, B,
      $                    LDB, ALPHA, BETA, U, LDU, V, LDV, Q, LDQ,
      $                    WORK, LWORK, RWORK, IWORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     August 2015
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBQ, JOBU, JOBV
@@ -425,13 +421,14 @@
       ELSE IF( LDQ.LT.1 .OR. ( WANTQ .AND. LDQ.LT.N ) ) THEN
          INFO = -20
       ELSE IF( LWORK.LT.1 .AND. .NOT.LQUERY ) THEN
-         INFO = -24
+         INFO = -22
       END IF
 *
 *     Compute workspace
 *
       IF( INFO.EQ.0 ) THEN
-         CALL CGGSVP3( JOBU, JOBV, JOBQ, M, P, N, A, LDA, B, LDB, TOLA,
+         CALL CGGSVP3( JOBU, JOBV, JOBQ, M, P, N, A, LDA, B, LDB,
+     $                 TOLA,
      $                 TOLB, K, L, U, LDU, V, LDV, Q, LDQ, IWORK, RWORK,
      $                 WORK, WORK, -1, INFO )
          LWKOPT = N + INT( WORK( 1 ) )
@@ -458,8 +455,8 @@
 *
       ULP = SLAMCH( 'Precision' )
       UNFL = SLAMCH( 'Safe Minimum' )
-      TOLA = MAX( M, N )*MAX( ANORM, UNFL )*ULP
-      TOLB = MAX( P, N )*MAX( BNORM, UNFL )*ULP
+      TOLA = REAL( MAX( M, N ) )*MAX( ANORM, UNFL )*ULP
+      TOLB = REAL( MAX( P, N ) )*MAX( BNORM, UNFL )*ULP
 *
       CALL CGGSVP3( JOBU, JOBV, JOBQ, M, P, N, A, LDA, B, LDB, TOLA,
      $              TOLB, K, L, U, LDU, V, LDV, Q, LDQ, IWORK, RWORK,

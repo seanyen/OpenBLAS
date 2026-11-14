@@ -41,18 +41,21 @@ static int parallel = 0;
 #endif
 
 
+OPENBLAS_EXPORT
+
 #ifdef NEEDBUNDERSCORE
-int CNAME() {
+int CNAME(void) {
   return parallel;
 }
 
-int NAME() {
+OPENBLAS_EXPORT
+int NAME(void) {
   return parallel;
 }
 
 #else
 //The CNAME and NAME are the same.
-int NAME() {
+int NAME(void) {
   return parallel;
 }
 #endif

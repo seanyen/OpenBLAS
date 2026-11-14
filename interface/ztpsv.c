@@ -70,6 +70,8 @@ static int (*tpsv[])(BLASLONG, FLOAT *, FLOAT *, BLASLONG, void *) = {
 #endif
 };
 
+OPENBLAS_EXPORT
+
 #ifndef CBLAS
 
 void NAME(char *UPLO, char *TRANS, char *DIAG,
@@ -200,6 +202,11 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
   if (incx < 0 ) x -= (n - 1) * incx * 2;
 
   buffer = (FLOAT *)blas_memory_alloc(1);
+  if (!buffer) {
+    info = -999;
+    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
+    return;
+  }
 
   (tpsv[(trans<<2) | (uplo<<1) | unit])(n, a, x, incx, buffer);
 

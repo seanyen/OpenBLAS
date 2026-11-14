@@ -1,7 +1,7 @@
 TOPDIR	= ../..
 include ../../Makefile.system
 
-COMMONOBJS	 = memory.$(SUFFIX) xerbla.$(SUFFIX) c_abs.$(SUFFIX) z_abs.$(SUFFIX) openblas_set_num_threads.$(SUFFIX) openblas_get_num_threads.$(SUFFIX) openblas_get_num_procs.$(SUFFIX) openblas_get_config.$(SUFFIX) openblas_get_parallel.$(SUFFIX) openblas_error_handle.$(SUFFIX) openblas_env.$(SUFFIX)
+COMMONOBJS	 = memory.$(SUFFIX) xerbla.$(SUFFIX) c_abs.$(SUFFIX) z_abs.$(SUFFIX) openblas_set_num_threads.$(SUFFIX) openblas_get_num_threads.$(SUFFIX) openblas_get_num_procs.$(SUFFIX) openblas_get_config.$(SUFFIX) openblas_get_parallel.$(SUFFIX) openblas_error_handle.$(SUFFIX) openblas_env.$(SUFFIX) openblas_cancel.$(SUFFIX) blas_server_callback.$(SUFFIX)
 
 #COMMONOBJS	+= slamch.$(SUFFIX) slamc3.$(SUFFIX) dlamch.$(SUFFIX)  dlamc3.$(SUFFIX)
 
@@ -27,7 +27,15 @@ else
 ifeq ($(ARCH),mips64)
 COMMONOBJS += dynamic_mips64.$(SUFFIX)
 else
+ifeq ($(ARCH),loongarch64)
+COMMONOBJS += dynamic_loongarch64.$(SUFFIX)
+else
+ifeq ($(ARCH),riscv64)
+COMMONOBJS += dynamic_riscv64.$(SUFFIX) detect_riscv64.$(SUFFIX)
+else
 COMMONOBJS	+=  dynamic.$(SUFFIX)
+endif
+endif
 endif
 endif
 endif
@@ -99,7 +107,15 @@ else
 ifeq ($(ARCH),mips64)
 HPLOBJS = memory.$(SUFFIX) xerbla.$(SUFFIX) dynamic_mips64.$(SUFFIX)
 else
+ifeq ($(ARCH),loongarch64)
+HPLOBJS = memory.$(SUFFIX) xerbla.$(SUFFIX) dynamic_loongarch64.$(SUFFIX)
+else
+ifeq ($(ARCH),riscv64)
+HPLOBJS = memory.$(SUFFIX) xerbla.$(SUFFIX) dynamic_riscv64.$(SUFFIX) detect_riscv64.$(SUFFIX)
+else
 HPLOBJS = memory.$(SUFFIX) xerbla.$(SUFFIX) dynamic.$(SUFFIX)
+endif
+endif
 endif
 endif
 endif
@@ -111,10 +127,10 @@ endif
 xerbla.$(SUFFIX) : xerbla.c
 	$(CC) $(CFLAGS) -c $< -o $(@F)
 
-dynamic.$(SUFFIX) : dynamic.c
+dynamic%$(SUFFIX) : dynamic%c
 	$(CC) $(CFLAGS) -c $< -o $(@F)
 
-dynamic.$(PSUFFIX) : dynamic.c
+dynamic%$(PSUFFIX) : dynamic%c
 	$(CC) $(PFLAGS) -c $< -o $(@F)
 
 parameter.$(SUFFIX) : parameter.c ../../param.h
@@ -132,6 +148,9 @@ memory.$(SUFFIX) : $(MEMORY) ../../common.h ../../param.h
 blas_server.$(SUFFIX) : $(BLAS_SERVER) ../../common.h ../../common_thread.h ../../param.h
 	$(CC) $(CFLAGS) -c $< -o $(@F)
 
+blas_server_callback.$(SUFFIX) : blas_server_callback.c ../../common.h
+	$(CC) $(CFLAGS) -c $< -o $(@F)
+	
 openblas_set_num_threads.$(SUFFIX) : openblas_set_num_threads.c
 	$(CC) $(CFLAGS) -c $< -o $(@F)
 
@@ -151,6 +170,9 @@ openblas_error_handle.$(SUFFIX) : openblas_error_handle.c
 	$(CC) $(CFLAGS) -c $< -o $(@F)
 
 openblas_env.$(SUFFIX) : openblas_env.c
+	$(CC) $(CFLAGS) -c $< -o $(@F)
+
+openblas_cancel.$(SUFFIX) : openblas_cancel.c ../../common.h
 	$(CC) $(CFLAGS) -c $< -o $(@F)
 
 blasL1thread.$(SUFFIX) : blas_l1_thread.c ../../common.h ../../common_thread.h
@@ -197,6 +219,9 @@ addx.$(SUFFIX) : $(ARCH)/addx.c
 
 mulx.$(SUFFIX) : $(ARCH)/mulx.c
 	$(CC) $(CFLAGS) -c -DXDOUBLE -UCOMPLEX $< -o $(@F)
+
+detect_riscv64.$(SUFFIX): detect_riscv64.c
+	$(CC) $(CFLAGS) -c -march=rv64imafdcv $< -o $(@F)
 
 xerbla.$(PSUFFIX) : xerbla.c
 	$(CC) $(PFLAGS) -c $< -o $(@F)

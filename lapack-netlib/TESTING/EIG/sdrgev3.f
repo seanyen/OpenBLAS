@@ -398,8 +398,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date February 2015
-*
 *> \ingroup single_eig
 *
 *  =====================================================================
@@ -408,10 +406,9 @@
      $                    ALPHAR, ALPHAI, BETA, ALPHR1, ALPHI1, BETA1,
      $                    WORK, LWORK, RESULT, INFO )
 *
-*  -- LAPACK test routine (version 3.6.1) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     February 2015
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LDQ, LDQE, LWORK, NOUNIT, NSIZES,
@@ -734,6 +731,14 @@
                RESULT( I ) = -ONE
   110       CONTINUE
 *
+*           Call XLAENV to set the parameters used in SLAQZ0
+*
+            CALL XLAENV( 12, 10 )
+            CALL XLAENV( 13, 12 )
+            CALL XLAENV( 14, 13 )
+            CALL XLAENV( 15, 2 )
+            CALL XLAENV( 17, 10 )
+*
 *           Call SGGEV3 to compute eigenvalues and eigenvectors.
 *
             CALL SLACPY( ' ', N, N, A, LDA, S, LDA )
@@ -781,10 +786,14 @@
             END IF
 *
             DO 120 J = 1, N
-               IF( ALPHAR( J ).NE.ALPHR1( J ) .OR.
-     $             BETA( J ).NE. BETA1( J ) ) THEN
-                  RESULT( 5 ) = ULPINV
-               END IF
+               RESULT( 5 ) = MAX( RESULT( 5 ),
+     $             ABS( ALPHAR( J ) - ALPHR1( J ) )
+     $             / MAX( ABS( ALPHAR( J ) ), ABS( ALPHR1( J ) ),
+     $                    SAFMIN ) )
+               RESULT( 5 ) = MAX( RESULT( 5 ),
+     $             ABS( BETA( J ) - BETA1( J ) )
+     $             / MAX( ABS( BETA( J ) ), ABS( BETA1( J ) ),
+     $                    SAFMIN ) )
   120       CONTINUE
 *
 *           Do the test (6): Compute eigenvalues and left eigenvectors,
@@ -803,9 +812,18 @@
             END IF
 *
             DO 130 J = 1, N
-               IF( ALPHAR( J ).NE.ALPHR1( J ) .OR. ALPHAI( J ).NE.
-     $             ALPHI1( J ) .OR. BETA( J ).NE.BETA1( J ) )
-     $             RESULT( 6 ) = ULPINV
+               RESULT( 6 ) = MAX( RESULT( 6 ),
+     $             ABS( ALPHAR( J ) - ALPHR1( J ) )
+     $             / MAX( ABS( ALPHAR( J ) ), ABS( ALPHR1( J ) ),
+     $                    SAFMIN ) )
+               RESULT( 6 ) = MAX( RESULT( 6 ),
+     $             ABS( ALPHAI( J ) - ALPHI1( J ) )
+     $             / MAX( ABS( ALPHAI( J ) ), ABS( ALPHI1( J ) ),
+     $                    SAFMIN ) )
+               RESULT( 6 ) = MAX( RESULT( 6 ),
+     $             ABS( BETA( J ) - BETA1( J ) )
+     $             / MAX( ABS( BETA( J ) ), ABS( BETA1( J ) ),
+     $                    SAFMIN ) )
   130       CONTINUE
 *
             DO 150 J = 1, N
@@ -831,9 +849,18 @@
             END IF
 *
             DO 160 J = 1, N
-               IF( ALPHAR( J ).NE.ALPHR1( J ) .OR. ALPHAI( J ).NE.
-     $             ALPHI1( J ) .OR. BETA( J ).NE.BETA1( J ) )
-     $             RESULT( 7 ) = ULPINV
+               RESULT( 7 ) = MAX( RESULT( 7 ),
+     $             ABS( ALPHAR( J ) - ALPHR1( J ) )
+     $             / MAX( ABS( ALPHAR( J ) ), ABS( ALPHR1( J ) ),
+     $                    SAFMIN ) )
+               RESULT( 7 ) = MAX( RESULT( 7 ),
+     $             ABS( ALPHAI( J ) - ALPHI1( J ) )
+     $             / MAX( ABS( ALPHAI( J ) ), ABS( ALPHI1( J ) ),
+     $                    SAFMIN ) )
+               RESULT( 7 ) = MAX( RESULT( 7 ),
+     $             ABS( BETA( J ) - BETA1( J ) )
+     $             / MAX( ABS( BETA( J ) ), ABS( BETA1( J ) ),
+     $                    SAFMIN ) )
   160       CONTINUE
 *
             DO 180 J = 1, N

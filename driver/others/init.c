@@ -72,6 +72,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common.h"
 
+#if (MAX_CPU_NUMBER > 256)
+#ifndef BIGNUMA
+#define BIGNUMA
+#endif
+#endif
+
 #if defined(OS_LINUX) && defined(SMP)
 
 #define _GNU_SOURCE
@@ -391,7 +397,15 @@ static void numa_mapping(void) {
     core = 0;
     for (cpu = 0; cpu < common -> num_procs; cpu ++) {
       bitmask_idx = CPUELT(cpu);
+/*
+ * When common->avail[i] = 0x5555555555555555UL (indicating that adjacent logical cores share a physical core),
+ * using it as a mask may overlap with the local_cpu_map function's role, leading to only half of the real physical cores being detected.
+ */
+#ifdef ARCH_LOONGARCH64
+      if (common -> node_info[node][bitmask_idx]) {
+#else
       if (common -> node_info[node][bitmask_idx] & common -> avail[bitmask_idx] & CPUMASK(cpu)) {
+#endif
 	common -> cpu_info[count] = WRITE_CORE(core) | WRITE_NODE(node) | WRITE_CPU(cpu);
 	count ++;
 	core ++;
@@ -823,6 +837,8 @@ void gotoblas_affinity_init(void) {
 
   if (numprocs == 0) numprocs = readenv_atoi("OMP_NUM_THREADS");
 
+  if (numprocs == 0) numprocs = readenv_atoi("OPENBLAS_DEFAULT_NUM_THREADS");
+
   numnodes = 1;
 
   if (numprocs == 1) {
@@ -877,21 +893,21 @@ void gotoblas_affinity_init(void) {
     nums = sysconf(_SC_NPROCESSORS_CONF);
 
 #if !defined(__GLIBC_PREREQ)
-    common->num_procs = nums;
+    common->num_procs = nums >0 ? nums : 2;
 #else
 
 #if !__GLIBC_PREREQ(2, 3)
-    common->num_procs = nums;
+    common->num_procs = nums >0 ? nums : 2;
 #elif __GLIBC_PREREQ(2, 7)
-    cpusetp = CPU_ALLOC(nums);
+    cpusetp = CPU_ALLOC(nums>0? nums:1024);
     if (cpusetp == NULL) {
-        common->num_procs = nums;
+        common->num_procs = nums>0 ? nums: 2;
     } else {
         size_t size;
-        size = CPU_ALLOC_SIZE(nums);
+        size = CPU_ALLOC_SIZE(nums>0? nums: 1024);
         ret = sched_getaffinity(0,size,cpusetp);
         if (ret!=0)
-            common->num_procs = nums;
+            common->num_procs = nums >0 ? nums : 1;
         else
             common->num_procs = CPU_COUNT_S(size,cpusetp);
     }
@@ -899,12 +915,12 @@ void gotoblas_affinity_init(void) {
 #else
     ret = sched_getaffinity(0,sizeof(cpu_set_t), &cpuset);
     if (ret!=0) {
-        common->num_procs = nums;
+        common->num_procs = nums >0 ? nums : 2;
     } else {
 #if !__GLIBC_PREREQ(2, 6)
     int i;
     int n = 0;
-    for (i=0;i<nums;i++)
+    for (i=0;i<(nums >0 ?nums:1024) ;i++)
         if (CPU_ISSET(i,&cpuset)) n++;
     common->num_procs = n;
     }
@@ -928,8 +944,12 @@ void gotoblas_affinity_init(void) {
 
     if (common -> num_nodes > 1) numa_mapping();
 
+#ifdef ARCH_LOONGARCH64
+    common -> final_num_procs = common -> num_procs;
+#else
     common -> final_num_procs = 0;
     for(i = 0; i < common -> avail_count; i++) common -> final_num_procs += rcount(common -> avail[i]) + 1;   //Make the max cpu number. 
+#endif
 
     for (cpu = 0; cpu < common -> final_num_procs; cpu ++) common -> cpu_use[cpu] =  0;
 
@@ -1022,7 +1042,7 @@ void gotoblas_set_affinity2(int threads) {};
 
 void gotoblas_affinity_reschedule(void) {};
 
-int get_num_procs(void) { return sysconf(_SC_NPROCESSORS_CONF); }
+int get_num_procs(void) { int num = sysconf(_SC_NPROCESSORS_CONF); return (nums >0 ? nums : 2); }
 
 int get_num_nodes(void) { return 1; }
 

@@ -50,7 +50,8 @@
 #define ERROR_NAME "SGETRF"
 #endif
 
-int NAME(blasint *M, blasint *N, FLOAT *a, blasint *ldA, blasint *ipiv, blasint *Info){
+OPENBLAS_EXPORT
+void NAME(blasint *M, blasint *N, FLOAT *a, blasint *ldA, blasint *ipiv, blasint *Info){
 
   blas_arg_t args;
 
@@ -76,11 +77,11 @@ int NAME(blasint *M, blasint *N, FLOAT *a, blasint *ldA, blasint *ipiv, blasint 
   if (info) {
     BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME) - 1);
     *Info = - info;
-    return 0;
+    return;
   }
 
   *Info = 0;
-  if (args.m == 0 || args.n == 0) return 0;
+  if (args.m == 0 || args.n == 0) return;
 
   IDEBUG_START;
 
@@ -95,7 +96,19 @@ int NAME(blasint *M, blasint *N, FLOAT *a, blasint *ldA, blasint *ipiv, blasint 
 
 #ifdef SMP
   args.common = NULL;
-  args.nthreads = num_cpu_avail(4);
+
+#ifndef DOUBLE
+  int nmax = 40000;
+#else 
+  int nmax = 10000;
+#endif
+  if (args.m*args.n <nmax) {
+    args.nthreads = 1;
+  } else {
+    args.nthreads = num_cpu_avail(4);
+    if ((args.m*args.n)/args.nthreads <nmax)
+	    args.nthreads = (args.m*args.n)/nmax;
+  }
 
   if (args.nthreads == 1) {
 #endif
@@ -117,5 +130,5 @@ int NAME(blasint *M, blasint *N, FLOAT *a, blasint *ldA, blasint *ipiv, blasint 
 
   IDEBUG_END;
 
-  return 0;
+  return;
 }

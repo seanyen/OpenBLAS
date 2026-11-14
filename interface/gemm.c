@@ -1,4 +1,5 @@
 /*********************************************************************/
+/* Copyright 2024, 2025 The OpenBLAS Project                         */
 /* Copyright 2009, 2010 The University of Texas at Austin.           */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -38,6 +39,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "common.h"
 #ifdef FUNCTION_PROFILE
 #include "functable.h"
@@ -47,20 +49,36 @@
 #define SMP_THRESHOLD_MIN 65536.0
 #ifdef XDOUBLE
 #define ERROR_NAME "QGEMM "
+#define GEMV BLASFUNC(qgemv)
 #elif defined(DOUBLE)
 #define ERROR_NAME "DGEMM "
+#define GEMV BLASFUNC(dgemv)
+#elif defined(BFLOAT16)
+#ifdef BGEMM
+#define ERROR_NAME "BGEMM "
+#define GEMV BLASFUNC(bgemv)
+#else
+#define ERROR_NAME "SBGEMM "
+#define GEMV BLASFUNC(sbgemv)
+#endif
+#elif defined(HFLOAT16)
+#define ERROR_NAME "SHGEMM "
 #else
 #define ERROR_NAME "SGEMM "
+#define GEMV BLASFUNC(sgemv)
 #endif
 #else
 #define SMP_THRESHOLD_MIN 8192.0
 #ifndef GEMM3M
 #ifdef XDOUBLE
 #define ERROR_NAME "XGEMM "
+#define GEMV BLASFUNC(xgemv)
 #elif defined(DOUBLE)
 #define ERROR_NAME "ZGEMM "
+#define GEMV BLASFUNC(zgemv)
 #else
 #define ERROR_NAME "CGEMM "
+#define GEMV BLASFUNC(cgemv)
 #endif
 #else
 #ifdef XDOUBLE
@@ -78,7 +96,7 @@
 #endif
 
 static int (*gemm[])(blas_arg_t *, BLASLONG *, BLASLONG *, IFLOAT *, IFLOAT *, BLASLONG) = {
-#ifndef GEMM3M
+#if !defined(GEMM3M) || defined(GENERIC)
   GEMM_NN, GEMM_TN, GEMM_RN, GEMM_CN,
   GEMM_NT, GEMM_TT, GEMM_RT, GEMM_CT,
   GEMM_NR, GEMM_TR, GEMM_RR, GEMM_CR,
@@ -103,6 +121,142 @@ static int (*gemm[])(blas_arg_t *, BLASLONG *, BLASLONG *, IFLOAT *, IFLOAT *, B
 #endif
 };
 
+#if defined(SMALL_MATRIX_OPT) && !defined(GEMM3M) && !defined(XDOUBLE) && !defined(HFLOAT16) && !defined(BGEMM)
+#define USE_SMALL_MATRIX_OPT 1
+#else
+#define USE_SMALL_MATRIX_OPT 0
+#endif
+
+#if USE_SMALL_MATRIX_OPT
+#ifndef DYNAMIC_ARCH
+#define SMALL_KERNEL_ADDR(table, idx) ((void *)(table[idx]))
+#else
+#define SMALL_KERNEL_ADDR(table, idx) ((void *)(*(uintptr_t *)((char *)gotoblas + (size_t)(table[idx]))))
+#endif
+
+
+#ifndef COMPLEX
+static size_t gemm_small_kernel[] = {
+	GEMM_SMALL_KERNEL_NN, GEMM_SMALL_KERNEL_TN, 0, 0,
+	GEMM_SMALL_KERNEL_NT, GEMM_SMALL_KERNEL_TT, 0, 0,
+};
+
+
+static size_t gemm_small_kernel_b0[] = {
+	GEMM_SMALL_KERNEL_B0_NN, GEMM_SMALL_KERNEL_B0_TN, 0, 0,
+	GEMM_SMALL_KERNEL_B0_NT, GEMM_SMALL_KERNEL_B0_TT, 0, 0,
+};
+
+#define GEMM_SMALL_KERNEL_B0(idx) (int (*)(BLASLONG, BLASLONG, BLASLONG, IFLOAT *, BLASLONG, FLOAT, IFLOAT *, BLASLONG, FLOAT *, BLASLONG)) SMALL_KERNEL_ADDR(gemm_small_kernel_b0, (idx))
+#define GEMM_SMALL_KERNEL(idx) (int (*)(BLASLONG, BLASLONG, BLASLONG, IFLOAT *, BLASLONG, FLOAT, IFLOAT *, BLASLONG, FLOAT, FLOAT *, BLASLONG)) SMALL_KERNEL_ADDR(gemm_small_kernel, (idx))
+#else
+
+static size_t zgemm_small_kernel[] = {
+	GEMM_SMALL_KERNEL_NN, GEMM_SMALL_KERNEL_TN, GEMM_SMALL_KERNEL_RN, GEMM_SMALL_KERNEL_CN,
+	GEMM_SMALL_KERNEL_NT, GEMM_SMALL_KERNEL_TT, GEMM_SMALL_KERNEL_RT, GEMM_SMALL_KERNEL_CT,
+	GEMM_SMALL_KERNEL_NR, GEMM_SMALL_KERNEL_TR, GEMM_SMALL_KERNEL_RR, GEMM_SMALL_KERNEL_CR,
+	GEMM_SMALL_KERNEL_NC, GEMM_SMALL_KERNEL_TC, GEMM_SMALL_KERNEL_RC, GEMM_SMALL_KERNEL_CC,
+};
+
+static size_t zgemm_small_kernel_b0[] = {
+	GEMM_SMALL_KERNEL_B0_NN, GEMM_SMALL_KERNEL_B0_TN, GEMM_SMALL_KERNEL_B0_RN, GEMM_SMALL_KERNEL_B0_CN,
+	GEMM_SMALL_KERNEL_B0_NT, GEMM_SMALL_KERNEL_B0_TT, GEMM_SMALL_KERNEL_B0_RT, GEMM_SMALL_KERNEL_B0_CT,
+	GEMM_SMALL_KERNEL_B0_NR, GEMM_SMALL_KERNEL_B0_TR, GEMM_SMALL_KERNEL_B0_RR, GEMM_SMALL_KERNEL_B0_CR,
+	GEMM_SMALL_KERNEL_B0_NC, GEMM_SMALL_KERNEL_B0_TC, GEMM_SMALL_KERNEL_B0_RC, GEMM_SMALL_KERNEL_B0_CC,
+};
+
+#define ZGEMM_SMALL_KERNEL(idx) (int (*)(BLASLONG, BLASLONG, BLASLONG, FLOAT *, BLASLONG, FLOAT , FLOAT, FLOAT *, BLASLONG, FLOAT , FLOAT, FLOAT *, BLASLONG)) SMALL_KERNEL_ADDR(zgemm_small_kernel, (idx))
+#define ZGEMM_SMALL_KERNEL_B0(idx) (int (*)(BLASLONG, BLASLONG, BLASLONG, FLOAT *, BLASLONG, FLOAT , FLOAT, FLOAT *, BLASLONG, FLOAT *, BLASLONG)) SMALL_KERNEL_ADDR(zgemm_small_kernel_b0, (idx))
+#endif
+#endif
+
+#if defined(__linux__) && defined(__x86_64__) && defined(BFLOAT16)
+#define XFEATURE_XTILEDATA 18
+#define ARCH_REQ_XCOMP_PERM 0x1023
+static int openblas_amxtile_permission = 0;
+static int init_amxtile_permission() {
+  long status =
+      syscall(SYS_arch_prctl, ARCH_REQ_XCOMP_PERM, XFEATURE_XTILEDATA);
+  if (status != 0) {
+    fprintf(stderr, "XTILEDATA permission not granted in your device(Linux, "
+                    "Intel Sapphier Rapids), skip sbgemm calculation\n");
+    return -1;
+  }
+  openblas_amxtile_permission = 1;
+  return 0;
+}
+#endif
+
+#ifdef DYNAMIC_ARCH
+extern char* gotoblas_corename(void);
+#endif
+
+#ifdef SMP
+#if defined(DYNAMIC_ARCH) || defined(NEOVERSEV1)
+static inline int get_gemm_optimal_nthreads_neoversev1(double MNK, int ncpu) {
+  return
+      MNK < 262144L    ? 1
+    : MNK < 1124864L   ? MIN(ncpu, 6)
+    : MNK < 7880599L   ? MIN(ncpu, 12)
+    : MNK < 17173512L  ? MIN(ncpu, 16)
+    : MNK < 33386248L  ? MIN(ncpu, 20)
+    : MNK < 57066625L  ? MIN(ncpu, 24)
+    : MNK < 91733851L  ? MIN(ncpu, 32)
+    : MNK < 265847707L ? MIN(ncpu, 40)
+    : MNK < 458314011L ? MIN(ncpu, 48)
+    : MNK < 729000000L ? MIN(ncpu, 56)
+    : ncpu;
+}
+#endif
+
+#if defined(DYNAMIC_ARCH) || defined(NEOVERSEV2)
+static inline int get_gemm_optimal_nthreads_neoversev2(double MNK, int ncpu) {
+  return
+      MNK < 125000L     ? 1
+    : MNK < 1092727L    ? MIN(ncpu, 6)
+    : MNK < 2628072L    ? MIN(ncpu, 8)
+    : MNK < 8000000L    ? MIN(ncpu, 12)
+    : MNK < 20346417L   ? MIN(ncpu, 16)
+    : MNK < 57066625L   ? MIN(ncpu, 24)
+    : MNK < 91125000L   ? MIN(ncpu, 28)
+    : MNK < 238328000L  ? MIN(ncpu, 40)
+    : MNK < 454756609L  ? MIN(ncpu, 48)
+    : MNK < 857375000L  ? MIN(ncpu, 56)
+    : MNK < 1073741824L ? MIN(ncpu, 64)
+    : ncpu;
+}
+#endif
+
+static inline int get_gemm_optimal_nthreads(double MNK) {
+  int ncpu = num_cpu_avail(3);
+#if defined(NEOVERSEV1) && !defined(COMPLEX) && !defined(DOUBLE) && !defined(BFLOAT16) && !defined(HFLOAT16)
+  return get_gemm_optimal_nthreads_neoversev1(MNK, ncpu);
+#elif defined(NEOVERSEV2) && !defined(COMPLEX) && !defined(DOUBLE) && !defined(BFLOAT16) && !defined(HFLOAT16)
+  return get_gemm_optimal_nthreads_neoversev2(MNK, ncpu);
+#elif defined(DYNAMIC_ARCH) && !defined(COMPLEX) && !defined(DOUBLE) && !defined(BFLOAT16) && !defined(HFLOAT16)
+  if (strcmp(gotoblas_corename(), "neoversev1") == 0) {
+    return get_gemm_optimal_nthreads_neoversev1(MNK, ncpu);
+  }
+  if (strcmp(gotoblas_corename(), "neoversev2") == 0) {
+    return get_gemm_optimal_nthreads_neoversev2(MNK, ncpu);
+  }
+#endif
+  if ( MNK <= (SMP_THRESHOLD_MIN  * (double) GEMM_MULTITHREAD_THRESHOLD) ) {
+    return 1;
+  }
+  else {
+    if (MNK/ncpu < SMP_THRESHOLD_MIN*(double)GEMM_MULTITHREAD_THRESHOLD) {
+      return MNK/(SMP_THRESHOLD_MIN*(double)GEMM_MULTITHREAD_THRESHOLD);
+    }
+    else {
+      return ncpu;
+    }
+  }
+}
+#endif
+
+OPENBLAS_EXPORT
+
 #ifndef CBLAS
 
 void NAME(char *TRANSA, char *TRANSB,
@@ -124,6 +278,7 @@ void NAME(char *TRANSA, char *TRANSB,
 
 #ifdef SMP
   double MNK;
+#if defined(USE_SIMPLE_THREADED_LEVEL3) || !defined(NO_AFFINITY)
 #ifndef COMPLEX
 #ifdef XDOUBLE
   int mode  =  BLAS_XDOUBLE | BLAS_REAL;
@@ -139,6 +294,7 @@ void NAME(char *TRANSA, char *TRANSB,
   int mode  =  BLAS_DOUBLE  | BLAS_COMPLEX;
 #else
   int mode  =  BLAS_SINGLE  | BLAS_COMPLEX;
+#endif
 #endif
 #endif
 #endif
@@ -163,7 +319,7 @@ void NAME(char *TRANSA, char *TRANSB,
 
   args.alpha = (void *)alpha;
   args.beta  = (void *)beta;
-
+  
   transA = *TRANSA;
   transB = *TRANSB;
 
@@ -192,7 +348,6 @@ void NAME(char *TRANSA, char *TRANSB,
   if (transB == 'R') transb = 2;
   if (transB == 'C') transb = 3;
 #endif
-
   nrowa = args.m;
   if (transa & 1) nrowa = args.k;
   nrowb = args.k;
@@ -220,8 +375,8 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANS
 	   blasint m, blasint n, blasint k,
 #ifndef COMPLEX
 	   FLOAT alpha,
-	   FLOAT *a, blasint lda,
-	   FLOAT *b, blasint ldb,
+	   IFLOAT *a, blasint lda,
+	   IFLOAT *b, blasint ldb,
 	   FLOAT beta,
 	   FLOAT *c, blasint ldc) {
 #else
@@ -234,7 +389,7 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANS
   FLOAT *beta  = (FLOAT*) vbeta;
   FLOAT *a = (FLOAT*) va;
   FLOAT *b = (FLOAT*) vb;
-  FLOAT *c = (FLOAT*) vc;	   
+  FLOAT *c = (FLOAT*) vc;
 #endif
 
   blas_arg_t args;
@@ -272,17 +427,6 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANS
 #endif
 
   PRINT_DEBUG_CNAME;
-
-#if !defined(COMPLEX) && !defined(DOUBLE) && defined(USE_SGEMM_KERNEL_DIRECT)
-#ifdef DYNAMIC_ARCH
- if (support_avx512() )
-#endif  
-  if (beta == 0 && alpha == 1.0 && order == CblasRowMajor && TransA == CblasNoTrans && TransB == CblasNoTrans && SGEMM_DIRECT_PERFORMANT(m,n,k)) {
-	SGEMM_DIRECT(m, n, k, a, lda, b, ldb, c, ldc);
-	return;
-  }
-
-#endif
 
 #ifndef COMPLEX
   args.alpha = (void *)&alpha;
@@ -400,7 +544,122 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANS
     return;
   }
 
+
+  if ((args.m == 0) || (args.n == 0)) return;
+#if !defined(COMPLEX) && !defined(DOUBLE) && !defined(BFLOAT16)  && !defined(HFLOAT16)
+#if defined(ARCH_x86) && (defined(USE_SGEMM_KERNEL_DIRECT)||defined(DYNAMIC_ARCH))
+#if defined(DYNAMIC_ARCH)
+  if (support_avx512() )
 #endif
+  if (order == CblasRowMajor && beta == 0 && alpha == 1.0 && TransA == CblasNoTrans && TransB == CblasNoTrans && SGEMM_DIRECT_PERFORMANT(m,n,k)) {
+        SGEMM_DIRECT(m, n, k, a, lda, b, ldb, c, ldc);
+        return;
+  }
+#endif
+#if defined(ARCH_ARM64) && (defined(USE_SGEMM_KERNEL_DIRECT)||defined(DYNAMIC_ARCH))
+#if defined(DYNAMIC_ARCH)
+if (strcmp(gotoblas_corename(), "armv9sme") == 0
+#if defined(__clang__)
+ || strcmp(gotoblas_corename(), "vortexm4") == 0
+#endif
+)
+#endif
+
+  if (order == CblasRowMajor && k==lda && n==ldb && n==ldc && beta == 0 && alpha == 1.0 && TransA == CblasNoTrans && TransB == CblasNoTrans && SGEMM_DIRECT_PERFORMANT(m,n,k)) {
+        SGEMM_DIRECT(m, n, k, a, lda, b, ldb, c, ldc);
+        return;
+  }
+else if (order == CblasRowMajor && k==lda && n==ldb && n==ldc && TransA == CblasNoTrans && TransB == CblasNoTrans && SGEMM_DIRECT_PERFORMANT(m,n,k)) {
+        SGEMM_DIRECT_ALPHA_BETA(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+        return;
+  }
+
+#endif //defined arm64
+#endif //defined complex
+
+
+#endif //defined CBLAS
+
+#if !defined(BFLOAT16)  && !defined(HFLOAT16)
+/* complex GEMM on VORTEXM4 takes the level-3 driver with its SME2 kernels */
+#if defined(ARCH_ARM64) && (defined(USE_SGEMM_KERNEL_DIRECT)||defined(DYNAMIC_ARCH)) && !(defined(COMPLEX) && defined(VORTEXM4))
+int sme_kernel = 1;
+#if defined(DYNAMIC_ARCH)
+sme_kernel = strcmp(gotoblas_corename(), "armv9sme") == 0
+#if defined(__clang__) && !defined(COMPLEX)
+ || strcmp(gotoblas_corename(), "vortexm4") == 0
+#endif
+;
+#endif //defined dynarch
+#if USE_SMALL_MATRIX_OPT && !defined(COMPLEX)
+/* a target's small-matrix kernels come before its SME kernels */
+if (sme_kernel && *(FLOAT *)args.alpha != ZERO &&
+    GEMM_SMALL_MATRIX_PERMIT(transa, transb, args.m, args.n, args.k, *(FLOAT *)args.alpha, *(FLOAT *)args.beta))
+  sme_kernel = 0;
+#endif
+if (sme_kernel)
+{
+char* TA,*TB;
+      if (transa & 1) 
+        TA = "T";
+	else 
+	TA= "N";
+      if (transb & 1) 
+        TB = "T";
+	else 
+	TB= "N";
+#ifndef COMPLEX
+      if (transa == 3) 
+	TA= "T";
+      if (transb == 3) 
+	TB= "T";
+FLOAT* al=(FLOAT*)args.alpha;
+FLOAT* be=(FLOAT*)args.beta;
+#ifndef DOUBLE
+        SME_SGEMM_KERNEL(TA,TB, args.m, args.n, args.k, al, args.a, args.lda, args.b, args.ldb, be, args.c, args.ldc);
+#else
+        SME_DGEMM_KERNEL(TA,TB, args.m, args.n, args.k, al, args.a, args.lda, args.b, args.ldb, be, args.c, args.ldc);
+#endif
+#else
+      if (transa == 2) 
+	TA= "R";
+      if (transb == 2) 
+	TB= "R";
+      if (transa == 3) 
+	TA= "C";
+      if (transb == 3) 
+	TB= "C";
+FLOAT* al=(FLOAT*)args.alpha;
+FLOAT* be=(FLOAT*)args.beta;
+#ifndef DOUBLE
+float _Complex c_al={al[0],al[1]};
+float _Complex c_be={be[0],be[1]};
+        SME_CGEMM_KERNEL(TA,TB, args.m, args.n, args.k, al[0],al[1], args.a, args.lda, args.b, args.ldb, be[0],be[1], args.c, args.ldc);
+#else
+double _Complex c_al={al[0],al[1]};
+double _Complex c_be={be[0],be[1]};
+        SME_ZGEMM_KERNEL(TA,TB, args.m, args.n, args.k, al[0],al[1], args.a, args.lda, args.b, args.ldb, be[0],be[1], args.c, args.ldc);
+#endif
+#endif
+	return;
+}
+#endif //defined arm64
+
+#endif //defined b/hfloat16 
+
+#if defined(__linux__) && defined(__x86_64__) && defined(BFLOAT16)
+#if defined(DYNAMIC_ARCH)
+  if (gotoblas->need_amxtile_permission &&
+      openblas_amxtile_permission == 0 && init_amxtile_permission() == -1) {
+    return;
+  }
+#endif
+#if !defined(DYNAMIC_ARCH) && defined(SAPPHIRERAPIDS)
+  if (openblas_amxtile_permission == 0 && init_amxtile_permission() == -1) {
+    return;
+  }
+#endif
+#endif  // defined(__linux__) && defined(__x86_64__) && defined(BFLOAT16)
 
   if ((args.m == 0) || (args.n == 0)) return;
 
@@ -409,13 +668,125 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANS
 	 args.m, args.n, args.k, args.lda, args.ldb, args.ldc);
 #endif
 
+#if (!defined(BFLOAT16) || (!defined(BGEMM) && defined(SBGEMM_GEMV_FORWARD)) || (defined(BGEMM) && defined(BGEMM_GEMV_FORWARD)))
+#define BFLOAT16_GEMM_GEMV_FORWARD 1
+#else
+#define BFLOAT16_GEMM_GEMV_FORWARD 0
+#endif
+#if (!defined(HFLOAT16) || (!defined(HGEMM) && defined(SHGEMM_GEMV_FORWARD)) || (defined(HGEMM) && defined(HGEMM_GEMV_FORWARD)))
+#define HFLOAT16_GEMM_GEMV_FORWARD 1
+#else
+#define HFLOAT16_GEMM_GEMV_FORWARD 0
+#endif
+
+#if defined(GEMM_GEMV_FORWARD) && !defined(GEMM3M) && HFLOAT16_GEMM_GEMV_FORWARD && BFLOAT16_GEMM_GEMV_FORWARD
+#if defined(ARCH_ARM64)
+  // The gemv kernels in arm64/{gemv_n.S,gemv_n_sve.c,gemv_t.S,gemv_t_sve.c}
+  // perform poorly in certain circumstances. We use the following boolean
+  // variable along with the gemv argument values to avoid these inefficient
+  // gemv cases, see github issue#4951.
+  bool have_tuned_gemv = false;
+#else
+  bool have_tuned_gemv = true;
+#endif
+  // GEMV transpose modes indexed by the GEMM transpose codes (N=0, T=1, R=2, C=3).
+  // For real types only N and T occur. For complex types the OpenBLAS GEMV
+  // extensions O, U, S and D (index 4..7) behave like N, T, R and C but
+  // additionally conjugate the vector x, which lets a conjugated vector-shaped
+  // operand of GEMM be handled without an explicit conjugation pass.
+  // Even indices run on the GEMV_N kernels, odd indices on the GEMV_T kernels.
+  static const char gemv_trans[] = "NTRCOUSD";
+  // Check if we can convert GEMM -> GEMV
+  if (args.k != 0) {
+    if (args.n == 1) {
+      blasint inc_x = 1;
+      blasint inc_y = 1;
+      // These were passed in as blasint, but the struct translates them to blaslong
+      blasint m = args.m;
+      blasint n = args.k;
+      blasint lda = args.lda;
+      // C = alpha * op(A) * op(B) + beta * C with op(B) a k x 1 vector: GEMV on A,
+      // where a conjugated op(B) selects the x-conjugating modes.
+      int trans_idx = transa | ((transb & 2) << 1);
+      char NT = gemv_trans[trans_idx];
+      if (transa & 1) {
+        m = args.k;
+        n = args.m;
+      }
+      if (transb & 1) {
+        inc_x = args.ldb;
+      }
+      bool is_efficient_gemv = have_tuned_gemv || (!(trans_idx & 1) || inc_x == 1);
+      if (is_efficient_gemv) {
+        GEMV(&NT, &m, &n, args.alpha, args.a, &lda, args.b, &inc_x, args.beta, args.c, &inc_y);
+        return;
+      }
+    }
+    if (args.m == 1) {
+      blasint inc_x = args.lda;
+      blasint inc_y = args.ldc;
+      // These were passed in as blasint, but the struct translates them to blaslong
+      blasint m = args.k;
+      blasint n = args.n;
+      blasint ldb = args.ldb;
+      // C^T = op(B)^T * op(A)^T with op(A) a 1 x k vector: GEMV on B, where the
+      // transposition swaps N<->T and R<->C, and a conjugated op(A) selects the
+      // x-conjugating modes.
+      int trans_idx = (transb ^ 1) | ((transa & 2) << 1);
+      char NT = gemv_trans[trans_idx];
+      if (transa & 1) {
+        inc_x = 1;
+      }
+      if (transb & 1) {
+        m = args.n;
+        n = args.k;
+      }
+      bool is_efficient_gemv = have_tuned_gemv || ((!(trans_idx & 1) && inc_y == 1) || ((trans_idx & 1) && inc_x == 1));
+      if (is_efficient_gemv) {
+        GEMV(&NT, &m, &n, args.alpha, args.b, &ldb, args.a, &inc_x, args.beta, args.c, &inc_y);
+        return;
+      }
+    }
+  }
+#endif
+
   IDEBUG_START;
 
   FUNCTION_PROFILE_START();
 
-  buffer = (XFLOAT *)blas_memory_alloc(0);
+#if USE_SMALL_MATRIX_OPT
+if (*(FLOAT*)args.alpha != 0.0) {
+#if !defined(COMPLEX)
+  if(GEMM_SMALL_MATRIX_PERMIT(transa, transb, args.m, args.n, args.k, *(FLOAT *)(args.alpha), *(FLOAT *)(args.beta))){
 
+	  if(*(FLOAT *)(args.beta) == 0.0){
+		(GEMM_SMALL_KERNEL_B0((transb << 2) | transa))(args.m, args.n, args.k, args.a, args.lda, *(FLOAT *)(args.alpha), args.b, args.ldb, args.c, args.ldc);
+	  }else{
+		(GEMM_SMALL_KERNEL((transb << 2) | transa))(args.m, args.n, args.k, args.a, args.lda, *(FLOAT *)(args.alpha), args.b, args.ldb, *(FLOAT *)(args.beta), args.c, args.ldc);
+	  }
+	  return;
+  }
+#else
+  if(GEMM_SMALL_MATRIX_PERMIT(transa, transb, args.m, args.n, args.k, alpha[0], alpha[1], beta[0], beta[1])){
+	  if(beta[0] == 0.0 && beta[1] == 0.0){
+		(ZGEMM_SMALL_KERNEL_B0((transb << 2) | transa))(args.m, args.n, args.k, args.a, args.lda, alpha[0], alpha[1], args.b, args.ldb, args.c, args.ldc);
+	  }else{
+		(ZGEMM_SMALL_KERNEL((transb << 2) | transa))(args.m, args.n, args.k, args.a, args.lda, alpha[0], alpha[1], args.b, args.ldb, beta[0], beta[1], args.c, args.ldc);
+	  }
+	  return;
+  }
+#endif
+}
+#endif
+
+  buffer = (XFLOAT *)blas_memory_alloc(0);
+//For LOONGARCH64, applying an offset to the buffer is essential
+//for minimizing cache conflicts and optimizing performance.
+#if defined(ARCH_LOONGARCH64) && !defined(NO_AFFINITY)
+  sa = (XFLOAT *)((BLASLONG)buffer + (WhereAmI() & 0xf) * GEMM_OFFSET_A);
+#else
   sa = (XFLOAT *)((BLASLONG)buffer +GEMM_OFFSET_A);
+#endif
   sb = (XFLOAT *)(((BLASLONG)sa + ((GEMM_P * GEMM_Q * COMPSIZE * SIZE + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
 
 #ifdef SMP
@@ -425,10 +796,8 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANS
 #endif
 
   MNK = (double) args.m * (double) args.n * (double) args.k;
-  if ( MNK <= (SMP_THRESHOLD_MIN  * (double) GEMM_MULTITHREAD_THRESHOLD)  )
-	args.nthreads = 1;
-  else
-	args.nthreads = num_cpu_avail(3);
+  args.nthreads = get_gemm_optimal_nthreads(MNK);
+
   args.common = NULL;
 
  if (args.nthreads == 1) {

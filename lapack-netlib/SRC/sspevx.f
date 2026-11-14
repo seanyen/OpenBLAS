@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download SSPEVX + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/sspevx.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/sspevx.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -213,8 +211,11 @@
 *>          INFO is INTEGER
 *>          = 0:  successful exit
 *>          < 0:  if INFO = -i, the i-th argument had an illegal value
-*>          > 0:  if INFO = i, then i eigenvectors failed to converge.
-*>                Their indices are stored in array IFAIL.
+*>          > 0:  if INFO = i, and i is:
+*>                <= N: then i eigenvectors failed to converge in
+*>                     SSTEIN; their indices are stored in IFAIL.
+*>                > N: SSTEBZ returned INFO = INFO - N;
+*>                     see SSTEBZ for details.
 *> \endverbatim
 *
 *  Authors:
@@ -225,19 +226,17 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
-*> \ingroup realOTHEReigen
+*> \ingroup hpevx
 *
 *  =====================================================================
       SUBROUTINE SSPEVX( JOBZ, RANGE, UPLO, N, AP, VL, VU, IL, IU,
      $                   ABSTOL, M, W, Z, LDZ, WORK, IWORK, IFAIL,
      $                   INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBZ, RANGE, UPLO
@@ -258,7 +257,7 @@
 *     .. Local Scalars ..
       LOGICAL            ALLEIG, INDEIG, TEST, VALEIG, WANTZ
       CHARACTER          ORDER
-      INTEGER            I, IINFO, IMAX, INDD, INDE, INDEE, INDIBL,
+      INTEGER            I, IINFO, INDD, INDE, INDEE,
      $                   INDISP, INDIWO, INDTAU, INDWRK, ISCALE, ITMP1,
      $                   J, JJ, NSPLIT
       REAL               ABSTLL, ANRM, BIGNUM, EPS, RMAX, RMIN, SAFMIN,
@@ -270,7 +269,8 @@
       EXTERNAL           LSAME, SLAMCH, SLANSP
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           SCOPY, SOPGTR, SOPMTR, SSCAL, SSPTRD, SSTEBZ,
+      EXTERNAL           SCOPY, SOPGTR, SOPMTR, SSCAL, SSPTRD,
+     $                   SSTEBZ,
      $                   SSTEIN, SSTEQR, SSTERF, SSWAP, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
@@ -290,7 +290,8 @@
          INFO = -1
       ELSE IF( .NOT.( ALLEIG .OR. VALEIG .OR. INDEIG ) ) THEN
          INFO = -2
-      ELSE IF( .NOT.( LSAME( UPLO, 'L' ) .OR. LSAME( UPLO, 'U' ) ) )
+      ELSE IF( .NOT.( LSAME( UPLO, 'L' ) .OR.
+     $         LSAME( UPLO, 'U' ) ) )
      $          THEN
          INFO = -3
       ELSE IF( N.LT.0 ) THEN
@@ -363,8 +364,11 @@
          ISCALE = 1
          SIGMA = RMIN / ANRM
       ELSE IF( ANRM.GT.RMAX ) THEN
-         ISCALE = 1
+*        An infinite norm gives SIGMA = 0; leave such a matrix
+*        unscaled so that VL and VU remain a valid interval.
          SIGMA = RMAX / ANRM
+         IF( SIGMA.GT.ZERO )
+     $      ISCALE = 1
       END IF
       IF( ISCALE.EQ.1 ) THEN
          CALL SSCAL( ( N*( N+1 ) ) / 2, SIGMA, AP, 1 )
@@ -427,37 +431,38 @@
       ELSE
          ORDER = 'E'
       END IF
-      INDIBL = 1
-      INDISP = INDIBL + N
+      INDISP = 1 + N
       INDIWO = INDISP + N
       CALL SSTEBZ( RANGE, ORDER, N, VLL, VUU, IL, IU, ABSTLL,
      $             WORK( INDD ), WORK( INDE ), M, NSPLIT, W,
-     $             IWORK( INDIBL ), IWORK( INDISP ), WORK( INDWRK ),
-     $             IWORK( INDIWO ), INFO )
+     $             IWORK( 1 ), IWORK( INDISP ), WORK( INDWRK ),
+     $             IWORK( INDIWO ), IINFO )
+      IF( IINFO.NE.0 ) THEN
+         INFO = N + IINFO
+         IF( IINFO.NE.1 )
+     $      GO TO 20
+      END IF
 *
       IF( WANTZ ) THEN
          CALL SSTEIN( N, WORK( INDD ), WORK( INDE ), M, W,
-     $                IWORK( INDIBL ), IWORK( INDISP ), Z, LDZ,
-     $                WORK( INDWRK ), IWORK( INDIWO ), IFAIL, INFO )
+     $                IWORK( 1 ), IWORK( INDISP ), Z, LDZ,
+     $                WORK( INDWRK ), IWORK( INDIWO ), IFAIL, IINFO )
+         IF( IINFO.NE.0 .AND. INFO.EQ.0 )
+     $      INFO = IINFO
 *
 *        Apply orthogonal matrix used in reduction to tridiagonal
 *        form to eigenvectors returned by SSTEIN.
 *
-         CALL SOPMTR( 'L', UPLO, 'N', N, M, AP, WORK( INDTAU ), Z, LDZ,
+         CALL SOPMTR( 'L', UPLO, 'N', N, M, AP, WORK( INDTAU ), Z,
+     $                LDZ,
      $                WORK( INDWRK ), IINFO )
       END IF
 *
 *     If matrix was scaled, then rescale eigenvalues appropriately.
 *
    20 CONTINUE
-      IF( ISCALE.EQ.1 ) THEN
-         IF( INFO.EQ.0 ) THEN
-            IMAX = M
-         ELSE
-            IMAX = INFO - 1
-         END IF
-         CALL SSCAL( IMAX, ONE / SIGMA, W, 1 )
-      END IF
+      IF( ISCALE.EQ.1 )
+     $   CALL SSCAL( M, ONE / SIGMA, W, 1 )
 *
 *     If eigenvalues are not in order, then sort them, along with
 *     eigenvectors.
@@ -474,11 +479,11 @@
    30       CONTINUE
 *
             IF( I.NE.0 ) THEN
-               ITMP1 = IWORK( INDIBL+I-1 )
+               ITMP1 = IWORK( 1 + I-1 )
                W( I ) = W( J )
-               IWORK( INDIBL+I-1 ) = IWORK( INDIBL+J-1 )
+               IWORK( 1 + I-1 ) = IWORK( 1 + J-1 )
                W( J ) = TMP1
-               IWORK( INDIBL+J-1 ) = ITMP1
+               IWORK( 1 + J-1 ) = ITMP1
                CALL SSWAP( N, Z( 1, I ), 1, Z( 1, J ), 1 )
                IF( INFO.NE.0 ) THEN
                   ITMP1 = IFAIL( I )

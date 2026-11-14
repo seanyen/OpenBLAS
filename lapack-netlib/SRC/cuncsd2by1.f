@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download CUNCSD2BY1 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/cuncsd2by1.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/cuncsd2by1.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -190,9 +188,10 @@
 *>          The dimension of the array WORK.
 *>
 *>          If LWORK = -1, then a workspace query is assumed; the routine
-*>          only calculates the optimal size of the WORK array, returns
-*>          this value as the first entry of the work array, and no error
-*>          message related to LWORK is issued by XERBLA.
+*>          only calculates the optimal size of the WORK and RWORK
+*>          arrays, returns this value as the first entry of the WORK
+*>          and RWORK array, respectively, and no error message related
+*>          to LWORK or LRWORK is issued by XERBLA.
 *> \endverbatim
 *>
 *> \param[out] RWORK
@@ -211,12 +210,13 @@
 *>          LRWORK is INTEGER
 *>          The dimension of the array RWORK.
 *>
-*>          If LRWORK = -1, then a workspace query is assumed; the routine
-*>          only calculates the optimal size of the RWORK array, returns
-*>          this value as the first entry of the work array, and no error
-*>          message related to LRWORK is issued by XERBLA.
+*>          If LRWORK=-1, then a workspace query is assumed; the routine
+*>          only calculates the optimal size of the WORK and RWORK
+*>          arrays, returns this value as the first entry of the WORK
+*>          and RWORK array, respectively, and no error message related
+*>          to LWORK or LRWORK is issued by XERBLA.
 *> \endverbatim
-*
+*>
 *> \param[out] IWORK
 *> \verbatim
 *>          IWORK is INTEGER array, dimension (M-MIN(P,M-P,Q,M-Q))
@@ -245,20 +245,19 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
-*> \ingroup complexOTHERcomputational
+*> \ingroup uncsd2by1
 *
 *  =====================================================================
-      SUBROUTINE CUNCSD2BY1( JOBU1, JOBU2, JOBV1T, M, P, Q, X11, LDX11,
+      SUBROUTINE CUNCSD2BY1( JOBU1, JOBU2, JOBV1T, M, P, Q, X11,
+     $                       LDX11,
      $                       X21, LDX21, THETA, U1, LDU1, U2, LDU2, V1T,
      $                       LDV1T, WORK, LWORK, RWORK, LRWORK, IWORK,
      $                       INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          JOBU1, JOBU2, JOBV1T
@@ -294,13 +293,16 @@
       COMPLEX            CDUM( 1, 1 )
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           CBBCSD, CCOPY, CLACPY, CLAPMR, CLAPMT, CUNBDB1,
+      EXTERNAL           CBBCSD, CCOPY, CLACPY, CLAPMR, CLAPMT,
+     $                   CLASET,
+     $                   CUNBDB1,
      $                   CUNBDB2, CUNBDB3, CUNBDB4, CUNGLQ, CUNGQR,
      $                   XERBLA
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      EXTERNAL           LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, SROUNDUP_LWORK
 *     ..
 *     .. Intrinsic Function ..
       INTRINSIC          INT, MAX, MIN
@@ -313,7 +315,7 @@
       WANTU1 = LSAME( JOBU1, 'Y' )
       WANTU2 = LSAME( JOBU2, 'Y' )
       WANTV1T = LSAME( JOBV1T, 'Y' )
-      LQUERY = LWORK .EQ. -1
+      LQUERY = ( LWORK.EQ.-1 ) .OR. ( LRWORK.EQ.-1 )
 *
       IF( M .LT. 0 ) THEN
          INFO = -4
@@ -412,17 +414,20 @@
                LORGLQMIN = MAX( LORGLQMIN, Q-1 )
                LORGLQOPT = MAX( LORGLQOPT, INT( WORK(1) ) )
             END IF
-            CALL CBBCSD( JOBU1, JOBU2, JOBV1T, 'N', 'N', M, P, Q, THETA,
+            CALL CBBCSD( JOBU1, JOBU2, JOBV1T, 'N', 'N', M, P, Q,
+     $                   THETA,
      $                   DUM(1), U1, LDU1, U2, LDU2, V1T, LDV1T, CDUM,
      $                   1, DUM, DUM, DUM, DUM, DUM, DUM, DUM, DUM,
      $                   RWORK(1), -1, CHILDINFO )
             LBBCSD = INT( RWORK(1) )
          ELSE IF( R .EQ. P ) THEN
-            CALL CUNBDB2( M, P, Q, X11, LDX11, X21, LDX21, THETA, DUM,
+            CALL CUNBDB2( M, P, Q, X11, LDX11, X21, LDX21, THETA,
+     $                    DUM,
      $                    CDUM, CDUM, CDUM, WORK(1), -1, CHILDINFO )
             LORBDB = INT( WORK(1) )
             IF( WANTU1 .AND. P .GT. 0 ) THEN
-               CALL CUNGQR( P-1, P-1, P-1, U1(2,2), LDU1, CDUM, WORK(1),
+               CALL CUNGQR( P-1, P-1, P-1, U1(2,2), LDU1, CDUM,
+     $                      WORK(1),
      $                      -1, CHILDINFO )
                LORGQRMIN = MAX( LORGQRMIN, P-1 )
                LORGQROPT = MAX( LORGQROPT, INT( WORK(1) ) )
@@ -439,13 +444,15 @@
                LORGLQMIN = MAX( LORGLQMIN, Q )
                LORGLQOPT = MAX( LORGLQOPT, INT( WORK(1) ) )
             END IF
-            CALL CBBCSD( JOBV1T, 'N', JOBU1, JOBU2, 'T', M, Q, P, THETA,
+            CALL CBBCSD( JOBV1T, 'N', JOBU1, JOBU2, 'T', M, Q, P,
+     $                   THETA,
      $                   DUM, V1T, LDV1T, CDUM, 1, U1, LDU1, U2, LDU2,
      $                   DUM, DUM, DUM, DUM, DUM, DUM, DUM, DUM,
      $                   RWORK(1), -1, CHILDINFO )
             LBBCSD = INT( RWORK(1) )
          ELSE IF( R .EQ. M-P ) THEN
-            CALL CUNBDB3( M, P, Q, X11, LDX11, X21, LDX21, THETA, DUM,
+            CALL CUNBDB3( M, P, Q, X11, LDX11, X21, LDX21, THETA,
+     $                    DUM,
      $                    CDUM, CDUM, CDUM, WORK(1), -1, CHILDINFO )
             LORBDB = INT( WORK(1) )
             IF( WANTU1 .AND. P .GT. 0 ) THEN
@@ -472,7 +479,8 @@
      $                   RWORK(1), -1, CHILDINFO )
             LBBCSD = INT( RWORK(1) )
          ELSE
-            CALL CUNBDB4( M, P, Q, X11, LDX11, X21, LDX21, THETA, DUM,
+            CALL CUNBDB4( M, P, Q, X11, LDX11, X21, LDX21, THETA,
+     $                    DUM,
      $                    CDUM, CDUM, CDUM, CDUM, WORK(1), -1, CHILDINFO
      $                  )
             LORBDB = M + INT( WORK(1) )
@@ -483,7 +491,8 @@
                LORGQROPT = MAX( LORGQROPT, INT( WORK(1) ) )
             END IF
             IF( WANTU2 .AND. M-P .GT. 0 ) THEN
-               CALL CUNGQR( M-P, M-P, M-Q, U2, LDU2, CDUM, WORK(1), -1,
+               CALL CUNGQR( M-P, M-P, M-Q, U2, LDU2, CDUM, WORK(1),
+     $                      -1,
      $                      CHILDINFO )
                LORGQRMIN = MAX( LORGQRMIN, M-P )
                LORGQROPT = MAX( LORGQROPT, INT( WORK(1) ) )
@@ -502,16 +511,19 @@
          END IF
          LRWORKMIN = IBBCSD+LBBCSD-1
          LRWORKOPT = LRWORKMIN
-         RWORK(1) = LRWORKOPT
+         RWORK(1) = REAL( LRWORKOPT )
          LWORKMIN = MAX( IORBDB+LORBDB-1,
      $                   IORGQR+LORGQRMIN-1,
      $                   IORGLQ+LORGLQMIN-1 )
          LWORKOPT = MAX( IORBDB+LORBDB-1,
      $                   IORGQR+LORGQROPT-1,
      $                   IORGLQ+LORGLQOPT-1 )
-         WORK(1) = LWORKOPT
+         WORK(1) = SROUNDUP_LWORK(LWORKOPT)
          IF( LWORK .LT. LWORKMIN .AND. .NOT.LQUERY ) THEN
             INFO = -19
+         END IF
+         IF( LRWORK .LT. LRWORKMIN .AND. .NOT.LQUERY ) THEN
+            INFO = -21
          END IF
       END IF
       IF( INFO .NE. 0 ) THEN
@@ -522,6 +534,36 @@
       END IF
       LORGQR = LWORK-IORGQR+1
       LORGLQ = LWORK-IORGLQ+1
+*
+      IF( R .EQ. 0 ) THEN
+*
+*        R = 0: C and S are empty. Handle the trivial CSD directly.
+*
+         IF( Q .EQ. 0 ) THEN
+            IF( WANTU1 .AND. P .GT. 0 )
+     $         CALL CLASET( 'A', P, P, ZERO, ONE, U1, LDU1 )
+            IF( WANTU2 .AND. M-P .GT. 0 )
+     $         CALL CLASET( 'A', M-P, M-P, ZERO, ONE, U2, LDU2 )
+            RETURN
+         END IF
+*
+         IF( P .EQ. 0 .AND. M .EQ. Q ) THEN
+            IF( WANTU2 )
+     $         CALL CLACPY( 'A', M-P, Q, X21, LDX21, U2, LDU2 )
+            IF( WANTV1T )
+     $         CALL CLASET( 'A', Q, Q, ZERO, ONE, V1T, LDV1T )
+            RETURN
+         END IF
+*
+         IF( P .EQ. M .AND. M .EQ. Q ) THEN
+            IF( WANTU1 )
+     $         CALL CLACPY( 'A', P, Q, X11, LDX11, U1, LDU1 )
+            IF( WANTV1T )
+     $         CALL CLASET( 'A', Q, Q, ZERO, ONE, V1T, LDV1T )
+            RETURN
+         END IF
+*
+      END IF
 *
 *     Handle four cases separately: R = Q, R = P, R = M-P, and R = M-Q,
 *     in which R = MIN(P,M-P,Q,M-Q)
@@ -540,7 +582,8 @@
 *
          IF( WANTU1 .AND. P .GT. 0 ) THEN
             CALL CLACPY( 'L', P, Q, X11, LDX11, U1, LDU1 )
-            CALL CUNGQR( P, P, Q, U1, LDU1, WORK(ITAUP1), WORK(IORGQR),
+            CALL CUNGQR( P, P, Q, U1, LDU1, WORK(ITAUP1),
+     $                   WORK(IORGQR),
      $                   LORGQR, CHILDINFO )
          END IF
          IF( WANTU2 .AND. M-P .GT. 0 ) THEN
@@ -556,7 +599,8 @@
             END DO
             CALL CLACPY( 'U', Q-1, Q-1, X21(1,2), LDX21, V1T(2,2),
      $                   LDV1T )
-            CALL CUNGLQ( Q-1, Q-1, Q-1, V1T(2,2), LDV1T, WORK(ITAUQ1),
+            CALL CUNGLQ( Q-1, Q-1, Q-1, V1T(2,2), LDV1T,
+     $                   WORK(ITAUQ1),
      $                   WORK(IORGLQ), LORGLQ, CHILDINFO )
          END IF
 *
@@ -566,8 +610,8 @@
      $                RWORK(IPHI), U1, LDU1, U2, LDU2, V1T, LDV1T, CDUM,
      $                1, RWORK(IB11D), RWORK(IB11E), RWORK(IB12D),
      $                RWORK(IB12E), RWORK(IB21D), RWORK(IB21E),
-     $                RWORK(IB22D), RWORK(IB22E), RWORK(IBBCSD), LBBCSD,
-     $                CHILDINFO )
+     $                RWORK(IB22D), RWORK(IB22E), RWORK(IBBCSD),
+     $                LRWORK-IBBCSD+1, CHILDINFO )
 *
 *        Permute rows and columns to place zero submatrices in
 *        preferred positions
@@ -599,7 +643,8 @@
                U1(1,J) = ZERO
                U1(J,1) = ZERO
             END DO
-            CALL CLACPY( 'L', P-1, P-1, X11(2,1), LDX11, U1(2,2), LDU1 )
+            CALL CLACPY( 'L', P-1, P-1, X11(2,1), LDX11, U1(2,2),
+     $                   LDU1 )
             CALL CUNGQR( P-1, P-1, P-1, U1(2,2), LDU1, WORK(ITAUP1),
      $                   WORK(IORGQR), LORGQR, CHILDINFO )
          END IF
@@ -649,7 +694,8 @@
 *
          IF( WANTU1 .AND. P .GT. 0 ) THEN
             CALL CLACPY( 'L', P, Q, X11, LDX11, U1, LDU1 )
-            CALL CUNGQR( P, P, Q, U1, LDU1, WORK(ITAUP1), WORK(IORGQR),
+            CALL CUNGQR( P, P, Q, U1, LDU1, WORK(ITAUP1),
+     $                   WORK(IORGQR),
      $                   LORGQR, CHILDINFO )
          END IF
          IF( WANTU2 .AND. M-P .GT. 0 ) THEN
@@ -708,6 +754,10 @@
 *
 *        Accumulate Householder reflectors
 *
+
+         IF( WANTU2 .AND. M-P .GT. 0 ) THEN
+            CALL CCOPY( M-P, WORK(IORBDB+P), 1, U2, 1 )
+         END IF
          IF( WANTU1 .AND. P .GT. 0 ) THEN
             CALL CCOPY( P, WORK(IORBDB), 1, U1, 1 )
             DO J = 2, P
@@ -719,7 +769,6 @@
      $                   WORK(IORGQR), LORGQR, CHILDINFO )
          END IF
          IF( WANTU2 .AND. M-P .GT. 0 ) THEN
-            CALL CCOPY( M-P, WORK(IORBDB+P), 1, U2, 1 )
             DO J = 2, M-P
                U2(1,J) = ZERO
             END DO
@@ -730,7 +779,8 @@
          END IF
          IF( WANTV1T .AND. Q .GT. 0 ) THEN
             CALL CLACPY( 'U', M-Q, Q, X21, LDX21, V1T, LDV1T )
-            CALL CLACPY( 'U', P-(M-Q), Q-(M-Q), X11(M-Q+1,M-Q+1), LDX11,
+            CALL CLACPY( 'U', P-(M-Q), Q-(M-Q), X11(M-Q+1,M-Q+1),
+     $                   LDX11,
      $                   V1T(M-Q+1,M-Q+1), LDV1T )
             CALL CLACPY( 'U', -P+Q, Q-P, X21(M-Q+1,P+1), LDX21,
      $                   V1T(P+1,P+1), LDV1T )

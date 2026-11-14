@@ -9,11 +9,11 @@
 *
 *> \htmlonly
 *> Download DSYTRD_SY2SB + dependencies 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dsytrd.f"> 
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dsytrd_sy2sb.f"> 
 *> [TGZ]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dsytrd.f"> 
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dsytrd_sy2sb.f"> 
 *> [ZIP]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dsytrd.f"> 
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dsytrd_sy2sb.f"> 
 *> [TXT]</a>
 *> \endhtmlonly 
 *
@@ -123,8 +123,8 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>          WORK is DOUBLE PRECISION array, dimension (LWORK)
-*>          On exit, if INFO = 0, or if LWORK=-1, 
+*>          WORK is DOUBLE PRECISION array, dimension (MAX(1,LWORK))
+*>          On exit, if INFO = 0, or if LWORK = -1,
 *>          WORK(1) returns the size of LWORK.
 *> \endverbatim
 *>
@@ -132,7 +132,9 @@
 *> \verbatim
 *>          LWORK is INTEGER
 *>          The dimension of the array WORK which should be calculated
-*>          by a workspace query. LWORK = MAX(1, LWORK_QUERY)
+*>          by a workspace query.
+*>          If N <= KD+1, LWORK >= 1, else LWORK = MAX(1, LWORK_QUERY)
+*>
 *>          If LWORK = -1, then a workspace query is assumed; the routine
 *>          only calculates the optimal size of the WORK array, returns
 *>          this value as the first entry of the WORK array, and no error
@@ -158,9 +160,7 @@
 *> \author Univ. of Colorado Denver 
 *> \author NAG Ltd. 
 *
-*> \date November 2017
-*
-*> \ingroup doubleSYcomputational
+*> \ingroup hetrd_he2hb
 *
 *> \par Further Details:
 *  =====================
@@ -245,10 +245,9 @@
 *
       IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.8.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO
@@ -296,8 +295,12 @@
       INFO   = 0
       UPPER  = LSAME( UPLO, 'U' )
       LQUERY = ( LWORK.EQ.-1 )
-      LWMIN  = ILAENV2STAGE( 4, 'DSYTRD_SY2SB', '', N, KD, -1, -1 )
-      
+      IF( N.LE.KD+1 ) THEN
+         LWMIN = 1
+      ELSE
+         LWMIN = ILAENV2STAGE( 4, 'DSYTRD_SY2SB', ' ', N, KD, -1, -1 )
+      END IF
+*
       IF( .NOT.UPPER .AND. .NOT.LSAME( UPLO, 'L' ) ) THEN
          INFO = -1
       ELSE IF( N.LT.0 ) THEN

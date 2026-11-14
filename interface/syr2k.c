@@ -79,6 +79,8 @@ static int (*syr2k[])(blas_arg_t *, BLASLONG *, BLASLONG *, FLOAT *, FLOAT *, BL
 #endif
 };
 
+OPENBLAS_EXPORT
+
 #ifndef CBLAS
 
 void NAME(char *UPLO, char *TRANS,
@@ -345,15 +347,57 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE Tr
     return;
   }
 
+  if (args.n == 0) return;
+
+#ifdef DYNAMIC_ARCH
+extern char* gotoblas_corename(void);
 #endif
 
-  if (args.n == 0) return;
+#if !defined(COMPLEX) && !defined(DOUBLE) && !defined(BFLOAT16)  && !defined(HFLOAT16)
+#if defined(ARCH_ARM64) && (defined(USE_SSYR2K_KERNEL_DIRECT)||defined(DYNAMIC_ARCH))
+#if defined(DYNAMIC_ARCH)
+if (strcmp(gotoblas_corename(), "armv9sme") == 0
+#if defined(__clang__)
+ || strcmp(gotoblas_corename(), "vortexm4") == 0
+#endif
+)
+#endif
+   if (order == CblasRowMajor && n == ldc) {
+     if (Trans == CblasNoTrans && k == lda && k == ldb) {
+      if (Uplo == CblasUpper) {
+        SSYR2K_DIRECT_ALPHA_BETA_UN(n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+        return;
+      }else if (Uplo == CblasLower) {
+        SSYR2K_DIRECT_ALPHA_BETA_LN(n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+        return;
+      }
+     }
+     else if (Trans == CblasTrans && n == lda && n ==ldb) {
+      if (Uplo == CblasUpper) {
+        SSYR2K_DIRECT_ALPHA_BETA_UT(n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+        return;
+      }else if (Uplo == CblasLower) {
+        SSYR2K_DIRECT_ALPHA_BETA_LT(n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+        return;
+      }
+     }
+   }
+#endif
+#endif
+
+#endif
+
 
   IDEBUG_START;
 
   FUNCTION_PROFILE_START();
 
   buffer = (FLOAT *)blas_memory_alloc(0);
+  if (!buffer) {
+    info = -999;
+    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
+    return;
+  }
 
   sa = (FLOAT *)((BLASLONG)buffer + GEMM_OFFSET_A);
   sb = (FLOAT *)(((BLASLONG)sa + ((GEMM_P * GEMM_Q * COMPSIZE * SIZE + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
@@ -368,6 +412,9 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE Tr
   mode |= (uplo  << BLAS_UPLO_SHIFT);
 
   args.common = NULL;
+  if (args.n*args.k <1000)
+	  args.nthreads =1 ;
+  else
   args.nthreads = num_cpu_avail(3);
 
   if (args.nthreads == 1) {

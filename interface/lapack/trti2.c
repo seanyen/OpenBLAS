@@ -60,7 +60,8 @@ static blasint (*trti2[])(blas_arg_t *, BLASLONG *, BLASLONG *, FLOAT *, FLOAT *
 #endif
   };
 
-int NAME(char *UPLO, char *DIAG, blasint *N, FLOAT *a, blasint *ldA, blasint *Info){
+OPENBLAS_EXPORT
+void NAME(char *UPLO, char *DIAG, blasint *N, FLOAT *a, blasint *ldA, blasint *Info){
 
   blas_arg_t args;
 
@@ -98,12 +99,12 @@ int NAME(char *UPLO, char *DIAG, blasint *N, FLOAT *a, blasint *ldA, blasint *In
   if (info) {
     BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME) - 1);
     *Info = - info;
-    return 0;
+    return;
   }
 
   *Info = 0;
 
-  if (args.n <= 0) return 0;
+  if (args.n <= 0) return;
 
   IDEBUG_START;
 
@@ -130,5 +131,5 @@ int NAME(char *UPLO, char *DIAG, blasint *N, FLOAT *a, blasint *ldA, blasint *In
 
   IDEBUG_END;
 
-  return 0;
+  return;
 }

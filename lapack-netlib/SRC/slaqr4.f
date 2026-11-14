@@ -239,9 +239,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realOTHERauxiliary
+*> \ingroup laqr4
 *
 *> \par Contributors:
 *  ==================
@@ -265,10 +263,9 @@
       SUBROUTINE SLAQR4( WANTT, WANTZ, N, ILO, IHI, H, LDH, WR, WI,
      $                   ILOZ, IHIZ, Z, LDZ, WORK, LWORK, INFO )
 *
-*  -- LAPACK auxiliary routine (version 3.7.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            IHI, IHIZ, ILO, ILOZ, INFO, LDH, LDZ, LWORK, N
@@ -287,7 +284,7 @@
 *     .    SLAHQR because of insufficient subdiagonal scratch space.
 *     .    (This is a hard limit.) ====
       INTEGER            NTINY
-      PARAMETER          ( NTINY = 11 )
+      PARAMETER          ( NTINY = 15 )
 *
 *     ==== Exceptional deflation windows:  try to cure rare
 *     .    slow convergence by varying the size of the
@@ -319,7 +316,8 @@
 *     ..
 *     .. External Functions ..
       INTEGER            ILAENV
-      EXTERNAL           ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. Local Arrays ..
       REAL               ZDUM( 1, 1 )
@@ -328,7 +326,7 @@
       EXTERNAL           SLACPY, SLAHQR, SLANV2, SLAQR2, SLAQR5
 *     ..
 *     .. Intrinsic Functions ..
-      INTRINSIC          ABS, INT, MAX, MIN, MOD, REAL
+      INTRINSIC          ABS, INT, MAX, MIN, MOD
 *     ..
 *     .. Executable Statements ..
       INFO = 0
@@ -371,22 +369,22 @@
          END IF
 *
 *        ==== NWR = recommended deflation window size.  At this
-*        .    point,  N .GT. NTINY = 11, so there is enough
+*        .    point,  N .GT. NTINY = 15, so there is enough
 *        .    subdiagonal workspace for NWR.GE.2 as required.
 *        .    (In fact, there is enough subdiagonal space for
-*        .    NWR.GE.3.) ====
+*        .    NWR.GE.4.) ====
 *
          NWR = ILAENV( 13, 'SLAQR4', JBCMPZ, N, ILO, IHI, LWORK )
          NWR = MAX( 2, NWR )
          NWR = MIN( IHI-ILO+1, ( N-1 ) / 3, NWR )
 *
 *        ==== NSR = recommended number of simultaneous shifts.
-*        .    At this point N .GT. NTINY = 11, so there is at
+*        .    At this point N .GT. NTINY = 15, so there is at
 *        .    enough subdiagonal workspace for NSR to be even
 *        .    and greater than or equal to two as required. ====
 *
          NSR = ILAENV( 15, 'SLAQR4', JBCMPZ, N, ILO, IHI, LWORK )
-         NSR = MIN( NSR, ( N+6 ) / 9, IHI-ILO )
+         NSR = MIN( NSR, ( N-3 ) / 6, IHI-ILO )
          NSR = MAX( 2, NSR-MOD( NSR, 2 ) )
 *
 *        ==== Estimate optimal workspace ====
@@ -404,7 +402,7 @@
 *        ==== Quick return in case of workspace query. ====
 *
          IF( LWORK.EQ.-1 ) THEN
-            WORK( 1 ) = REAL( LWKOPT )
+            WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
             RETURN
          END IF
 *
@@ -434,7 +432,7 @@
 *        ==== NSMAX = the Largest number of simultaneous shifts
 *        .    for which there is sufficient workspace. ====
 *
-         NSMAX = MIN( ( N+6 ) / 9, 2*LWORK / 3 )
+         NSMAX = MIN( ( N-3 ) / 6, 2*LWORK / 3 )
          NSMAX = NSMAX - MOD( NSMAX, 2 )
 *
 *        ==== NDFL: an iteration count restarted at deflation. ====
@@ -585,7 +583,7 @@
 *
 *                 ==== Got NS/2 or fewer shifts? Use SLAHQR
 *                 .    on a trailing principal submatrix to
-*                 .    get more. (Since NS.LE.NSMAX.LE.(N+6)/9,
+*                 .    get more. (Since NS.LE.NSMAX.LE.(N-3)/6,
 *                 .    there is enough space below the subdiagonal
 *                 .    to fit an NS-by-NS scratch array.) ====
 *
@@ -700,7 +698,7 @@
 *              .      (NVE-by-KDU) vertical work WV arrow along
 *              .      the left-hand-edge. ====
 *
-               KDU = 3*NS - 3
+               KDU = 2*NS
                KU = N - KDU + 1
                KWH = KDU + 1
                NHO = ( N-KDU+1-4 ) - ( KDU+1 ) + 1
@@ -735,7 +733,7 @@
 *
 *     ==== Return the optimal value of LWORK. ====
 *
-      WORK( 1 ) = REAL( LWKOPT )
+      WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
 *
 *     ==== End of SLAQR4 ====
 *

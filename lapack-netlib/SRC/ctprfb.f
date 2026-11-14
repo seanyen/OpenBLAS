@@ -1,11 +1,10 @@
-*> \brief \b CTPRFB applies a real or complex "triangular-pentagonal" blocked reflector to a real or complex matrix, which is composed of two blocks.
+*> \brief \b CTPRFB applies a complex "triangular-pentagonal" block reflector to a complex matrix, which is composed of two blocks.
 *
 *  =========== DOCUMENTATION ===========
 *
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download CTPRFB + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/ctprfb.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/ctprfb.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -194,9 +192,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexOTHERauxiliary
+*> \ingroup tprfb
 *
 *> \par Further Details:
 *  =====================
@@ -250,11 +246,11 @@
 *  =====================================================================
       SUBROUTINE CTPRFB( SIDE, TRANS, DIRECT, STOREV, M, N, K, L,
      $                   V, LDV, T, LDT, A, LDA, B, LDB, WORK, LDWORK )
+      IMPLICIT NONE
 *
-*  -- LAPACK auxiliary routine (version 3.7.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER DIRECT, SIDE, STOREV, TRANS
@@ -435,7 +431,8 @@
 *
          CALL CGEMM( 'N', 'C', M, N-L, K, -ONE, WORK, LDWORK,
      $               V, LDV, ONE, B, LDB )
-         CALL CGEMM( 'N', 'C', M, L, K-L, -ONE, WORK( 1, KP ), LDWORK,
+         CALL CGEMM( 'N', 'C', M, L, K-L, -ONE, WORK( 1, KP ),
+     $               LDWORK,
      $               V( NP, KP ), LDV, ONE, B( 1, NP ), LDB )
          CALL CTRMM( 'R', 'U', 'C', 'N', M, L, ONE, V( NP, 1 ), LDV,
      $               WORK, LDWORK )
@@ -594,7 +591,7 @@
             END DO
          END DO
          CALL CTRMM( 'L', 'L', 'N', 'N', L, N, ONE, V( 1, MP ), LDV,
-     $               WORK, LDB )
+     $               WORK, LDWORK )
          CALL CGEMM( 'N', 'N', L, N, M-L, ONE, V, LDV,B, LDB,
      $               ONE, WORK, LDWORK )
          CALL CGEMM( 'N', 'N', K-L, N, M, ONE, V( KP, 1 ), LDV,
@@ -676,7 +673,8 @@
 *
          CALL CGEMM( 'N', 'N', M, N-L, K, -ONE, WORK, LDWORK,
      $               V, LDV, ONE, B, LDB )
-         CALL CGEMM( 'N', 'N', M, L, K-L, -ONE, WORK( 1, KP ), LDWORK,
+         CALL CGEMM( 'N', 'N', M, L, K-L, -ONE, WORK( 1, KP ),
+     $               LDWORK,
      $               V( KP, NP ), LDV, ONE, B( 1, NP ), LDB )
          CALL CTRMM( 'R', 'L', 'N', 'N', M, L, ONE, V( 1, NP ), LDV,
      $               WORK, LDWORK )

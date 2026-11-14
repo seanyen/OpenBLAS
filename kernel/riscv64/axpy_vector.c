@@ -25,26 +25,45 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *****************************************************************************/
 
+
 #include "common.h"
 
-#if !defined(DOUBLE)
-#define RVV_EFLOAT RVV_E32
-#define RVV_M RVV_M4
-#define FLOAT_V_T float32xm4_t
-#define VLEV_FLOAT vlev_float32xm4
-#define VLSEV_FLOAT vlsev_float32xm4
-#define VSEV_FLOAT vsev_float32xm4
-#define VSSEV_FLOAT vssev_float32xm4
-#define VFMACCVF_FLOAT vfmaccvf_float32xm4
+#ifdef RISCV64_ZVL256B
+#       define LMUL m4
+#       if defined(DOUBLE)
+#               define ELEN 64
+#       else
+#               define ELEN 32
+#       endif
 #else
-#define RVV_EFLOAT RVV_E64
-#define RVV_M RVV_M4
-#define FLOAT_V_T float64xm4_t
-#define VLEV_FLOAT vlev_float64xm4
-#define VLSEV_FLOAT vlsev_float64xm4
-#define VSEV_FLOAT vsev_float64xm4
-#define VSSEV_FLOAT vssev_float64xm4
-#define VFMACCVF_FLOAT vfmaccvf_float64xm4
+#       define LMUL m4
+#       if defined(DOUBLE)
+#               define ELEN 64
+#       else
+#               define ELEN 32
+#       endif
+#endif
+
+#define _
+#define JOIN2_X(x, y) x ## y
+#define JOIN2(x, y) JOIN2_X(x, y)
+#define JOIN(v, w, x, y, z) JOIN2( JOIN2( JOIN2( JOIN2( v, w ), x), y), z)
+
+#define VSETVL          JOIN(RISCV_RVV(vsetvl),    _e,     ELEN,   LMUL,   _)
+#define FLOAT_V_T       JOIN(vfloat,    	ELEN,   LMUL,   _t,     _)
+#define FLOAT_V_M1_T    JOIN(vfloat,    	ELEN,   m1,   _t,     _)
+#define VLEV_FLOAT      JOIN(RISCV_RVV(vle),       ELEN,   _v_f,   ELEN,   LMUL)
+#define VLSEV_FLOAT     JOIN(RISCV_RVV(vlse),      ELEN,   _v_f,   ELEN,   LMUL)
+#define VSEV_FLOAT      JOIN(RISCV_RVV(vse),       ELEN,   _v_f,   ELEN,   LMUL)
+#define VSSEV_FLOAT     JOIN(RISCV_RVV(vsse),      ELEN,   _v_f,   ELEN,   LMUL)
+#define VFMACCVF_FLOAT  JOIN(RISCV_RVV(vfmacc),    _vf_f, 	ELEN,   LMUL,   _)
+#define VFMVVF_FLOAT    JOIN(RISCV_RVV(vfmv),      _v_f_f, ELEN,   LMUL,   _)
+#define VFMVVF_FLOAT_M1 JOIN(RISCV_RVV(vfmv),      _v_f_f, ELEN,   m1,     _)
+
+#ifdef RISCV_0p10_INTRINSICS
+#define VFREDSUMVS_FLOAT(va, vb, gvl) JOIN(RISCV_RVV(vfredusum_vs_f),  ELEN,   LMUL,   _f, JOIN2( ELEN,   m1))(v_res, va, vb, gvl)
+#else
+#define VFREDSUMVS_FLOAT JOIN(RISCV_RVV(vfredusum_vs_f),  ELEN,   LMUL,   _f, JOIN2( ELEN,   m1))
 #endif
 
 int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLASLONG inc_x, FLOAT *y, BLASLONG inc_y, FLOAT *dummy, BLASLONG dummy2)
@@ -55,12 +74,12 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
 	FLOAT_V_T vy0, vy1;
 	BLASLONG stride_x, stride_y;
 
-	if (n < 0)  return(0);
+	if (n <= 0)  return(0);
 	if (da == 0.0) return(0);
 
 	if (inc_x == 1 && inc_y == 1) {
 
-		gvl = vsetvli(n, RVV_EFLOAT, RVV_M);
+		gvl = VSETVL(n);
 
 		if (gvl <= n/2) {
 			for (i = 0, j=0; i < n/(2*gvl); i++, j+=2*gvl) {
@@ -77,7 +96,7 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
 		}
 		//tail
 		for (; j < n; ) {
-			gvl = vsetvli(n - j, RVV_EFLOAT, RVV_M);
+			gvl = VSETVL(n - j);
 			vx0 = VLEV_FLOAT(&x[j], gvl);
 			vy0 = VLEV_FLOAT(&y[j], gvl);
 			vy0 = VFMACCVF_FLOAT(vy0, da, vx0, gvl);
@@ -87,7 +106,7 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
 		}
 	}else if (inc_y == 1) {
 		stride_x = inc_x * sizeof(FLOAT);
-                gvl = vsetvli(n, RVV_EFLOAT, RVV_M);
+                gvl = VSETVL(n);
                 if(gvl <= n/2){
                         BLASLONG inc_xv = inc_x * gvl;
                         for(i=0,j=0; i<n/(2*gvl); i++){
@@ -106,16 +125,16 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
                         }
                 }
 		for (; j<n; ) {
-			gvl = vsetvli(n - j, RVV_EFLOAT, RVV_M);
+			gvl = VSETVL(n - j);
 			vx0 = VLSEV_FLOAT(&x[j*inc_x], stride_x, gvl);
 			vy0 = VLEV_FLOAT(&y[j], gvl);
 			vy0 = VFMACCVF_FLOAT(vy0, da, vx0, gvl);
 			VSEV_FLOAT(&y[j], vy0, gvl);
 			j += gvl;
 		}
-        }else if(inc_x == 1){
+	} else if (1 == inc_x && 0 != inc_y) {
 		stride_y = inc_y * sizeof(FLOAT);
-                gvl = vsetvli(n, RVV_EFLOAT, RVV_M);
+                gvl = VSETVL(n);
                 if(gvl <= n/2){
                         BLASLONG inc_yv = inc_y * gvl;
                         for(i=0,j=0; i<n/(2*gvl); i++){
@@ -134,17 +153,28 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
                         }
                 }
 		for (; j<n; ) {
-			gvl = vsetvli(n - j, RVV_EFLOAT, RVV_M);
+			gvl = VSETVL(n - j);
 			vx0 = VLEV_FLOAT(&x[j], gvl);
 			vy0 = VLSEV_FLOAT(&y[j*inc_y], stride_y, gvl);
 			vy0 = VFMACCVF_FLOAT(vy0, da, vx0, gvl);
 			VSSEV_FLOAT(&y[j*inc_y], stride_y, vy0, gvl);
 			j += gvl;
 		}
+	} else if( 0 == inc_y ) {
+        /* Zero output stride is an ordered update of one scalar. Do not
+           broadcast its initial value into every reduction lane. */
+        for (BLASLONG k = 0; k < n; ++k) {
+#if defined(DOUBLE)
+                y[0] = __builtin_fma(da, x[k * inc_x], y[0]);
+#else
+                y[0] = __builtin_fmaf(da, x[k * inc_x], y[0]);
+#endif
+        }
+
 	}else{
 		stride_x = inc_x * sizeof(FLOAT);
 		stride_y = inc_y * sizeof(FLOAT);
-                gvl = vsetvli(n, RVV_EFLOAT, RVV_M);
+                gvl = VSETVL(n);
                 if(gvl <= n/2){
                         BLASLONG inc_xv = inc_x * gvl;
                         BLASLONG inc_yv = inc_y * gvl;
@@ -165,7 +195,7 @@ int CNAME(BLASLONG n, BLASLONG dummy0, BLASLONG dummy1, FLOAT da, FLOAT *x, BLAS
                         }
                 }
 		for (; j<n; ) {
-			gvl = vsetvli(n - j, RVV_EFLOAT, RVV_M);
+			gvl = VSETVL(n - j);
 			vx0 = VLSEV_FLOAT(&x[j*inc_x], stride_x, gvl);
 			vy0 = VLSEV_FLOAT(&y[j*inc_y], stride_y, gvl);
 			vy0 = VFMACCVF_FLOAT(vy0, da, vx0, gvl);

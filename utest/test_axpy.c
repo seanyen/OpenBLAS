@@ -74,6 +74,26 @@ CTEST(axpy,zaxpy_inc_0)
 		ASSERT_DBL_NEAR_TOL(y2[i], y1[i], DOUBLE_EPS);
 	}
 }
+
+CTEST(axpy,zaxpy_incx_0)
+{
+        blasint i;
+        blasint N=4,incX=0,incY=1;
+        double a[2]={0.25,0.5};
+        double x1[]={1.0,3.0,5.0,7.0,1.0,3.0,5.0,7.0};
+        double y1[]={2.0,4.0,6.0,8.0,2.0,4.0,6.0,8.0};
+        double x2[]={1.0,3.0,5.0,7.0,1.0,3.0,5.0,7.0};
+        double y2[]={0.75,5.25,4.75,9.25,0.75,5.25,4.75,9.25};
+
+        //OpenBLAS
+        BLASFUNC(zaxpy)(&N,a,x1,&incX,y1,&incY);
+
+        for(i=0; i<2*N; i++){
+		ASSERT_DBL_NEAR_TOL(x2[i], x1[i], DOUBLE_EPS);
+                ASSERT_DBL_NEAR_TOL(y2[i], y1[i], DOUBLE_EPS);
+        }
+}
+
 #endif
 
 #ifdef BUILD_SINGLE
@@ -116,5 +136,79 @@ CTEST(axpy,caxpy_inc_0)
 		ASSERT_DBL_NEAR_TOL(y2[i], y1[i], DOUBLE_EPS);
 	}
 }
+
+CTEST(axpy,caxpy_incx_0)
+{
+	blasint i;
+	blasint N=4,incX=0,incY=1;
+	float a[2]={0.25,0.5};
+	float x1[]={1.0,3.0,5.0,7.0,1.0,3.0,5.0,7.0};
+	float y1[]={2.0,4.0,6.0,8.0,2.0,4.0,6.0,8.0};
+        double x2[]={1.0,3.0,5.0,7.0,1.0,3.0,5.0,7.0};
+        double y2[]={0.75,5.25,4.75,9.25,0.75,5.25,4.75,9.25};
+
+	//OpenBLAS
+	BLASFUNC(caxpy)(&N,a,x1,&incX,y1,&incY);
+
+	for(i=0; i<2*N; i++){
+		ASSERT_DBL_NEAR_TOL(x2[i], x1[i], DOUBLE_EPS);
+		ASSERT_DBL_NEAR_TOL(y2[i], y1[i], DOUBLE_EPS);
+	}
+}
 #endif
 
+
+
+#ifdef BUILD_DOUBLE
+CTEST(axpy,daxpy_zero_output_stride)
+{
+    const blasint lengths[] = {1, 2, 9, 17, 33};
+    const blasint strides[] = {1, 2, -1, -2};
+    const double seeds[] = {-2, 0, 2};
+    const double alphas[] = {0, 1, -1, 0.5};
+    int ni, si, yi, ai, k;
+    for (ni = 0; ni < 5; ++ni)
+        for (si = 0; si < 4; ++si)
+            for (yi = 0; yi < 3; ++yi)
+                for (ai = 0; ai < 4; ++ai) {
+                    blasint n = lengths[ni], incx = strides[si], incy = 0;
+                    double alpha = alphas[ai], x[65], y[3] = {99, 0, 99};
+                    double expected = seeds[yi] + n * alpha;
+                    y[1] = seeds[yi];
+                    for (k = 0; k < 65; ++k) x[k] = 1;
+                    BLASFUNC(daxpy)(&n, &alpha, x, &incx, y + 1, &incy);
+                    ASSERT_DBL_NEAR_TOL(expected, y[1], DOUBLE_EPS);
+                    ASSERT_DBL_NEAR_TOL(99, y[0], DOUBLE_EPS);
+                    ASSERT_DBL_NEAR_TOL(99, y[2], DOUBLE_EPS);
+                    for (k = 0; k < 65; ++k)
+                        ASSERT_DBL_NEAR_TOL(1, x[k], DOUBLE_EPS);
+                }
+}
+#endif
+
+#ifdef BUILD_SINGLE
+CTEST(axpy,saxpy_zero_output_stride)
+{
+    const blasint lengths[] = {1, 2, 9, 17, 33};
+    const blasint strides[] = {1, 2, -1, -2};
+    const float seeds[] = {-2, 0, 2};
+    const float alphas[] = {0, 1, -1, 0.5};
+    int ni, si, yi, ai, k;
+    for (ni = 0; ni < 5; ++ni)
+        for (si = 0; si < 4; ++si)
+            for (yi = 0; yi < 3; ++yi)
+                for (ai = 0; ai < 4; ++ai) {
+                    blasint n = lengths[ni], incx = strides[si], incy = 0;
+                    float alpha = alphas[ai], x[65], y[3] = {99, 0, 99};
+                    float expected = seeds[yi] + n * alpha;
+                    y[1] = seeds[yi];
+                    for (k = 0; k < 65; ++k) x[k] = 1;
+                    BLASFUNC(saxpy)(&n, &alpha, x, &incx, y + 1, &incy);
+                    ASSERT_DBL_NEAR_TOL(expected, y[1], DOUBLE_EPS);
+                    ASSERT_DBL_NEAR_TOL(99, y[0], DOUBLE_EPS);
+                    ASSERT_DBL_NEAR_TOL(99, y[2], DOUBLE_EPS);
+                    for (k = 0; k < 65; ++k)
+                        ASSERT_DBL_NEAR_TOL(1, x[k], DOUBLE_EPS);
+                }
+}
+#endif

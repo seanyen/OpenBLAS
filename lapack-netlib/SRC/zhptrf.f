@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download ZHPTRF + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zhptrf.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zhptrf.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -107,9 +105,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complex16OTHERcomputational
+*> \ingroup hptrf
 *
 *> \par Further Details:
 *  =====================
@@ -158,11 +154,11 @@
 *
 *  =====================================================================
       SUBROUTINE ZHPTRF( UPLO, N, AP, IPIV, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO
@@ -190,10 +186,10 @@
       COMPLEX*16         D12, D21, T, WK, WKM1, WKP1, ZDUM
 *     ..
 *     .. External Functions ..
-      LOGICAL            LSAME
+      LOGICAL            LSAME, DISNAN
       INTEGER            IZAMAX
       DOUBLE PRECISION   DLAPY2
-      EXTERNAL           LSAME, IZAMAX, DLAPY2
+      EXTERNAL           LSAME, IZAMAX, DLAPY2, DISNAN
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           XERBLA, ZDSCAL, ZHPR, ZSWAP
@@ -260,9 +256,11 @@
             COLMAX = ZERO
          END IF
 *
-         IF( MAX( ABSAKK, COLMAX ).EQ.ZERO ) THEN
+         IF( (MAX( ABSAKK, COLMAX ).EQ.ZERO) .OR.
+     $       DISNAN(ABSAKK) ) THEN
 *
-*           Column K is zero: set INFO and continue
+*           Column K is zero or underflow, or contains a NaN:
+*           set INFO and continue
 *
             IF( INFO.EQ.0 )
      $         INFO = K
@@ -391,13 +389,12 @@
                   D11 = DBLE( AP( K+( K-1 )*K / 2 ) ) / D
                   TT = ONE / ( D11*D22-ONE )
                   D12 = AP( K-1+( K-1 )*K / 2 ) / D
-                  D = TT / D
 *
                   DO 50 J = K - 2, 1, -1
-                     WKM1 = D*( D11*AP( J+( K-2 )*( K-1 ) / 2 )-
-     $                      DCONJG( D12 )*AP( J+( K-1 )*K / 2 ) )
-                     WK = D*( D22*AP( J+( K-1 )*K / 2 )-D12*
-     $                    AP( J+( K-2 )*( K-1 ) / 2 ) )
+                     WKM1 = TT*( ( D11*AP( J+( K-2 )*( K-1 ) / 2 )-
+     $                      DCONJG( D12 )*AP( J+( K-1 )*K / 2 ) ) / D )
+                     WK = TT*( ( D22*AP( J+( K-1 )*K / 2 )-D12*
+     $                    AP( J+( K-2 )*( K-1 ) / 2 ) ) / D )
                      DO 40 I = J, 1, -1
                         AP( I+( J-1 )*J / 2 ) = AP( I+( J-1 )*J / 2 ) -
      $                     AP( I+( K-1 )*K / 2 )*DCONJG( WK ) -
@@ -463,9 +460,11 @@
             COLMAX = ZERO
          END IF
 *
-         IF( MAX( ABSAKK, COLMAX ).EQ.ZERO ) THEN
+         IF( (MAX( ABSAKK, COLMAX ).EQ.ZERO) .OR.
+     $       DISNAN(ABSAKK) ) THEN
 *
-*           Column K is zero: set INFO and continue
+*           Column K is zero or underflow, or contains a NaN:
+*           set INFO and continue
 *
             IF( INFO.EQ.0 )
      $         INFO = K
@@ -527,7 +526,8 @@
 *              submatrix A(k:n,k:n)
 *
                IF( KP.LT.N )
-     $            CALL ZSWAP( N-KP, AP( KNC+KP-KK+1 ), 1, AP( KPC+1 ),
+     $            CALL ZSWAP( N-KP, AP( KNC+KP-KK+1 ), 1,
+     $                        AP( KPC+1 ),
      $                        1 )
                KX = KNC + KP - KK
                DO 80 J = KK + 1, KP - 1
@@ -595,20 +595,20 @@
 *                 where L(k) and L(k+1) are the k-th and (k+1)-th
 *                 columns of L
 *
-                  D = DLAPY2( DBLE( AP( K+1+( K-1 )*( 2*N-K ) / 2 ) ),
+                  D = DLAPY2(
+     $                DBLE( AP( K+1+( K-1 )*( 2*N-K ) / 2 ) ),
      $                DIMAG( AP( K+1+( K-1 )*( 2*N-K ) / 2 ) ) )
                   D11 = DBLE( AP( K+1+K*( 2*N-K-1 ) / 2 ) ) / D
                   D22 = DBLE( AP( K+( K-1 )*( 2*N-K ) / 2 ) ) / D
                   TT = ONE / ( D11*D22-ONE )
                   D21 = AP( K+1+( K-1 )*( 2*N-K ) / 2 ) / D
-                  D = TT / D
 *
                   DO 100 J = K + 2, N
-                     WK = D*( D11*AP( J+( K-1 )*( 2*N-K ) / 2 )-D21*
-     $                    AP( J+K*( 2*N-K-1 ) / 2 ) )
-                     WKP1 = D*( D22*AP( J+K*( 2*N-K-1 ) / 2 )-
+                     WK = TT*( ( D11*AP( J+( K-1 )*( 2*N-K ) / 2 )-D21*
+     $                    AP( J+K*( 2*N-K-1 ) / 2 ) ) / D )
+                     WKP1 = TT*( ( D22*AP( J+K*( 2*N-K-1 ) / 2 )-
      $                      DCONJG( D21 )*AP( J+( K-1 )*( 2*N-K ) /
-     $                      2 ) )
+     $                      2 ) ) / D )
                      DO 90 I = J, N
                         AP( I+( J-1 )*( 2*N-J ) / 2 ) = AP( I+( J-1 )*
      $                     ( 2*N-J ) / 2 ) - AP( I+( K-1 )*( 2*N-K ) /

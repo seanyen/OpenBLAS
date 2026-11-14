@@ -63,17 +63,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
 *> \ingroup complex16_eig
 *
 *  =====================================================================
       SUBROUTINE ZERRED( PATH, NUNIT )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*3        PATH
@@ -85,8 +83,8 @@
 *     .. Parameters ..
       INTEGER            NMAX, LW
       PARAMETER          ( NMAX = 4, LW = 5*NMAX )
-      DOUBLE PRECISION   ONE, ZERO
-      PARAMETER          ( ONE = 1.0D0, ZERO = 0.0D0 )
+      DOUBLE PRECISION   ZERO, ONE
+      PARAMETER          ( ZERO = 0.0D0, ONE = 1.0D0 )
 *     ..
 *     .. Local Scalars ..
       CHARACTER*2        C2
@@ -102,8 +100,9 @@
      $                   VT( NMAX, NMAX ), W( 10*NMAX ), X( NMAX )
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           CHKXER, ZGEES, ZGEESX, ZGEEV, ZGEEVX, ZGESVJ,
-     $                   ZGESDD, ZGESVD, ZGESVDX, ZGESVQ
+      EXTERNAL           CHKXER, ZGEES, ZGEESX, ZGEEV, ZGEEVX, ZGEJSV,
+     $                   ZGESDD, ZGESVD, ZGESVDX, ZGESVDQ,
+     $                   ZGESVDMR3
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAMEN, ZSLECT
@@ -335,7 +334,7 @@
             WRITE( NOUT, FMT = 9999 )SRNAMT( 1:LEN_TRIM( SRNAMT ) ),
      $           NT
          ELSE
-            WRITE( NOUT, FMT = 9998 )
+            WRITE( NOUT, FMT = 9998 )SRNAMT( 1:LEN_TRIM( SRNAMT ) )
          END IF
 *
 *        Test ZGESDD
@@ -370,7 +369,7 @@
             WRITE( NOUT, FMT = 9999 )SRNAMT( 1:LEN_TRIM( SRNAMT ) ),
      $           NT
          ELSE
-            WRITE( NOUT, FMT = 9998 )
+            WRITE( NOUT, FMT = 9998 )SRNAMT( 1:LEN_TRIM( SRNAMT ) )
          END IF
 *
 *        Test ZGEJSV
@@ -436,7 +435,7 @@
             WRITE( NOUT, FMT = 9999 )SRNAMT( 1:LEN_TRIM( SRNAMT ) ),
      $           NT
          ELSE
-            WRITE( NOUT, FMT = 9998 )
+            WRITE( NOUT, FMT = 9998 )SRNAMT( 1:LEN_TRIM( SRNAMT ) )
          END IF
 *
 *        Test ZGESVDX
@@ -495,7 +494,66 @@
             WRITE( NOUT, FMT = 9999 )SRNAMT( 1:LEN_TRIM( SRNAMT ) ),
      $           NT
          ELSE
-            WRITE( NOUT, FMT = 9998 )
+            WRITE( NOUT, FMT = 9998 )SRNAMT( 1:LEN_TRIM( SRNAMT ) )
+         END IF
+*
+*        Test ZGESVDMR3
+*
+         SRNAMT = 'ZGESVDMR3'
+         INFOT = 1
+         CALL ZGESVDMR3( 'X', 'N', 'A', 0, 0, A, 1, ZERO, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 2
+         CALL ZGESVDMR3( 'N', 'X', 'A', 0, 0, A, 1, ZERO, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 3
+         CALL ZGESVDMR3( 'N', 'N', 'X', 0, 0, A, 1, ZERO, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 4
+         CALL ZGESVDMR3( 'N', 'N', 'A', -1, 0, A, 1, ZERO, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 5
+         CALL ZGESVDMR3( 'N', 'N', 'A', 0, -1, A, 1, ZERO, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 7
+         CALL ZGESVDMR3( 'N', 'N', 'A', 2, 1, A, 1, ZERO, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 8
+         CALL ZGESVDMR3( 'N', 'N', 'V', 2, 1, A, 2, -ONE, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 9
+         CALL ZGESVDMR3( 'N', 'N', 'V', 2, 1, A, 2, ONE, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 10
+         CALL ZGESVDMR3( 'N', 'N', 'I', 2, 2, A, 2, ZERO, ZERO,
+     $                 0, 1, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 11
+         CALL ZGESVDMR3( 'V', 'N', 'I', 2, 2, A, 2, ZERO, ZERO,
+     $                 1, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 15
+         CALL ZGESVDMR3( 'V', 'N', 'A', 2, 2, A, 2, ZERO, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         INFOT = 17
+         CALL ZGESVDMR3( 'N', 'V', 'A', 2, 2, A, 2, ZERO, ZERO,
+     $                 0, 0, NS, S, U, 1, VT, 1, W, 1, RW, IW, INFO )
+         CALL CHKXER( 'ZGESVDMR3', INFOT, NOUT, LERR, OK )
+         NT = 12
+         IF( OK ) THEN
+            WRITE( NOUT, FMT = 9999 )SRNAMT( 1:LEN_TRIM( SRNAMT ) ),
+     $           NT
+         ELSE
+            WRITE( NOUT, FMT = 9998 )SRNAMT( 1:LEN_TRIM( SRNAMT ) )
          END IF
 *
 *        Test ZGESVDQ
@@ -550,7 +608,7 @@
             WRITE( NOUT, FMT = 9999 )SRNAMT( 1:LEN_TRIM( SRNAMT ) ),
      $           NT
          ELSE
-            WRITE( NOUT, FMT = 9998 )
+            WRITE( NOUT, FMT = 9998 )SRNAMT( 1:LEN_TRIM( SRNAMT ) )
          END IF
       END IF
 *
@@ -561,7 +619,7 @@
             WRITE( NOUT, FMT = 9999 )SRNAMT( 1:LEN_TRIM( SRNAMT ) ),
      $           NT
          ELSE
-            WRITE( NOUT, FMT = 9998 )
+            WRITE( NOUT, FMT = 9998 )SRNAMT( 1:LEN_TRIM( SRNAMT ) )
          END IF
       END IF
 *

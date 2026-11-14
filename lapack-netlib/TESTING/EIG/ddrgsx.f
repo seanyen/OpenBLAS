@@ -350,8 +350,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2016
-*
 *> \ingroup double_eig
 *
 *  =====================================================================
@@ -359,10 +357,9 @@
      $                   BI, Z, Q, ALPHAR, ALPHAI, BETA, C, LDC, S,
      $                   WORK, LWORK, IWORK, LIWORK, BWORK, INFO )
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LDC, LIWORK, LWORK, NCMAX, NIN,
@@ -403,7 +400,7 @@
       EXTERNAL           DLCTSX, ILAENV, DLAMCH, DLANGE
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           ALASVM, DGESVD, DGET51, DGET53, DGGESX, DLABAD,
+      EXTERNAL           ALASVM, DGESVD, DGET51, DGET53, DGGESX,
      $                   DLACPY, DLAKF2, DLASET, DLATM5, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
@@ -481,7 +478,6 @@
       ULPINV = ONE / ULP
       SMLNUM = DLAMCH( 'S' ) / ULP
       BIGNUM = ONE / SMLNUM
-      CALL DLABAD( SMLNUM, BIGNUM )
       THRSH2 = TEN*THRESH
       NTESTT = 0
       NERRS = 0
@@ -987,7 +983,7 @@
      $      / '  2:  A and B are upper triangular matrices, ',
      $      / '  3:  A and B are as type 2, but each second diagonal ',
      $      'block in A_11 and ', /
-     $      '      each third diaongal block in A_22 are 2x2 blocks,',
+     $      '      each third diagonal block in A_22 are 2x2 blocks,',
      $      / '  4:  A and B are block diagonal matrices, ',
      $      / '  5:  (A,B) has potentially close or common ',
      $      'eigenvalues.', / )

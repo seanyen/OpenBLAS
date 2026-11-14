@@ -22,8 +22,17 @@
 *>
 *> ZGETSLS solves overdetermined or underdetermined complex linear systems
 *> involving an M-by-N matrix A, using a tall skinny QR or short wide LQ
-*> factorization of A.  It is assumed that A has full rank.
+*> factorization of A.
 *>
+*> It is assumed that A has full rank, and only a rudimentary protection
+*> against rank-deficient matrices is provided. This subroutine only detects
+*> exact rank-deficiency, where a diagonal element of the triangular factor
+*> of A is exactly zero.
+*>
+*> It is conceivable for one (or more) of the diagonal elements of the triangular
+*> factor of A to be subnormally tiny numbers without this subroutine signalling
+*> an error. The solutions computed for such almost-rank-deficient matrices may
+*> be less accurate due to a loss of numerical precision.
 *>
 *>
 *> The following options are provided:
@@ -127,7 +136,7 @@
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
-*>          The dimension of the array WORK.
+*>          The dimension of the array WORK. LWORK >= 1.
 *>          If LWORK = -1 or -2, then a workspace query is assumed.
 *>          If LWORK = -1, the routine calculates optimal size of WORK for the
 *>          optimal performance and returns this value in WORK(1).
@@ -141,7 +150,7 @@
 *>          = 0:  successful exit
 *>          < 0:  if INFO = -i, the i-th argument had an illegal value
 *>          > 0:  if INFO =  i, the i-th diagonal element of the
-*>                triangular factor of A is zero, so that A does not have
+*>                triangular factor of A is exactly zero, so that A does not have
 *>                full rank; the least squares solution could not be
 *>                computed.
 *> \endverbatim
@@ -154,18 +163,16 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date June 2017
-*
-*> \ingroup complex16GEsolve
+*> \ingroup getsls
 *
 *  =====================================================================
       SUBROUTINE ZGETSLS( TRANS, M, N, NRHS, A, LDA, B, LDB,
      $                    WORK, LWORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK driver routine (version 3.7.1) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2017
 *
 *     .. Scalar Arguments ..
       CHARACTER          TRANS
@@ -186,17 +193,16 @@
 *     ..
 *     .. Local Scalars ..
       LOGICAL            LQUERY, TRAN
-      INTEGER            I, IASCL, IBSCL, J, MINMN, MAXMN, BROW,
-     $                   SCLLEN, MNK, TSZO, TSZM, LWO, LWM, LW1, LW2,
+      INTEGER            I, IASCL, IBSCL, J, MAXMN, BROW,
+     $                   SCLLEN, TSZO, TSZM, LWO, LWM, LW1, LW2,
      $                   WSIZEO, WSIZEM, INFO2
       DOUBLE PRECISION   ANRM, BIGNUM, BNRM, SMLNUM, DUM( 1 )
       COMPLEX*16         TQ( 5 ), WORKQ( 1 )
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      INTEGER            ILAENV
       DOUBLE PRECISION   DLAMCH, ZLANGE
-      EXTERNAL           LSAME, ILAENV, DLABAD, DLAMCH, ZLANGE
+      EXTERNAL           LSAME, DLAMCH, ZLANGE
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           ZGEQR, ZGEMQR, ZLASCL, ZLASET,
@@ -210,9 +216,7 @@
 *     Test the input arguments.
 *
       INFO = 0
-      MINMN = MIN( M, N )
       MAXMN = MAX( M, N )
-      MNK   = MAX( MINMN, NRHS )
       TRAN  = LSAME( TRANS, 'C' )
 *
       LQUERY = ( LWORK.EQ.-1 .OR. LWORK.EQ.-2 )
@@ -233,9 +237,12 @@
 *
       IF( INFO.EQ.0 ) THEN
 *
-*     Determine the block size and minimum LWORK
+*     Determine the optimum and minimum LWORK
 *
-       IF( M.GE.N ) THEN
+       IF( MIN( M, N, NRHS ).EQ.0 ) THEN
+         WSIZEO = 1
+         WSIZEM = 1
+       ELSE IF( M.GE.N ) THEN
          CALL ZGEQR( M, N, A, LDA, TQ, -1, WORKQ, -1, INFO2 )
          TSZO = INT( TQ( 1 ) )
          LWO  = INT( WORKQ( 1 ) )
@@ -271,16 +278,16 @@
           INFO = -10
        END IF
 *
+       WORK( 1 ) = DBLE( WSIZEO )
+*
       END IF
 *
       IF( INFO.NE.0 ) THEN
         CALL XERBLA( 'ZGETSLS', -INFO )
-        WORK( 1 ) = DBLE( WSIZEO )
         RETURN
       END IF
       IF( LQUERY ) THEN
-        IF( LWORK.EQ.-1 ) WORK( 1 ) = REAL( WSIZEO )
-        IF( LWORK.EQ.-2 ) WORK( 1 ) = REAL( WSIZEM )
+        IF( LWORK.EQ.-2 ) WORK( 1 ) = DBLE( WSIZEM )
         RETURN
       END IF
       IF( LWORK.LT.WSIZEO ) THEN
@@ -303,7 +310,6 @@
 *
        SMLNUM = DLAMCH( 'S' ) / DLAMCH( 'P' )
        BIGNUM = ONE / SMLNUM
-       CALL DLABAD( SMLNUM, BIGNUM )
 *
 *     Scale A, B if max element outside range [SMLNUM,BIGNUM]
 *
@@ -473,21 +479,30 @@
 *
       END IF
 *
-*     Undo scaling
+*     Undo scaling.  The solution carries the factor of B divided by
+*     the factor of A.  When both were scaled to the same end of the
+*     range the constants cancel and BNRM/ANRM is applied in one step:
+*     applied in two, the first step could flush or overflow an entry
+*     that the second would have brought back into range.
 *
-      IF( IASCL.EQ.1 ) THEN
-        CALL ZLASCL( 'G', 0, 0, ANRM, SMLNUM, SCLLEN, NRHS, B, LDB,
+      IF( IASCL.EQ.IBSCL .AND. IASCL.NE.0 ) THEN
+        CALL ZLASCL( 'G', 0, 0, ANRM, BNRM, SCLLEN, NRHS, B, LDB,
      $               INFO )
-      ELSE IF( IASCL.EQ.2 ) THEN
-        CALL ZLASCL( 'G', 0, 0, ANRM, BIGNUM, SCLLEN, NRHS, B, LDB,
-     $                INFO )
-      END IF
-      IF( IBSCL.EQ.1 ) THEN
-        CALL ZLASCL( 'G', 0, 0, SMLNUM, BNRM, SCLLEN, NRHS, B, LDB,
-     $               INFO )
-      ELSE IF( IBSCL.EQ.2 ) THEN
-        CALL ZLASCL( 'G', 0, 0, BIGNUM, BNRM, SCLLEN, NRHS, B, LDB,
-     $               INFO )
+      ELSE
+         IF( IASCL.EQ.1 ) THEN
+           CALL ZLASCL( 'G', 0, 0, ANRM, SMLNUM, SCLLEN, NRHS, B, LDB,
+     $                  INFO )
+         ELSE IF( IASCL.EQ.2 ) THEN
+           CALL ZLASCL( 'G', 0, 0, ANRM, BIGNUM, SCLLEN, NRHS, B, LDB,
+     $                  INFO )
+         END IF
+         IF( IBSCL.EQ.1 ) THEN
+           CALL ZLASCL( 'G', 0, 0, SMLNUM, BNRM, SCLLEN, NRHS, B, LDB,
+     $                  INFO )
+         ELSE IF( IBSCL.EQ.2 ) THEN
+           CALL ZLASCL( 'G', 0, 0, BIGNUM, BNRM, SCLLEN, NRHS, B, LDB,
+     $                  INFO )
+         END IF
       END IF
 *
    50 CONTINUE

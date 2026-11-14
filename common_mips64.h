@@ -75,8 +75,6 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WMB __sync_synchronize()
 #define RMB __sync_synchronize()
 
-#define INLINE inline
-
 #ifndef ASSEMBLER
 
 static inline unsigned int rpcc(void){
@@ -86,7 +84,9 @@ static inline unsigned int rpcc(void){
   //__asm__ __volatile__("dmfc0 %0, $25, 1": "=r"(tmp):: "memory");
   //ret=tmp;
   __asm__ __volatile__(".set push \n"
+#if !defined(__mips_isa_rev) || __mips_isa_rev < 2
                        ".set mips32r2\n"
+#endif
                        "rdhwr %0, $2\n"
                        ".set pop": "=r"(ret):: "memory");
 
@@ -99,7 +99,9 @@ static inline unsigned int rpcc(void){
 static inline int WhereAmI(void){
   int ret=0;
   __asm__ __volatile__(".set push \n"
+#if !defined(__mips_isa_rev) || __mips_isa_rev < 2
                        ".set mips32r2\n"
+#endif
                        "rdhwr %0, $0\n"
                        ".set pop": "=r"(ret):: "memory");
   return ret;
@@ -197,9 +199,15 @@ static inline int blas_quickdivide(blasint x, blasint y){
 
 #if defined(ASSEMBLER) && !defined(NEEDPARAM)
 
-#define PROLOGUE \
+#if defined(__mips_isa_rev) && __mips_isa_rev >= 6
+#define ASSEMBLER_ARCH mips64r6
+#else
+#define ASSEMBLER_ARCH mips64
+#endif
+
+#define PROLOGUE_EXPORT \
 	.text ;\
-	.set	mips64 ;\
+	.set	ASSEMBLER_ARCH ;\
 	.align 5 ;\
 	.globl	REALNAME ;\
 	.ent	REALNAME ;\
@@ -207,6 +215,22 @@ static inline int blas_quickdivide(blasint x, blasint y){
 REALNAME: ;\
 	.set	noreorder ;\
 	.set	nomacro
+
+#ifdef __ELF__
+#define PROLOGUE \
+	.text ;\
+	.set	ASSEMBLER_ARCH ;\
+	.align 5 ;\
+	.globl	REALNAME ;\
+	.hidden REALNAME ;\
+	.ent	REALNAME ;\
+	.type	REALNAME, @function ;\
+REALNAME: ;\
+	.set	noreorder ;\
+	.set	nomacro
+#else
+#define PROLOGUE PROLOGUE_EXPORT
+#endif
 
 #if defined(__linux__) && defined(__ELF__)
 #define GNUSTACK .section .note.GNU-stack,"",@progbits

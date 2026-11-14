@@ -15,14 +15,14 @@ T                      Put T to test the LAPACK routines
 T                      Put T to test the driver routines
 T                      Put T to test the error exits
 SGE   11               List types on next line if 0 < NTYPES < 11
-SGB    8               List types on next line if 0 < NTYPES <  8
+SGB    9               List types on next line if 0 < NTYPES <  9
 SGT   12               List types on next line if 0 < NTYPES < 12
 SPO    9               List types on next line if 0 < NTYPES <  9
 SPS    9               List types on next line if 0 < NTYPES <  9
 SPP    9               List types on next line if 0 < NTYPES <  9
 SPB    8               List types on next line if 0 < NTYPES <  8
 SPT   12               List types on next line if 0 < NTYPES < 12
-SSY   10               List types on next line if 0 < NTYPES < 10
+SSY   11               List types on next line if 0 < NTYPES < 11
 SSR   10               List types on next line if 0 < NTYPES < 10
 SSK   10               List types on next line if 0 < NTYPES < 10
 SSA   10               List types on next line if 0 < NTYPES < 10
@@ -36,6 +36,8 @@ SRQ    8               List types on next line if 0 < NTYPES <  8
 SLQ    8               List types on next line if 0 < NTYPES <  8
 SQL    8               List types on next line if 0 < NTYPES <  8
 SQP    6               List types on next line if 0 < NTYPES <  6
+SQK   19               List types on next line if 0 < NTYPES < 19
+SCX   19               LIst types on next line if 0 < NTYPES < 19
 STZ    3               List types on next line if 0 < NTYPES <  3
 SLS    6               List types on next line if 0 < NTYPES <  6
 SEQ

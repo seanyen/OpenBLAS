@@ -80,6 +80,8 @@ static int (*gbmv_thread[])(BLASLONG, BLASLONG, BLASLONG, BLASLONG, FLOAT *,
 };
 #endif
 
+OPENBLAS_EXPORT
+
 #ifndef CBLAS
 
 void NAME(char *TRANS, blasint *M, blasint *N,
@@ -249,9 +251,17 @@ void CNAME(enum CBLAS_ORDER order,
   if (incy < 0) y -= (leny - 1) * incy * 2;
 
   buffer = (FLOAT *)blas_memory_alloc(1);
+  if (!buffer) {
+    info = -999;
+    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
+    return;
+  }
 
 #ifdef SMP
-  nthreads = num_cpu_avail(2);
+  if (m * n  < 125000 || ku + kl < 15) 
+    nthreads = 1;
+  else
+    nthreads = num_cpu_avail(2);
 
   if (nthreads == 1) {
 #endif

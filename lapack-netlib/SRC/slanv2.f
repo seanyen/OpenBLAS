@@ -109,9 +109,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realOTHERauxiliary
+*> \ingroup lanv2
 *
 *> \par Further Details:
 *  =====================
@@ -127,10 +125,9 @@
 *  =====================================================================
       SUBROUTINE SLANV2( A, B, C, D, RT1R, RT1I, RT2R, RT2I, CS, SN )
 *
-*  -- LAPACK auxiliary routine (version 3.7.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       REAL               A, B, C, CS, D, RT1I, RT1R, RT2I, RT2R, SN
@@ -147,7 +144,7 @@
 *     ..
 *     .. Local Scalars ..
       REAL               AA, BB, BCMAX, BCMIS, CC, CS1, DD, EPS, P, SAB,
-     $                   SAC, SCALE, SIGMA, SN1, TAU, TEMP, Z, SAFMIN, 
+     $                   SAC, SCALE, SIGMA, SN1, TAU, TEMP, Z, SAFMIN,
      $                   SAFMN2, SAFMX2
       INTEGER            COUNT
 *     ..
@@ -252,9 +249,13 @@
 *           Compute [ A  B ] = [ CS  SN ] [ AA  BB ]
 *                   [ C  D ]   [-SN  CS ] [ CC  DD ]
 *
+*           Note: Some of the multiplications are wrapped in parentheses to
+*                 prevent compilers from using FMA instructions. See
+*                 https://github.com/Reference-LAPACK/lapack/issues/1031.
+*
             A = AA*CS + CC*SN
-            B = BB*CS + DD*SN
-            C = -AA*SN + CC*CS
+            B = ( BB*CS ) + ( DD*SN )
+            C = -( AA*SN ) + ( CC*CS )
             D = -BB*SN + DD*CS
 *
             TEMP = HALF*( A+D )

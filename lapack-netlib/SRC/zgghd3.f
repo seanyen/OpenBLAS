@@ -176,14 +176,14 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>          WORK is COMPLEX*16 array, dimension (LWORK)
+*>          WORK is COMPLEX*16 array, dimension (MAX(1,LWORK))
 *>          On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
 *> \endverbatim
 *>
 *> \param[in]  LWORK
 *> \verbatim
 *>          LWORK is INTEGER
-*>          The length of the array WORK.  LWORK >= 1.
+*>          The length of the array WORK. LWORK >= 1.
 *>          For optimum performance LWORK >= 6*N*NB, where NB is the
 *>          optimal blocksize.
 *>
@@ -208,16 +208,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date January 2015
-*
-*> \ingroup complex16OTHERcomputational
+*> \ingroup gghd3
 *
 *> \par Further Details:
 *  =====================
 *>
 *> \verbatim
 *>
-*>  This routine reduces A to Hessenberg form and maintains B in
+*>  This routine reduces A to Hessenberg form and maintains B in triangular form
 *>  using a blocked variant of Moler and Stewart's original algorithm,
 *>  as described by Kagstrom, Kressner, Quintana-Orti, and Quintana-Orti
 *>  (BIT 2008).
@@ -227,10 +225,9 @@
       SUBROUTINE ZGGHD3( COMPQ, COMPZ, N, ILO, IHI, A, LDA, B, LDB, Q,
      $                   LDQ, Z, LDZ, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.8.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     January 2015
 *
       IMPLICIT NONE
 *
@@ -278,7 +275,12 @@
 *
       INFO = 0
       NB = ILAENV( 1, 'ZGGHD3', ' ', N, ILO, IHI, -1 )
-      LWKOPT = MAX( 6*N*NB, 1 )
+      NH = IHI - ILO + 1
+      IF( NH.LE.1 ) THEN
+         LWKOPT = 1
+      ELSE
+         LWKOPT = 6*N*NB
+      END IF
       WORK( 1 ) = DCMPLX( LWKOPT )
       INITQ = LSAME( COMPQ, 'I' )
       WANTQ = INITQ .OR. LSAME( COMPQ, 'V' )
@@ -328,7 +330,6 @@
 *
 *     Quick return if possible
 *
-      NH = IHI - ILO + 1
       IF( NH.LE.1 ) THEN
          WORK( 1 ) = CONE
          RETURN
@@ -886,6 +887,7 @@
       IF ( JCOL.LT.IHI )
      $   CALL ZGGHRD( COMPQ2, COMPZ2, N, JCOL, IHI, A, LDA, B, LDB, Q,
      $                LDQ, Z, LDZ, IERR )
+*
       WORK( 1 ) = DCMPLX( LWKOPT )
 *
       RETURN

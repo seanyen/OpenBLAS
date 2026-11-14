@@ -88,7 +88,8 @@
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
-*>          The dimension of the array WORK.  LWORK >= max(1,N).
+*>          The dimension of the array WORK.
+*>          LWORK >= 1, if MIN(M,N) = 0, and LWORK >= N, otherwise.
 *>          For optimum performance LWORK >= N*NB, where NB is the
 *>          optimal blocksize.
 *>
@@ -113,9 +114,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realGEcomputational
+*> \ingroup geqlf
 *
 *> \par Further Details:
 *  =====================
@@ -138,10 +137,9 @@
 *  =====================================================================
       SUBROUTINE SGEQLF( M, N, A, LDA, TAU, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LWORK, M, N
@@ -165,7 +163,8 @@
 *     ..
 *     .. External Functions ..
       INTEGER            ILAENV
-      EXTERNAL           ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. Executable Statements ..
 *
@@ -189,10 +188,11 @@
             NB = ILAENV( 1, 'SGEQLF', ' ', M, N, -1, -1 )
             LWKOPT = N*NB
          END IF
-         WORK( 1 ) = LWKOPT
+         WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
 *
-         IF( LWORK.LT.MAX( 1, N ) .AND. .NOT.LQUERY ) THEN
-            INFO = -7
+         IF( .NOT.LQUERY ) THEN
+            IF( LWORK.LE.0 .OR. ( M.GT.0 .AND. LWORK.LT.MAX( 1, N ) ) )
+     $         INFO = -7
          END IF
       END IF
 *
@@ -279,7 +279,7 @@
       IF( MU.GT.0 .AND. NU.GT.0 )
      $   CALL SGEQL2( MU, NU, A, LDA, TAU, WORK, IINFO )
 *
-      WORK( 1 ) = IWS
+      WORK( 1 ) = SROUNDUP_LWORK(IWS)
       RETURN
 *
 *     End of SGEQLF

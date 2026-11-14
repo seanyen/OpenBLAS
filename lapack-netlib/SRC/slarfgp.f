@@ -97,17 +97,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2017
-*
-*> \ingroup realOTHERauxiliary
+*> \ingroup larfgp
 *
 *  =====================================================================
       SUBROUTINE SLARFGP( N, ALPHA, X, INCX, TAU )
 *
-*  -- LAPACK auxiliary routine (version 3.8.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2017
 *
 *     .. Scalar Arguments ..
       INTEGER            INCX, N
@@ -125,7 +122,7 @@
 *     ..
 *     .. Local Scalars ..
       INTEGER            J, KNT
-      REAL               BETA, BIGNUM, SAVEALPHA, SMLNUM, XNORM
+      REAL               BETA, BIGNUM, EPS, SAVEALPHA, SMLNUM, XNORM
 *     ..
 *     .. External Functions ..
       REAL               SLAMCH, SLAPY2, SNRM2
@@ -144,9 +141,10 @@
          RETURN
       END IF
 *
+      EPS = SLAMCH( 'Precision' )
       XNORM = SNRM2( N-1, X, INCX )
 *
-      IF( XNORM.EQ.ZERO ) THEN
+      IF( XNORM.LE.EPS*ABS(ALPHA) ) THEN
 *
 *        H  =  [+/-1, 0; I], sign chosen so ALPHA >= 0.
 *
@@ -223,7 +221,12 @@
 *
 *           This is the general case.
 *
-            CALL SSCAL( N-1, ONE / ALPHA, X, INCX )
+            IF( ABS( ALPHA ).LT.SMLNUM ) THEN
+               CALL SSCAL( N-1, ONE / SMLNUM, X, INCX )
+               CALL SSCAL( N-1, SMLNUM / ALPHA, X, INCX )
+            ELSE
+               CALL SSCAL( N-1, ONE / ALPHA, X, INCX )
+            END IF
 *
          END IF
 *

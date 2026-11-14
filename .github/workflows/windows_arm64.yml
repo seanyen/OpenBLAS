@@ -1,0 +1,88 @@
+name: Windows ARM64 CI
+
+on:
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  pull_request:
+    branches:
+      - develop
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  build:
+    if: "github.repository == 'OpenMathLib/OpenBLAS'"
+    runs-on: windows-11-arm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # The runner's preinstalled LLVM archive has no flang; the official installer does
+      - name: Install LLVM with flang
+        shell: pwsh
+        run: |
+          $version = '22.1.8'
+          Invoke-WebRequest "https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/LLVM-$version-woa64.exe" -OutFile LLVM-woa64.exe
+          $proc = Start-Process -FilePath .\LLVM-woa64.exe -ArgumentList '/S', '/D=C:\LLVM' -Wait -PassThru
+          if ($proc.ExitCode) { throw "LLVM installer failed with exit code $($proc.ExitCode)" }
+
+      - name: Set up Visual Studio environment
+        shell: pwsh
+        run: |
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath
+          if (-not $vsPath) { throw "No Visual Studio installation with ARM64 C++ tools found" }
+
+          $before = @{}
+          Get-ChildItem env: | ForEach-Object { $before[$_.Name] = $_.Value }
+          & "$vsPath\Common7\Tools\Launch-VsDevShell.ps1" -Arch arm64 -HostArch arm64 -SkipAutomaticLocation
+          # VS ships its own LLVM (with an incomplete flang); ours must come first
+          $llvmBin = 'C:\LLVM\bin'
+          foreach ($tool in 'clang-cl.exe', 'flang.exe') {
+            if (-not (Test-Path "$llvmBin\$tool")) { throw "$tool not found in $llvmBin" }
+          }
+          $env:PATH = "$llvmBin;$env:PATH"
+
+          Get-ChildItem env: | Where-Object { $before[$_.Name] -cne $_.Value } |
+            ForEach-Object { "$($_.Name)=$($_.Value)" } >> $env:GITHUB_ENV
+
+      - name: Configure OpenBLAS
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DTARGET=ARMV8 `
+            -DBINARY=64 `
+            -DCMAKE_C_COMPILER=C:/LLVM/bin/clang-cl.exe `
+            -DCMAKE_Fortran_COMPILER=C:/LLVM/bin/flang.exe `
+            -DBUILD_SHARED_LIBS=ON `
+            -DCMAKE_SYSTEM_PROCESSOR=arm64 `
+            -DCMAKE_SYSTEM_NAME=Windows `
+            -DCMAKE_INSTALL_PREFIX=C:/opt
+
+      - name: Build OpenBLAS
+        shell: pwsh
+        run: cmake --build build -j16
+
+      - name: Install OpenBLAS
+        shell: pwsh
+        run: cmake --install build
+
+      - name: Run ctests
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\opt\bin;$env:PATH"
+          cd build
+          ctest

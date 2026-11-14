@@ -73,6 +73,8 @@ static int (*spr2_thread[])(BLASLONG, FLOAT, FLOAT *, BLASLONG, FLOAT *, BLASLON
 };
 #endif
 
+OPENBLAS_EXPORT
+
 #ifndef CBLAS
 
 void NAME(char *UPLO, blasint *N, FLOAT  *ALPHA,
@@ -168,6 +170,24 @@ void CNAME(enum CBLAS_ORDER order,
 
   if (alpha == ZERO) return;
 
+  if (incx == 1 && incy == 1 && n < 50) {
+    blasint i;
+    if (!uplo) {
+      for (i = 0; i < n; i++){
+        AXPYU_K(i + 1, 0, 0, alpha * x[i], y,     1, a, 1, NULL, 0);
+        AXPYU_K(i + 1, 0, 0, alpha * y[i], x,     1, a, 1, NULL, 0);
+        a += i + 1;
+      }
+    } else {
+      for (i = 0; i < n; i++){
+	AXPYU_K(n - i, 0, 0, alpha * x[i], y + i, 1, a, 1, NULL, 0);
+        AXPYU_K(n - i, 0, 0, alpha * y[i], x + i, 1, a, 1, NULL, 0);
+        a += n - i;
+      }
+    }
+    return;
+  }
+
   IDEBUG_START;
 
   FUNCTION_PROFILE_START();
@@ -176,9 +196,17 @@ void CNAME(enum CBLAS_ORDER order,
   if (incy < 0 ) y -= (n - 1) * incy;
 
   buffer = (FLOAT *)blas_memory_alloc(1);
+  if (!buffer) {
+    info = -999;
+    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
+    return;
+  }
 
 #ifdef SMP
   nthreads = num_cpu_avail(2);
+
+  if (n < 50) nthreads = 1;
+  if (nthreads > 2 && n < 500) nthreads = 2;
 
   if (nthreads == 1) {
 #endif

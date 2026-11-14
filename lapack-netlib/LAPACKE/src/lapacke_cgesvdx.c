@@ -28,7 +28,6 @@
 *****************************************************************************
 * Contents: Native high-level C interface to LAPACK function cgesvdx
 * Author: Intel Corporation
-* Generated June 2016
 *****************************************************************************/
 
 #include "lapacke_utils.h"
@@ -74,12 +73,12 @@ lapack_int LAPACKE_cgesvdx( int matrix_layout, char jobu, char jobvt, char range
         LAPACKE_malloc( sizeof(lapack_complex_float) * lwork );
     if( work == NULL ) {
         info = LAPACK_WORK_MEMORY_ERROR;
-        goto exit_level_1;
+        goto exit_level_0;
     }
     rwork = (float*)LAPACKE_malloc( sizeof(float) * lrwork );
     if( rwork == NULL ) {
         info = LAPACK_WORK_MEMORY_ERROR;
-        goto exit_level_0;
+        goto exit_level_1;
     }
     iwork = (lapack_int*)LAPACKE_malloc( sizeof(lapack_int) * MAX(1,(12*MIN(m,n))) );
     if( iwork == NULL ) {
@@ -97,9 +96,9 @@ lapack_int LAPACKE_cgesvdx( int matrix_layout, char jobu, char jobvt, char range
     /* Release memory and exit */
     LAPACKE_free( iwork );
 exit_level_2:
-    LAPACKE_free( work );
-exit_level_1:
     LAPACKE_free( rwork );
+exit_level_1:
+    LAPACKE_free( work );
 exit_level_0:
     if( info == LAPACK_WORK_MEMORY_ERROR ) {
         LAPACKE_xerbla( "LAPACKE_cgesvdx", info );

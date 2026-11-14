@@ -89,7 +89,7 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>          WORK is COMPLEX array, dimension (LWORK)
+*>          WORK is COMPLEX array, dimension (MAX(1,LWORK))
 *>          On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
 *> \endverbatim
 *>
@@ -120,9 +120,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complexGEcomputational
+*> \ingroup gehrd
 *
 *> \par Further Details:
 *  =====================
@@ -159,18 +157,18 @@
 *>  modified element of the upper Hessenberg matrix H, and vi denotes an
 *>  element of the vector defining H(i).
 *>
-*>  This file is a slight modification of LAPACK-3.0's DGEHRD
+*>  This file is a slight modification of LAPACK-3.0's CGEHRD
 *>  subroutine incorporating improvements proposed by Quintana-Orti and
-*>  Van de Geijn (2006). (See DLAHR2.)
+*>  Van de Geijn (2006). (See CLAHR2.)
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE CGEHRD( N, ILO, IHI, A, LDA, TAU, WORK, LWORK, INFO )
+      SUBROUTINE CGEHRD( N, ILO, IHI, A, LDA, TAU, WORK, LWORK,
+     $                   INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            IHI, ILO, INFO, LDA, LWORK, N
@@ -196,7 +194,8 @@
       COMPLEX            EI
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           CAXPY, CGEHD2, CGEMM, CLAHR2, CLARFB, CTRMM,
+      EXTERNAL           CAXPY, CGEHD2, CGEMM, CLAHR2, CLARFB,
+     $                   CTRMM,
      $                   XERBLA
 *     ..
 *     .. Intrinsic Functions ..
@@ -204,7 +203,8 @@
 *     ..
 *     .. External Functions ..
       INTEGER            ILAENV
-      EXTERNAL           ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. Executable Statements ..
 *
@@ -224,13 +224,19 @@
          INFO = -8
       END IF
 *
+      NH = IHI - ILO + 1
       IF( INFO.EQ.0 ) THEN
 *
 *        Compute the workspace requirements
 *
-         NB = MIN( NBMAX, ILAENV( 1, 'CGEHRD', ' ', N, ILO, IHI, -1 ) )
-         LWKOPT = N*NB + TSIZE
-         WORK( 1 ) = LWKOPT
+         IF( NH.LE.1 ) THEN
+            LWKOPT = 1
+         ELSE
+            NB = MIN( NBMAX, ILAENV( 1, 'CGEHRD', ' ', N, ILO, IHI,
+     $                              -1 ) )
+            LWKOPT = N*NB + TSIZE
+         END IF
+         WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
       END IF
 *
       IF( INFO.NE.0 ) THEN
@@ -251,7 +257,6 @@
 *
 *     Quick return if possible
 *
-      NH = IHI - ILO + 1
       IF( NH.LE.1 ) THEN
          WORK( 1 ) = 1
          RETURN
@@ -271,7 +276,7 @@
 *
 *           Determine if workspace is large enough for blocked code
 *
-            IF( LWORK.LT.N*NB+TSIZE ) THEN
+            IF( LWORK.LT.LWKOPT ) THEN
 *
 *              Not enough workspace to use optimal NB:  determine the
 *              minimum value of NB, and reduce NB or force use of
@@ -347,7 +352,8 @@
 *     Use unblocked code to reduce the rest of the matrix
 *
       CALL CGEHD2( N, I, IHI, A, LDA, TAU, WORK, IINFO )
-      WORK( 1 ) = LWKOPT
+*
+      WORK( 1 ) = SROUNDUP_LWORK( LWKOPT )
 *
       RETURN
 *

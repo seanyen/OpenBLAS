@@ -5,7 +5,6 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> \htmlonly
 *> Download ZGELSY + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/zgelsy.f">
 *> [TGZ]</a>
@@ -13,7 +12,6 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/zgelsy.f">
 *> [TXT]</a>
-*> \endhtmlonly
 *
 *  Definition:
 *  ===========
@@ -116,6 +114,7 @@
 *>          B is COMPLEX*16 array, dimension (LDB,NRHS)
 *>          On entry, the M-by-NRHS right hand side matrix B.
 *>          On exit, the N-by-NRHS solution matrix X.
+*>          If M = 0 or N = 0, B is not referenced.
 *> \endverbatim
 *>
 *> \param[in] LDB
@@ -148,6 +147,7 @@
 *>          The effective rank of A, i.e., the order of the submatrix
 *>          R11.  This is the same as the order of the submatrix T11
 *>          in the complete orthogonal factorization of A.
+*>          If NRHS = 0, RANK = 0 on output.
 *> \endverbatim
 *>
 *> \param[out] WORK
@@ -195,9 +195,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup complex16GEsolve
+*> \ingroup gelsy
 *
 *> \par Contributors:
 *  ==================
@@ -207,13 +205,14 @@
 *>    G. Quintana-Orti, Depto. de Informatica, Universidad Jaime I, Spain \n
 *>
 *  =====================================================================
-      SUBROUTINE ZGELSY( M, N, NRHS, A, LDA, B, LDB, JPVT, RCOND, RANK,
+      SUBROUTINE ZGELSY( M, N, NRHS, A, LDA, B, LDB, JPVT, RCOND,
+     $                   RANK,
      $                   WORK, LWORK, RWORK, INFO )
+      IMPLICIT NONE
 *
-*  -- LAPACK driver routine (version 3.7.0) --
+*  -- LAPACK driver routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, LDA, LDB, LWORK, M, N, NRHS, RANK
@@ -245,7 +244,8 @@
       COMPLEX*16         C1, C2, S1, S2
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           DLABAD, XERBLA, ZCOPY, ZGEQP3, ZLAIC1, ZLASCL,
+      EXTERNAL           XERBLA, ZCOPY, ZGEQP3, ZLAIC1,
+     $                   ZLASCL,
      $                   ZLASET, ZTRSM, ZTZRZF, ZUNMQR, ZUNMRZ
 *     ..
 *     .. External Functions ..
@@ -266,9 +266,9 @@
 *
       INFO = 0
       NB1 = ILAENV( 1, 'ZGEQRF', ' ', M, N, -1, -1 )
-      NB2 = ILAENV( 1, 'ZGERQF', ' ', M, N, -1, -1 )
+      NB2 = ILAENV( 1, 'ZTZRZF', ' ', M, N, -1, -1 )
       NB3 = ILAENV( 1, 'ZUNMQR', ' ', M, N, NRHS, -1 )
-      NB4 = ILAENV( 1, 'ZUNMRQ', ' ', M, N, NRHS, -1 )
+      NB4 = ILAENV( 1, 'ZUNMRZ', ' ', M, N, NRHS, -1 )
       NB = MAX( NB1, NB2, NB3, NB4 )
       LWKOPT = MAX( 1, MN+2*N+NB*( N+1 ), 2*MN+NB*NRHS )
       WORK( 1 ) = DCMPLX( LWKOPT )
@@ -306,7 +306,6 @@
 *
       SMLNUM = DLAMCH( 'S' ) / DLAMCH( 'P' )
       BIGNUM = ONE / SMLNUM
-      CALL DLABAD( SMLNUM, BIGNUM )
 *
 *     Scale A, B if max entries outside range [SMLNUM,BIGNUM]
 *
@@ -339,13 +338,15 @@
 *
 *        Scale matrix norm up to SMLNUM
 *
-         CALL ZLASCL( 'G', 0, 0, BNRM, SMLNUM, M, NRHS, B, LDB, INFO )
+         CALL ZLASCL( 'G', 0, 0, BNRM, SMLNUM, M, NRHS, B, LDB,
+     $                INFO )
          IBSCL = 1
       ELSE IF( BNRM.GT.BIGNUM ) THEN
 *
 *        Scale matrix norm down to BIGNUM
 *
-         CALL ZLASCL( 'G', 0, 0, BNRM, BIGNUM, M, NRHS, B, LDB, INFO )
+         CALL ZLASCL( 'G', 0, 0, BNRM, BIGNUM, M, NRHS, B, LDB,
+     $                INFO )
          IBSCL = 2
       END IF
 *
@@ -412,7 +413,8 @@
 *
 *     B(1:M,1:NRHS) := Q**H * B(1:M,1:NRHS)
 *
-      CALL ZUNMQR( 'Left', 'Conjugate transpose', M, NRHS, MN, A, LDA,
+      CALL ZUNMQR( 'Left', 'Conjugate transpose', M, NRHS, MN, A,
+     $             LDA,
      $             WORK( 1 ), B, LDB, WORK( 2*MN+1 ), LWORK-2*MN, INFO )
       WSIZE = MAX( WSIZE, 2*MN+DBLE( WORK( 2*MN+1 ) ) )
 *
@@ -450,21 +452,37 @@
 *
 *     complex workspace: N.
 *
-*     Undo scaling
+*     Undo scaling.  The solution carries the factor of B divided by
+*     the factor of A.  When both were scaled to the same end of the
+*     range the constants cancel and BNRM/ANRM is applied in one step:
+*     applied in two, the first step could flush or overflow an entry
+*     that the second would have brought back into range.
 *
+      IF( IASCL.EQ.IBSCL .AND. IASCL.NE.0 ) THEN
+         CALL ZLASCL( 'G', 0, 0, ANRM, BNRM, N, NRHS, B, LDB,
+     $                INFO )
+      ELSE
+         IF( IASCL.EQ.1 ) THEN
+            CALL ZLASCL( 'G', 0, 0, ANRM, SMLNUM, N, NRHS, B, LDB,
+     $                   INFO )
+         ELSE IF( IASCL.EQ.2 ) THEN
+            CALL ZLASCL( 'G', 0, 0, ANRM, BIGNUM, N, NRHS, B, LDB,
+     $                   INFO )
+         END IF
+         IF( IBSCL.EQ.1 ) THEN
+            CALL ZLASCL( 'G', 0, 0, SMLNUM, BNRM, N, NRHS, B, LDB,
+     $                   INFO )
+         ELSE IF( IBSCL.EQ.2 ) THEN
+            CALL ZLASCL( 'G', 0, 0, BIGNUM, BNRM, N, NRHS, B, LDB,
+     $                   INFO )
+         END IF
+      END IF
       IF( IASCL.EQ.1 ) THEN
-         CALL ZLASCL( 'G', 0, 0, ANRM, SMLNUM, N, NRHS, B, LDB, INFO )
          CALL ZLASCL( 'U', 0, 0, SMLNUM, ANRM, RANK, RANK, A, LDA,
      $                INFO )
       ELSE IF( IASCL.EQ.2 ) THEN
-         CALL ZLASCL( 'G', 0, 0, ANRM, BIGNUM, N, NRHS, B, LDB, INFO )
          CALL ZLASCL( 'U', 0, 0, BIGNUM, ANRM, RANK, RANK, A, LDA,
      $                INFO )
-      END IF
-      IF( IBSCL.EQ.1 ) THEN
-         CALL ZLASCL( 'G', 0, 0, SMLNUM, BNRM, N, NRHS, B, LDB, INFO )
-      ELSE IF( IBSCL.EQ.2 ) THEN
-         CALL ZLASCL( 'G', 0, 0, BIGNUM, BNRM, N, NRHS, B, LDB, INFO )
       END IF
 *
    70 CONTINUE

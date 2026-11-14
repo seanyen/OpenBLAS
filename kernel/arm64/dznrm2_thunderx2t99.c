@@ -27,7 +27,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "common.h"
-
+#include <float.h>
 #include <arm_neon.h>
 
 #if defined(SMP)
@@ -77,7 +77,7 @@ static void nrm2_compute(BLASLONG n, FLOAT *x, BLASLONG inc_x,
 	"	cmp	"N", xzr				\n"
 	"	ble	9f //nrm2_kernel_L999			\n"
 	"	cmp	"INC_X", xzr				\n"
-	"	ble	9f //nrm2_kernel_L999			\n"
+	"	beq	9f //nrm2_kernel_L999			\n"
 
 	"1: //nrm2_kernel_F_BEGIN:				\n"
 	"	mov	x6, #0x7FF0000000000000 //+Infinity	\n"
@@ -321,7 +321,7 @@ static void nrm2_compute(BLASLONG n, FLOAT *x, BLASLONG inc_x,
 	: "cc",
 	  "memory",
 	  "x0", "x1", "x2", "x3", "x4", "x5", "x6",
-	  "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8"
+	  "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", REGINF
 	);
 
 }
@@ -345,7 +345,7 @@ FLOAT CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x)
 #endif
 	FLOAT ssq, scale;
 
-	if (n <= 0 || inc_x <= 0) return 0.0;
+	if (n <= 0 || inc_x == 0) return 0.0;
 
 #if defined(SMP)
 	if (n <= 10000)
@@ -404,6 +404,8 @@ FLOAT CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x)
 #else
 	nrm2_compute(n, x, inc_x, &ssq, &scale);
 #endif
+	volatile FLOAT sca = fabs(scale);
+	if (sca < DBL_MIN) return 0.;
 	ssq = sqrt(ssq) * scale;
 
 	return ssq;

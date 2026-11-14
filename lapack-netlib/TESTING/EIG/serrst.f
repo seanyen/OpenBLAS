@@ -21,7 +21,7 @@
 *>
 *> \verbatim
 *>
-*> SERRST tests the error exits for SSYTRD, SORGTR, SORMTR, SSPTRD,
+*> SERRST tests the error exits for SSYTRD, SSYTD2, SORGTR, SORMTR, SSPTRD,
 *> SOPGTR, SOPMTR, SSTEQR, SSTERF, SSTEBZ, SSTEIN, SPTEQR, SSBTRD,
 *> SSYEV, SSYEVX, SSYEVD, SSBEV, SSBEVX, SSBEVD,
 *> SSPEV, SSPEVX, SSPEVD, SSTEV, SSTEVX, SSTEVD, and SSTEDC.
@@ -54,17 +54,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup single_eig
 *
 *  =====================================================================
       SUBROUTINE SERRST( PATH, NUNIT )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*3        PATH
@@ -88,6 +86,7 @@
      $                   E( NMAX ), Q( NMAX, NMAX ), R( NMAX ),
      $                   TAU( NMAX ), W( LW ), X( NMAX ),
      $                   Z( NMAX, NMAX )
+      REAL               RINF, RZERO
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAMEN
@@ -98,7 +97,7 @@
      $                   SSBEV, SSBEVD, SSBEVX, SSBTRD, SSPEV, SSPEVD,
      $                   SSPEVX, SSPTRD, SSTEBZ, SSTEDC, SSTEIN, SSTEQR,
      $                   SSTERF, SSTEV, SSTEVD, SSTEVR, SSTEVX, SSYEV,
-     $                   SSYEVD, SSYEVR, SSYEVX, SSYTRD,
+     $                   SSYEVD, SSYEVR, SSYEVX, SSYTRD, SSYTD2,
      $                   SSYEVD_2STAGE, SSYEVR_2STAGE, SSYEVX_2STAGE,
      $                   SSYEV_2STAGE, SSBEV_2STAGE, SSBEVD_2STAGE,
      $                   SSBEVX_2STAGE, SSYTRD_2STAGE, SSYTRD_SY2SB,
@@ -159,6 +158,20 @@
          CALL SSYTRD( 'U', 0, A, 1, D, E, TAU, W, 0, INFO )
          CALL CHKXER( 'SSYTRD', INFOT, NOUT, LERR, OK )
          NT = NT + 4
+*
+*        SSYTD2
+*
+         SRNAMT = 'SSYTD2'
+         INFOT = 1
+         CALL SSYTD2( '/', 0, A, 1, D, E, TAU, INFO )
+         CALL CHKXER( 'SSYTD2', INFOT, NOUT, LERR, OK )
+         INFOT = 2
+         CALL SSYTD2( 'U', -1, A, 1, D, E, TAU, INFO )
+         CALL CHKXER( 'SSYTD2', INFOT, NOUT, LERR, OK )
+         INFOT = 4
+         CALL SSYTD2( 'U', 2, A, 1, D, E, TAU, INFO )
+         CALL CHKXER( 'SSYTD2', INFOT, NOUT, LERR, OK )
+         NT = NT + 3
 *
 *        SSYTRD_2STAGE
 *
@@ -426,6 +439,49 @@
          CALL SSTEIN( 2, D, E, 0, X, I1, I2, Z, 1, W, IW, I3, INFO )
          CALL CHKXER( 'SSTEIN', INFOT, NOUT, LERR, OK )
          NT = NT + 4
+*
+*        A matrix that holds an infinity must come back from the
+*        drivers that scale it, instead of reaching XERBLA with a
+*        scale factor of zero.
+*
+         RZERO = 0.0E0
+         RINF = 1.0E0 / RZERO
+         DO 50 J = 1, NMAX
+            D( J ) = REAL( J )
+            E( J ) = 1.0E0 / REAL( J+1 )
+            DO 40 I = 1, NMAX
+               A( I, J ) = RZERO
+   40       CONTINUE
+            A( J, J ) = D( J )
+   50    CONTINUE
+         D( 1 ) = RINF
+         A( 1, 1 ) = RINF
+         E( NMAX ) = RZERO
+         A( 1, 2 ) = E( 1 )
+         A( 2, 3 ) = E( 2 )
+         SRNAMT = 'SSTEVX'
+         INFOT = 0
+         LERR = .FALSE.
+         CALL SSTEVX( 'V', 'V', NMAX, D, E, RZERO, 1.0E0, 1, NMAX,
+     $                RZERO, M, X, Z, NMAX, W, IW, I3, INFO )
+         IF( LERR ) THEN
+            WRITE( NOUT, FMT = 9997 )'SSTEVX'
+            OK = .FALSE.
+         END IF
+         D( 1 ) = RINF
+         E( 1 ) = 1.0E0 / REAL( 2 )
+         E( 2 ) = 1.0E0 / REAL( 3 )
+         E( NMAX ) = RZERO
+         SRNAMT = 'SSYEVX'
+         INFOT = 0
+         LERR = .FALSE.
+         CALL SSYEVX( 'V', 'V', 'U', NMAX, A, NMAX, RZERO, 1.0E0, 1,
+     $                NMAX, RZERO, M, X, Z, NMAX, W, LW, IW, I3, INFO )
+         IF( LERR ) THEN
+            WRITE( NOUT, FMT = 9997 )'SSYEVX'
+            OK = .FALSE.
+         END IF
+         NT = NT + 2
 *
 *        SSTEQR
 *
@@ -722,12 +778,12 @@
          CALL CHKXER( 'SSYEVR', INFOT, NOUT, LERR, OK )
          INFOT = 18
          CALL SSYEVR( 'V', 'I', 'U', 1, A, 1, 0.0E0, 0.0E0, 1, 1, 0.0,
-     $                M, R, Z, 1, IW, Q, 26*N-1, IW( 2*N+1 ), 10*N,
+     $                M, R, Z, 1, IW, Q, 0, IW( 2*N+1 ), 10*N,
      $                INFO )
          CALL CHKXER( 'SSYEVR', INFOT, NOUT, LERR, OK )
          INFOT = 20
          CALL SSYEVR( 'V', 'I', 'U', 1, A, 1, 0.0E0, 0.0E0, 1, 1, 0.0,
-     $                M, R, Z, 1, IW, Q, 26*N, IW( 2*N+1 ), 10*N-1,
+     $                M, R, Z, 1, IW, Q, 26*N, IW( 2*N+1 ), 0,
      $                INFO )
          CALL CHKXER( 'SSYEVR', INFOT, NOUT, LERR, OK )
          NT = NT + 11
@@ -1413,6 +1469,8 @@
      $      ' (', I3, ' tests done)' )
  9998 FORMAT( ' *** ', A3, ' routines failed the tests of the error ',
      $      'exits ***' )
+ 9997 FORMAT( ' *** ', A6, ' called XERBLA for a matrix with an ',
+     $      'infinity ***' )
 *
       RETURN
 *

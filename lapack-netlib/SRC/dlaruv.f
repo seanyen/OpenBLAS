@@ -72,8 +72,6 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup OTHERauxiliary
 *
 *> \par Further Details:
@@ -95,10 +93,9 @@
 *  =====================================================================
       SUBROUTINE DLARUV( ISEED, N, X )
 *
-*  -- LAPACK auxiliary routine (version 3.7.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            N
@@ -386,6 +383,11 @@
 *     ..
 *     .. Executable Statements ..
 *
+*     Quick return for N < 1
+      IF ( N < 1 ) THEN
+         RETURN
+      END IF
+*
       I1 = ISEED( 1 )
       I2 = ISEED( 2 )
       I3 = ISEED( 3 )
@@ -424,10 +426,10 @@
 *           the statistically correct thing to do in this situation is
 *           simply to iterate again.
 *           N.B. the case X( I ) = 0.0 should not be possible.
-            I1 = I1 + 2
-            I2 = I2 + 2
-            I3 = I3 + 2
-            I4 = I4 + 2
+            I1 = IT1
+            I2 = IT2
+            I3 = IT3
+            I4 = IT4
             GOTO 20
          END IF
 *

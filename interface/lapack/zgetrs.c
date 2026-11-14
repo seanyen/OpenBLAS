@@ -60,7 +60,8 @@ static blasint (*getrs_parallel[])(blas_arg_t *, BLASLONG *, BLASLONG *, FLOAT *
 };
 #endif
 
-int NAME(char *TRANS, blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA,
+OPENBLAS_EXPORT
+void NAME(char *TRANS, blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA,
 	    blasint *ipiv, FLOAT *b, blasint *ldB, blasint *Info){
 
   char trans_arg = *TRANS;
@@ -103,7 +104,7 @@ int NAME(char *TRANS, blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA,
 
   if (info != 0) {
     BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME) - 1);
-    return 0;
+    return;
   }
 
   args.alpha = NULL;
@@ -111,7 +112,7 @@ int NAME(char *TRANS, blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA,
 
   *Info = info;
 
-  if (args.m == 0 || args.n == 0) return 0;
+  if (args.m == 0 || args.n == 0) return;
 
   IDEBUG_START;
 
@@ -125,7 +126,11 @@ int NAME(char *TRANS, blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA,
 #endif
 
 #ifdef SMP
-  args.nthreads = num_cpu_avail(4);
+  if (args.m < 64) {
+    args.nthreads = 1;
+  } else {
+    args.nthreads = num_cpu_avail(4);
+  }
 
   if (args.nthreads == 1) {
 #endif
@@ -148,6 +153,6 @@ int NAME(char *TRANS, blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA,
 
   IDEBUG_END;
 
-  return 0;
+  return;
 
 }

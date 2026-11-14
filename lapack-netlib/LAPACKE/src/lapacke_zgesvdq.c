@@ -28,7 +28,6 @@
 *****************************************************************************
 * Contents: Native high-level C interface to LAPACK function zgesvdq
 * Author: Intel Corporation
-* Generated November 2018
 *****************************************************************************/
 
 #include "lapacke_utils.h"
@@ -49,7 +48,6 @@ lapack_int LAPACKE_zgesvdq( int matrix_layout, char joba, char jobp,
     lapack_int lrwork = -1;
     double* rwork = NULL;
     double rwork_query;
-    lapack_int i;
     if( matrix_layout != LAPACK_COL_MAJOR && matrix_layout != LAPACK_ROW_MAJOR ) {
         LAPACKE_xerbla( "LAPACKE_zgesvdq", -1 );
         return -1;

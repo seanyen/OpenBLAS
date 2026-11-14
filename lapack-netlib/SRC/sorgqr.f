@@ -121,17 +121,14 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realOTHERcomputational
+*> \ingroup ungqr
 *
 *  =====================================================================
       SUBROUTINE SORGQR( M, N, K, A, LDA, TAU, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            INFO, K, LDA, LWORK, M, N
@@ -159,7 +156,8 @@
 *     ..
 *     .. External Functions ..
       INTEGER            ILAENV
-      EXTERNAL           ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. Executable Statements ..
 *
@@ -168,7 +166,7 @@
       INFO = 0
       NB = ILAENV( 1, 'SORGQR', ' ', M, N, K, -1 )
       LWKOPT = MAX( 1, N )*NB
-      WORK( 1 ) = LWKOPT
+      WORK( 1 ) = SROUNDUP_LWORK(LWKOPT)
       LQUERY = ( LWORK.EQ.-1 )
       IF( M.LT.0 ) THEN
          INFO = -1
@@ -282,7 +280,7 @@
    50    CONTINUE
       END IF
 *
-      WORK( 1 ) = IWS
+      WORK( 1 ) = SROUNDUP_LWORK(IWS)
       RETURN
 *
 *     End of SORGQR

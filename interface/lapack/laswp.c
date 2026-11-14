@@ -52,7 +52,8 @@ static int (*laswp[])(BLASLONG, BLASLONG, BLASLONG, FLOAT, FLOAT *, BLASLONG, FL
 #endif
 };
 
-int NAME(blasint *N, FLOAT *a, blasint *LDA, blasint *K1, blasint *K2, blasint *ipiv, blasint *INCX){
+OPENBLAS_EXPORT
+void NAME(blasint *N, FLOAT *a, blasint *LDA, blasint *K1, blasint *K2, blasint *ipiv, blasint *INCX){
 
   blasint n    = *N;
   blasint lda  = *LDA;
@@ -68,7 +69,7 @@ int NAME(blasint *N, FLOAT *a, blasint *LDA, blasint *K1, blasint *K2, blasint *
 
   PRINT_DEBUG_NAME;
 
-  if (incx == 0 || n <= 0) return 0;
+  if (incx == 0 || n <= 0) return;
 
   IDEBUG_START;
 
@@ -77,7 +78,11 @@ int NAME(blasint *N, FLOAT *a, blasint *LDA, blasint *K1, blasint *K2, blasint *
   flag = (incx < 0);
 
 #ifdef SMP
-  nthreads = num_cpu_avail(1);
+  if (n < 64) {
+    nthreads = 1;
+  } else {
+    nthreads = num_cpu_avail(1);
+  }
 
   if (nthreads == 1) {
 #endif
@@ -97,7 +102,7 @@ int NAME(blasint *N, FLOAT *a, blasint *LDA, blasint *K1, blasint *K2, blasint *
 
   blas_level1_thread(mode, n, k1, k2, dummyalpha,
 		     a, lda, NULL, 0, ipiv, incx,
-		     (int(*)())laswp[flag], nthreads);
+		     (int(*)(void))laswp[flag], nthreads);
   }
 #endif
 
@@ -105,6 +110,6 @@ int NAME(blasint *N, FLOAT *a, blasint *LDA, blasint *K1, blasint *K2, blasint *
 
   IDEBUG_END;
 
-  return 0;
+  return;
 
 }

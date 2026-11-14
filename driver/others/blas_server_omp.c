@@ -68,15 +68,16 @@
 #endif
 
 int blas_server_avail = 0;
+int blas_omp_number_max = 0;
+int blas_omp_threads_local = 1;
+int blas_is_num_threads_set_explicitly = 0; // tracks whether the user called openblas_set_num_threads()
 
-static void * blas_thread_buffer[MAX_PARALLEL_NUMBER][MAX_CPU_NUMBER];
-#ifdef HAVE_C11
-static atomic_bool blas_buffer_inuse[MAX_PARALLEL_NUMBER];
-#else
-static _Bool blas_buffer_inuse[MAX_PARALLEL_NUMBER];
-#endif
+extern int openblas_omp_adaptive_env(void);
 
-static void adjust_thread_buffers() {
+static _Atomic(void *) blas_thread_buffer[MAX_PARALLEL_NUMBER][MAX_CPU_NUMBER];
+static _Atomic _Bool blas_buffer_inuse[MAX_PARALLEL_NUMBER];
+
+static void adjust_thread_buffers(void) {
 
   int i=0, j=0;
 
@@ -108,21 +109,46 @@ void goto_set_num_threads(int num_threads) {
 
   blas_cpu_number  = num_threads;
 
-  omp_set_num_threads(blas_cpu_number);
-
   adjust_thread_buffers();
-#if defined(ARCH_MIPS64)
+#if defined(ARCH_MIPS64) || defined(ARCH_LOONGARCH64)
+#ifndef DYNAMIC_ARCH
   //set parameters for different number of threads.
   blas_set_parameter();
 #endif
+#endif
 
 }
+OPENBLAS_EXPORT
 void openblas_set_num_threads(int num_threads) {
-
+	blas_is_num_threads_set_explicitly = 1;
 	goto_set_num_threads(num_threads);
 }
 
+#ifdef OS_LINUX
+OPENBLAS_EXPORT
+int openblas_setaffinity(int thread_idx, size_t cpusetsize, cpu_set_t* cpu_set) {
+  fprintf(stderr,"OpenBLAS: use OpenMP environment variables for setting cpu affinity\n");
+  return -1;
+}
+OPENBLAS_EXPORT
+int openblas_getaffinity(int thread_idx, size_t cpusetsize, cpu_set_t* cpu_set) {
+  fprintf(stderr,"OpenBLAS: use OpenMP environment variables for querying cpu affinity\n");
+  return -1;
+}
+#endif
+
 int blas_thread_init(void){
+
+#if defined(__FreeBSD__) && defined(__clang__)
+extern int openblas_omp_num_threads_env(void);
+
+   if(blas_omp_number_max <= 0)
+	   blas_omp_number_max= openblas_omp_num_threads_env();
+   if (blas_omp_number_max <= 0)
+	   blas_omp_number_max=MAX_CPU_NUMBER;
+#else
+    blas_omp_number_max = omp_get_max_threads();
+#endif
 
   blas_get_cpu_number();
 
@@ -272,7 +298,7 @@ static void legacy_exec(void *func, int mode, blas_arg_t *args, void *sb){
    }
 }
 
-static void exec_threads(blas_queue_t *queue, int buf_index){
+static void exec_threads(int thread_num, blas_queue_t *queue, int buf_index){
 
   void *buffer, *sa, *sb;
   int pos=0, release_flag=0;
@@ -282,13 +308,17 @@ static void exec_threads(blas_queue_t *queue, int buf_index){
   sb = queue -> sb;
 
 #ifdef CONSISTENT_FPCSR
+#ifdef __aarch64__
+  __asm__ __volatile__ ("msr fpcr, %0" : : "r" (queue -> sse_mode));
+#else
   __asm__ __volatile__ ("ldmxcsr %0" : : "m" (queue -> sse_mode));
   __asm__ __volatile__ ("fldcw %0"   : : "m" (queue -> x87_mode));
+#endif
 #endif
 
   if ((sa == NULL) && (sb == NULL) && ((queue -> mode & BLAS_PTHREAD) == 0)) {
 
-    pos = omp_get_thread_num();
+    pos= thread_num;
     buffer = blas_thread_buffer[buf_index][pos];
 
     //fallback
@@ -299,7 +329,6 @@ static void exec_threads(blas_queue_t *queue, int buf_index){
 
     if (sa == NULL) {
       sa = (void *)((BLASLONG)buffer + GEMM_OFFSET_A);
-      queue->sa=sa;
     }
 
     if (sb == NULL) {
@@ -334,23 +363,24 @@ static void exec_threads(blas_queue_t *queue, int buf_index){
 #ifdef BUILD_COMPLEX16
 	    sb = (void *)(((BLASLONG)sa + ((ZGEMM_P * ZGEMM_Q * 2 * sizeof(double)
 					    + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
-#else 
+#else
 fprintf(stderr,"UNHANDLED COMPLEX16\n");
 #endif
 	  } else if ((queue -> mode & BLAS_PREC) == BLAS_SINGLE) {
 #ifdef BUILD_COMPLEX
 	    sb = (void *)(((BLASLONG)sa + ((CGEMM_P * CGEMM_Q * 2 * sizeof(float)
 					    + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
-#else 
+#else
 fprintf(stderr,"UNHANDLED COMPLEX\n");
 #endif
 	  } else {
           /* Other types in future */
 	  }
       }
-      queue->sb=sb;
     }
   }
+
+  queue->worker_sb = sb;
 
   if (queue -> mode & BLAS_LEGACY) {
     legacy_exec(queue -> routine, queue -> mode, queue -> args, sb);
@@ -381,12 +411,16 @@ int exec_blas(BLASLONG num, blas_queue_t *queue){
 
 #ifdef CONSISTENT_FPCSR
   for (i = 0; i < num; i ++) {
+#ifdef __aarch64__
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (queue[i].sse_mode));
+#else
     __asm__ __volatile__ ("fnstcw %0"  : "=m" (queue[i].x87_mode));
     __asm__ __volatile__ ("stmxcsr %0" : "=m" (queue[i].sse_mode));
+#endif
   }
 #endif
 
-  while(true) {
+while (true) {
     for(i=0; i < MAX_PARALLEL_NUMBER; i++) {
 #ifdef HAVE_C11
       _Bool inuse = false;
@@ -402,16 +436,35 @@ int exec_blas(BLASLONG num, blas_queue_t *queue){
     if(i != MAX_PARALLEL_NUMBER)
       break;
   }
+  /*For caller-managed threading, if caller has registered the callback, pass exec_thread as callback function*/
+  if (openblas_threads_callback_) {
+#ifndef USE_SIMPLE_THREADED_LEVEL3
+    for (i = 0; i < num; i ++)
+      queue[i].position = i;
+#endif
+    openblas_threads_callback_(1, (openblas_dojob_callback) exec_threads, num, sizeof(blas_queue_t), (void*) queue, buf_index);
+  } else {
 
-#pragma omp parallel for num_threads(num) schedule(OMP_SCHED)
+ if (openblas_omp_adaptive_env() != 0) {
+ #pragma omp parallel for num_threads(num) schedule(OMP_SCHED)
+  for (i = 0; i < num; i ++) {
+#ifndef USE_SIMPLE_THREADED_LEVEL3
+    queue[i].position = i;
+#endif
+  exec_threads(omp_get_thread_num(), &queue[i], buf_index);
+  }
+} else {
+#pragma omp parallel for schedule(OMP_SCHED)
   for (i = 0; i < num; i ++) {
 
 #ifndef USE_SIMPLE_THREADED_LEVEL3
     queue[i].position = i;
 #endif
 
-    exec_threads(&queue[i], buf_index);
+  exec_threads(omp_get_thread_num(), &queue[i], buf_index);
   }
+}
+}
 
 #ifdef HAVE_C11
   atomic_store(&blas_buffer_inuse[buf_index], false);

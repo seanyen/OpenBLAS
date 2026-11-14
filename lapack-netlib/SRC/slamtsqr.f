@@ -27,7 +27,7 @@
 *> TRANS = 'T':      Q**T * C       C * Q**T
 *>      where Q is a real orthogonal matrix defined as the product
 *>      of blocked elementary reflectors computed by tall skinny
-*>      QR factorization (DLATSQR)
+*>      QR factorization (SLATSQR)
 *> \endverbatim
 *
 *  Arguments:
@@ -56,15 +56,14 @@
 *> \param[in] N
 *> \verbatim
 *>          N is INTEGER
-*>          The number of columns of the matrix C. M >= N >= 0.
+*>          The number of columns of the matrix C. N >= 0.
 *> \endverbatim
 *>
 *> \param[in] K
 *> \verbatim
 *>          K is INTEGER
 *>          The number of elementary reflectors whose product defines
-*>          the matrix Q.
-*>          N >= K >= 0;
+*>          the matrix Q. M >= K >= 0;
 *>
 *> \endverbatim
 *>
@@ -72,7 +71,7 @@
 *> \verbatim
 *>          MB is INTEGER
 *>          The block size to be used in the blocked QR.
-*>          MB > N. (must be the same as DLATSQR)
+*>          MB > N. (must be the same as SLATSQR)
 *> \endverbatim
 *>
 *> \param[in] NB
@@ -87,7 +86,7 @@
 *>          A is REAL array, dimension (LDA,K)
 *>          The i-th column must contain the vector which defines the
 *>          blockedelementary reflector H(i), for i = 1,2,...,k, as
-*>          returned by DLATSQR in the first k columns of
+*>          returned by SLATSQR in the first k columns of
 *>          its array argument A.
 *> \endverbatim
 *>
@@ -129,22 +128,24 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>         (workspace) REAL array, dimension (MAX(1,LWORK))
-*>
+*>          (workspace) REAL array, dimension (MAX(1,LWORK))
+*>          On exit, if INFO = 0, WORK(1) returns the minimal LWORK.
 *> \endverbatim
+*>
 *> \param[in] LWORK
 *> \verbatim
 *>          LWORK is INTEGER
 *>          The dimension of the array WORK.
+*>          If MIN(M,N,K) = 0, LWORK >= 1.
+*>          If SIDE = 'L', LWORK >= max(1,N*NB).
+*>          If SIDE = 'R', LWORK >= max(1,MB*NB).
 *>
-*>          If SIDE = 'L', LWORK >= max(1,N)*NB;
-*>          if SIDE = 'R', LWORK >= max(1,MB)*NB.
 *>          If LWORK = -1, then a workspace query is assumed; the routine
-*>          only calculates the optimal size of the WORK array, returns
+*>          only calculates the minimal size of the WORK array, returns
 *>          this value as the first entry of the WORK array, and no error
 *>          message related to LWORK is issued by XERBLA.
-*>
 *> \endverbatim
+*>
 *> \param[out] INFO
 *> \verbatim
 *>          INFO is INTEGER
@@ -192,34 +193,38 @@
 *>     SIAM J. Sci. Comput, vol. 34, no. 1, 2012
 *> \endverbatim
 *>
+*> \ingroup lamtsqr
+*>
 *  =====================================================================
       SUBROUTINE SLAMTSQR( SIDE, TRANS, M, N, K, MB, NB, A, LDA, T,
-     $        LDT, C, LDC, WORK, LWORK, INFO )
+     $                     LDT, C, LDC, WORK, LWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.1) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2017
 *
 *     .. Scalar Arguments ..
-      CHARACTER         SIDE, TRANS
-      INTEGER           INFO, LDA, M, N, K, MB, NB, LDT, LWORK, LDC
+      CHARACTER          SIDE, TRANS
+      INTEGER            INFO, LDA, M, N, K, MB, NB, LDT, LWORK, LDC
 *     ..
 *     .. Array Arguments ..
-      REAL              A( LDA, * ), WORK( * ), C(LDC, * ),
-     $                T( LDT, * )
+      REAL               A( LDA, * ), WORK( * ), C( LDC, * ),
+     $                   T( LDT, * )
 *     ..
 *
 * =====================================================================
 *
 *     ..
 *     .. Local Scalars ..
-      LOGICAL    LEFT, RIGHT, TRAN, NOTRAN, LQUERY
-      INTEGER    I, II, KK, LW, CTR
+      LOGICAL            LEFT, RIGHT, TRAN, NOTRAN, LQUERY
+      INTEGER            I, II, KK, LW, CTR, Q, MINMNK, LWMIN
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
       EXTERNAL           LSAME
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           SROUNDUP_LWORK
+*     ..
 *     .. External Subroutines ..
       EXTERNAL           SGEMQRT, STPMQRT, XERBLA
 *     ..
@@ -227,62 +232,73 @@
 *
 *     Test the input arguments
 *
-      LQUERY  = LWORK.LT.0
+      INFO = 0
+      LQUERY  = ( LWORK.EQ.-1 )
       NOTRAN  = LSAME( TRANS, 'N' )
       TRAN    = LSAME( TRANS, 'T' )
       LEFT    = LSAME( SIDE, 'L' )
       RIGHT   = LSAME( SIDE, 'R' )
-      IF (LEFT) THEN
+      IF( LEFT ) THEN
         LW = N * NB
+        Q = M
       ELSE
         LW = MB * NB
+        Q = N
       END IF
 *
-      INFO = 0
+      MINMNK = MIN( M, N, K )
+      IF( MINMNK.EQ.0 ) THEN
+        LWMIN = 1
+      ELSE
+        LWMIN = MAX( 1, LW )
+      END IF
+*
       IF( .NOT.LEFT .AND. .NOT.RIGHT ) THEN
-         INFO = -1
+        INFO = -1
       ELSE IF( .NOT.TRAN .AND. .NOT.NOTRAN ) THEN
-         INFO = -2
-      ELSE IF( M.LT.0 ) THEN
+        INFO = -2
+      ELSE IF( M.LT.K ) THEN
         INFO = -3
       ELSE IF( N.LT.0 ) THEN
         INFO = -4
       ELSE IF( K.LT.0 ) THEN
         INFO = -5
-      ELSE IF( LDA.LT.MAX( 1, K ) ) THEN
+      ELSE IF( K.LT.NB .OR. NB.LT.1 ) THEN
+        INFO = -7
+      ELSE IF( LDA.LT.MAX( 1, Q ) ) THEN
         INFO = -9
-      ELSE IF( LDT.LT.MAX( 1, NB) ) THEN
+      ELSE IF( LDT.LT.MAX( 1, NB ) ) THEN
         INFO = -11
       ELSE IF( LDC.LT.MAX( 1, M ) ) THEN
-         INFO = -13
-      ELSE IF(( LWORK.LT.MAX(1,LW)).AND.(.NOT.LQUERY)) THEN
+        INFO = -13
+      ELSE IF( LWORK.LT.LWMIN. AND. (.NOT.LQUERY) ) THEN
         INFO = -15
       END IF
 *
-*     Determine the block size if it is tall skinny or short and wide
-*
-      IF( INFO.EQ.0)  THEN
-          WORK(1) = LW
+      IF( INFO.EQ.0 ) THEN
+        WORK( 1 ) = SROUNDUP_LWORK( LWMIN )
       END IF
 *
       IF( INFO.NE.0 ) THEN
         CALL XERBLA( 'SLAMTSQR', -INFO )
         RETURN
-      ELSE IF (LQUERY) THEN
-       RETURN
+      ELSE IF( LQUERY ) THEN
+        RETURN
       END IF
 *
 *     Quick return if possible
 *
-      IF( MIN(M,N,K).EQ.0 ) THEN
+      IF( MINMNK.EQ.0 ) THEN
         RETURN
       END IF
 *
+*     Determine the block size if it is tall skinny or short and wide
+*
       IF((MB.LE.K).OR.(MB.GE.MAX(M,N,K))) THEN
         CALL SGEMQRT( SIDE, TRANS, M, N, K, NB, A, LDA,
-     $        T, LDT, C, LDC, WORK, INFO)
+     $        T, LDT, C, LDC, WORK, INFO )
         RETURN
-       END IF
+      END IF
 *
       IF(LEFT.AND.NOTRAN) THEN
 *
@@ -408,7 +424,7 @@
 *
       END IF
 *
-      WORK(1) = LW
+      WORK( 1 ) = SROUNDUP_LWORK( LWMIN )
       RETURN
 *
 *     End of SLAMTSQR

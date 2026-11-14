@@ -53,16 +53,18 @@ SEIGTST = schkee.o \
    schkgg.o schkgk.o schkgl.o schkhs.o schksb.o schkst.o schkst2stg.o schksb2stg.o \
    sckcsd.o sckglm.o sckgqr.o sckgsv.o scklse.o scsdts.o \
    sdrges.o sdrgev.o sdrges3.o sdrgev3.o sdrgsx.o sdrgvx.o \
-   sdrvbd.o sdrves.o sdrvev.o sdrvsg.o sdrvsg2stg.o \
+   sdrvbd.o sdrvmr3.o sdrves.o sdrvev.o sdrvsg.o sdrvsg2stg.o \
    sdrvst.o sdrvst2stg.o sdrvsx.o sdrvvx.o \
    serrbd.o serrec.o serred.o serrgg.o serrhs.o serrst.o \
    sget02.o sget10.o sget22.o sget23.o sget24.o sget31.o \
    sget32.o sget33.o sget34.o sget35.o sget36.o \
-   sget37.o sget38.o sget39.o sget51.o sget52.o sget53.o \
+   sget37.o sget38.o sget39.o sget40.o sget51.o sget52.o sget53.o \
    sget54.o sglmts.o sgqrts.o sgrqts.o sgsvts3.o \
    shst01.o slarfy.o slarhs.o slatm4.o slctes.o slctsx.o slsets.o sort01.o \
    sort03.o ssbt21.o ssgt01.o sslect.o sspt21.o sstt21.o \
-   sstt22.o ssyt21.o ssyt22.o
+   sstt22.o ssyl01.o ssyt21.o ssyt22.o
+
+SDMDEIGTST = schkdmd.o
 
 CEIGTST = cchkee.o \
    cbdt01.o cbdt02.o cbdt03.o cbdt05.o \
@@ -70,7 +72,7 @@ CEIGTST = cchkee.o \
    cchkgg.o cchkgk.o cchkgl.o cchkhb.o cchkhs.o cchkst.o cchkst2stg.o cchkhb2stg.o \
    cckcsd.o cckglm.o cckgqr.o cckgsv.o ccklse.o ccsdts.o \
    cdrges.o cdrgev.o cdrges3.o cdrgev3.o cdrgsx.o cdrgvx.o \
-   cdrvbd.o cdrves.o cdrvev.o cdrvsg.o cdrvsg2stg.o \
+   cdrvbd.o cdrvmr3.o cdrves.o cdrvev.o cdrvsg.o cdrvsg2stg.o \
    cdrvst.o cdrvst2stg.o cdrvsx.o cdrvvx.o \
    cerrbd.o cerrec.o cerred.o cerrgg.o cerrhs.o cerrst.o \
    cget02.o cget10.o cget22.o cget23.o cget24.o \
@@ -78,8 +80,10 @@ CEIGTST = cchkee.o \
    cget54.o cglmts.o cgqrts.o cgrqts.o cgsvts3.o \
    chbt21.o chet21.o chet22.o chpt21.o chst01.o \
    clarfy.o clarhs.o clatm4.o clctes.o clctsx.o clsets.o csbmv.o \
-   csgt01.o cslect.o \
+   csgt01.o cslect.o csyl01.o\
    cstt21.o cstt22.o cunt01.o cunt03.o
+
+CDMDEIGTST = cchkdmd.o
 
 DZIGTST = dlafts.o dlahd2.o dlasum.o dlatb9.o dstech.o dstect.o \
    dsvdch.o dsvdct.o dsxt1.o
@@ -90,16 +94,18 @@ DEIGTST = dchkee.o \
    dchkgg.o dchkgk.o dchkgl.o dchkhs.o dchksb.o dchkst.o dchkst2stg.o dchksb2stg.o \
    dckcsd.o dckglm.o dckgqr.o dckgsv.o dcklse.o dcsdts.o \
    ddrges.o ddrgev.o ddrges3.o ddrgev3.o ddrgsx.o ddrgvx.o \
-   ddrvbd.o ddrves.o ddrvev.o ddrvsg.o ddrvsg2stg.o \
+   ddrvbd.o ddrvmr3.o ddrves.o ddrvev.o ddrvsg.o ddrvsg2stg.o \
    ddrvst.o ddrvst2stg.o ddrvsx.o ddrvvx.o \
    derrbd.o derrec.o derred.o derrgg.o derrhs.o derrst.o \
    dget02.o dget10.o dget22.o dget23.o dget24.o dget31.o \
    dget32.o dget33.o dget34.o dget35.o dget36.o \
-   dget37.o dget38.o dget39.o dget51.o dget52.o dget53.o \
+   dget37.o dget38.o dget39.o dget40.o dget51.o dget52.o dget53.o \
    dget54.o dglmts.o dgqrts.o dgrqts.o dgsvts3.o \
    dhst01.o dlarfy.o dlarhs.o dlatm4.o dlctes.o dlctsx.o dlsets.o dort01.o \
    dort03.o dsbt21.o dsgt01.o dslect.o dspt21.o dstt21.o \
-   dstt22.o dsyt21.o dsyt22.o
+   dstt22.o dsyl01.o dsyt21.o dsyt22.o
+
+DDMDEIGTST = dchkdmd.o
 
 ZEIGTST = zchkee.o \
    zbdt01.o zbdt02.o zbdt03.o zbdt05.o \
@@ -107,7 +113,7 @@ ZEIGTST = zchkee.o \
    zchkgg.o zchkgk.o zchkgl.o zchkhb.o zchkhs.o zchkst.o zchkst2stg.o zchkhb2stg.o \
    zckcsd.o zckglm.o zckgqr.o zckgsv.o zcklse.o zcsdts.o \
    zdrges.o zdrgev.o zdrges3.o zdrgev3.o zdrgsx.o zdrgvx.o \
-   zdrvbd.o zdrves.o zdrvev.o zdrvsg.o zdrvsg2stg.o \
+   zdrvbd.o zdrvmr3.o zdrves.o zdrvev.o zdrvsg.o zdrvsg2stg.o \
    zdrvst.o zdrvst2stg.o zdrvsx.o zdrvvx.o \
    zerrbd.o zerrec.o zerred.o zerrgg.o zerrhs.o zerrst.o \
    zget02.o zget10.o zget22.o zget23.o zget24.o \
@@ -115,17 +121,31 @@ ZEIGTST = zchkee.o \
    zget54.o zglmts.o zgqrts.o zgrqts.o zgsvts3.o \
    zhbt21.o zhet21.o zhet22.o zhpt21.o zhst01.o \
    zlarfy.o zlarhs.o zlatm4.o zlctes.o zlctsx.o zlsets.o zsbmv.o \
-   zsgt01.o zslect.o \
+   zsgt01.o zslect.o zsyl01.o\
    zstt21.o zstt22.o zunt01.o zunt03.o
+
+ZDMDEIGTST = zchkdmd.o
 
 .PHONY: all
 all: single complex double complex16
 
 .PHONY: single complex double complex16
-single: xeigtsts
-complex: xeigtstc
-double: xeigtstd
-complex16: xeigtstz
+single: xeigtsts xdmdeigtsts test_sgges3_scaling
+complex: xeigtstc xdmdeigtstc test_cgges3_scaling
+double: xeigtstd xdmdeigtstd test_dgges3_scaling
+complex16: xeigtstz xdmdeigtstz test_zgges3_scaling
+
+xdmdeigtsts: $(SDMDEIGTST) $(AEIGTST) $(TMGLIB) ../$(LAPACKLIB) $(BLASLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+xdmdeigtstc: $(CDMDEIGTST) $(AEIGTST) $(TMGLIB) ../$(LAPACKLIB) $(BLASLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+xdmdeigtstd: $(DDMDEIGTST) $(AEIGTST) $(TMGLIB) ../$(LAPACKLIB) $(BLASLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+xdmdeigtstz: $(ZDMDEIGTST) $(AEIGTST) $(TMGLIB) ../$(LAPACKLIB) $(BLASLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
 
 xeigtsts: $(SEIGTST) $(SCIGTST) $(AEIGTST) $(TMGLIB) ../$(LAPACKLIB) $(BLASLIB)
 	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
@@ -139,6 +159,34 @@ xeigtstd: $(DEIGTST) $(DZIGTST) $(AEIGTST) $(TMGLIB) ../$(LAPACKLIB) $(BLASLIB)
 xeigtstz: $(ZEIGTST) $(DZIGTST) $(AEIGTST) $(TMGLIB) ../$(LAPACKLIB) $(BLASLIB)
 	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
 
+test_sgges3_scaling: test_sgges3_scaling.f90 ../$(LAPACKLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+test_dgges3_scaling: test_dgges3_scaling.f90 ../$(LAPACKLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+test_cgges3_scaling: test_cgges3_scaling.f90 ../$(LAPACKLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+test_zgges3_scaling: test_zgges3_scaling.f90 ../$(LAPACKLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+test_sgesvj_emptsw: test_sgesvj_emptsw.f90 ../$(LAPACKLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+test_dgesvj_emptsw: test_dgesvj_emptsw.f90 ../$(LAPACKLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+test_cgesvj_emptsw: test_cgesvj_emptsw.f90 ../$(LAPACKLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+test_zgesvj_emptsw: test_zgesvj_emptsw.f90 ../$(LAPACKLIB)
+	$(LOADER) $(FFLAGS) $(LDFLAGS) -o $@ $^
+
+$(SDMDEIGTST): $(FRC)
+$(CDMDEIGTST): $(FRC)
+$(DDMDEIGTST): $(FRC)
+$(ZDMDEIGTST): $(FRC)
 $(AEIGTST): $(FRC)
 $(SCIGTST): $(FRC)
 $(DZIGTST): $(FRC)
@@ -155,7 +203,7 @@ clean: cleanobj cleanexe
 cleanobj:
 	rm -f *.o
 cleanexe:
-	rm -f xeigtst*
+	rm -f xeigtst* xdmdeigtst* test_?gges3_scaling test_?gesvj_emptsw
 
 schkee.o: schkee.F
 	$(FC) $(FFLAGS_DRV) -c -o $@ $<
@@ -164,4 +212,12 @@ dchkee.o: dchkee.F
 cchkee.o: cchkee.F
 	$(FC) $(FFLAGS_DRV) -c -o $@ $<
 zchkee.o: zchkee.F
+	$(FC) $(FFLAGS_DRV) -c -o $@ $<
+schkdmd.o: schkdmd.f90
+	$(FC) $(FFLAGS_DRV) -c -o $@ $<
+cchkdmd.o: cchkdmd.f90
+	$(FC) $(FFLAGS_DRV) -c -o $@ $<
+dchkdmd.o: dchkdmd.f90
+	$(FC) $(FFLAGS_DRV) -c -o $@ $<
+zchkdmd.o: zchkdmd.f90
 	$(FC) $(FFLAGS_DRV) -c -o $@ $<

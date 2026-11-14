@@ -13,7 +13,8 @@
 *> [ZIP]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/sorgtsqr.f">
 *> [TXT]</a>
-*>
+*> \endhtmlonly
+*
 *  Definition:
 *  ===========
 *
@@ -132,6 +133,7 @@
 *>
 *> \param[in] LWORK
 *> \verbatim
+*>          LWORK is INTEGER
 *>          The dimension of the array WORK.  LWORK >= (M+NB)*N.
 *>          If LWORK = -1, then a workspace query is assumed.
 *>          The routine only calculates the optimal size of the WORK
@@ -155,9 +157,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date November 2019
-*
-*> \ingroup singleOTHERcomputational
+*> \ingroup ungtsqr
 *
 *> \par Contributors:
 *  ==================
@@ -175,10 +175,9 @@
      $                     INFO )
       IMPLICIT NONE
 *
-*  -- LAPACK computational routine (version 3.9.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2019
 *
 *     .. Scalar Arguments ..
       INTEGER           INFO, LDA, LDT, LWORK, M, N, MB, NB
@@ -197,11 +196,15 @@
       LOGICAL            LQUERY
       INTEGER            IINFO, LDC, LWORKOPT, LC, LW, NBLOCAL, J
 *     ..
+*     .. External Functions ..
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           SROUNDUP_LWORK
+*     ..
 *     .. External Subroutines ..
       EXTERNAL           SCOPY, SLAMTSQR, SLASET, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
-      INTRINSIC          REAL, MAX, MIN
+      INTRINSIC          MAX, MIN
 *     ..
 *     .. Executable Statements ..
 *
@@ -225,7 +228,7 @@
 *
 *        Test the input LWORK for the dimension of the array WORK.
 *        This workspace is used to store array C(LDC, N) and WORK(LWORK)
-*        in the call to DLAMTSQR. See the documentation for DLAMTSQR.
+*        in the call to SLAMTSQR. See the documentation for SLAMTSQR.
 *
          IF( LWORK.LT.2 .AND. (.NOT.LQUERY) ) THEN
             INFO = -10
@@ -236,8 +239,8 @@
             NBLOCAL = MIN( NB, N )
 *
 *           LWORK = -1, then set the size for the array C(LDC,N)
-*           in DLAMTSQR call and set the optimal size of the work array
-*           WORK(LWORK) in DLAMTSQR call.
+*           in SLAMTSQR call and set the optimal size of the work array
+*           WORK(LWORK) in SLAMTSQR call.
 *
             LDC = M
             LC = LDC*N
@@ -258,21 +261,21 @@
          CALL XERBLA( 'SORGTSQR', -INFO )
          RETURN
       ELSE IF ( LQUERY ) THEN
-         WORK( 1 ) = REAL( LWORKOPT )
+         WORK( 1 ) = SROUNDUP_LWORK( LWORKOPT )
          RETURN
       END IF
 *
 *     Quick return if possible
 *
       IF( MIN( M, N ).EQ.0 ) THEN
-         WORK( 1 ) = REAL( LWORKOPT )
+         WORK( 1 ) = SROUNDUP_LWORK( LWORKOPT )
          RETURN
       END IF
 *
 *     (1) Form explicitly the tall-skinny M-by-N left submatrix Q1_in
 *     of M-by-M orthogonal matrix Q_in, which is implicitly stored in
 *     the subdiagonal part of input array A and in the input array T.
-*     Perform by the following operation using the routine DLAMTSQR.
+*     Perform by the following operation using the routine SLAMTSQR.
 *
 *         Q1_in = Q_in * ( I ), where I is a N-by-N identity matrix,
 *                        ( 0 )        0 is a (M-N)-by-N zero matrix.
@@ -298,7 +301,7 @@
          CALL SCOPY( M, WORK( (J-1)*LDC + 1 ), 1, A( 1, J ), 1 )
       END DO
 *
-      WORK( 1 ) = REAL( LWORKOPT )
+      WORK( 1 ) = SROUNDUP_LWORK( LWORKOPT )
       RETURN
 *
 *     End of SORGTSQR

@@ -57,7 +57,7 @@
 #define PREFETCHSIZE	(16 * 24)
 #endif
 
-#if defined(NEHALEM) || defined(SANDYBRIDGE) || defined(HASWELL) || defined(ZEN) || defined (SKYLAKEX) || defined (COOPERLAKE)
+#if defined(NEHALEM) || defined(SANDYBRIDGE) || defined(HASWELL) || defined(ZEN) || defined (SKYLAKEX) || defined (COOPERLAKE) || defined (SAPPHIRERAPIDS)
 #define PREFETCH	prefetcht0
 #define PREFETCHW	prefetcht0
 #define PREFETCHSIZE	(16 * 24)
@@ -451,12 +451,6 @@
 #endif
 
 	MOVDDUP(4 * SIZE, A1, a1)
-	MOVDDUP(6 * SIZE, A2, a2)
-
-	movsd	 0 * SIZE(YY), yy1
-	movhpd	 1 * SIZE(YY), yy1
-	movsd	 2 * SIZE(YY), yy2
-	movhpd	 3 * SIZE(YY), yy2
 
 	movapd	 8 * SIZE(XX), xtemp1
 	movapd	10 * SIZE(XX), xtemp2
@@ -471,8 +465,16 @@
 	subq	IS, I
 	subq	$2, I
 	sarq	$2, I
-	jle	.L15
+	jle	.L14
+
+	MOVDDUP(6 * SIZE - (4 * SIZE), A2, a2)
 	ALIGN_3
+
+.L12_prep:
+	movsd   0 * SIZE(YY), yy1
+	movhpd  1 * SIZE(YY), yy1
+	movsd   2 * SIZE(YY), yy2
+	movhpd  3 * SIZE(YY), yy2
 
 .L12:
 	movapd	  xtemp1, xt1
@@ -482,7 +484,9 @@
 	addpd	  a1,     yy1
 	MOVDDUP(1 * SIZE, A1, a1)
 
+#ifdef PREFETCH
 	PREFETCH	PREFETCHSIZE(A1)
+#endif
 
 	movapd	  xtemp3, xt1
 	mulpd	  a2,     xt1
@@ -505,7 +509,9 @@
 	addpd	  a2,     yy2
 	MOVDDUP(0 * SIZE, A2, a2)
 
+#ifdef PREFETCH
 	PREFETCH	PREFETCHSIZE(XX)
+#endif
 
 	movapd	  xtemp3, xt1
 	movapd	12 * SIZE(XX), xtemp3
@@ -544,7 +550,9 @@
 	addpd	  a2,     yy1
 	MOVDDUP(6 * SIZE, A2, a2)
 
+#ifdef PREFETCH
 	PREFETCH	PREFETCHSIZE(A2)
+#endif
 
 	movlpd	 yy1, 0 * SIZE(YY)
 	movhpd	 yy1, 1 * SIZE(YY)
@@ -572,7 +580,9 @@
 	addpd	  a1,     yy1
 	MOVDDUP(6 * SIZE, A1, a1)
 
+#ifdef PREFETCHW
 	PREFETCHW	PREFETCHSIZE(YY)
+#endif
 
 	movapd	  xtemp4, xt1
 	mulpd	  a2,     xt1
@@ -607,8 +617,6 @@
 
 	movlpd	 yy2, 6 * SIZE(YY)
 	movhpd	 yy2, 7 * SIZE(YY)
-	movsd	10 * SIZE(YY), yy2
-	movhpd	11 * SIZE(YY), yy2
 
 	movapd	  xtemp2, xt1
 	movapd	18 * SIZE(XX), xtemp2
@@ -620,8 +628,6 @@
 
 	movlpd	 yy1, 4 * SIZE(YY)
 	movhpd	 yy1, 5 * SIZE(YY)
-	movsd	 8 * SIZE(YY), yy1
-	movhpd	 9 * SIZE(YY), yy1
 
 	subq	 $-16 * SIZE, XX
 	addq	 $  8 * SIZE, YY
@@ -629,8 +635,18 @@
 	addq	 $  8 * SIZE, A2
 
 	decq	 I
-	jg	 .L12
+	jg	 .L12_prep
+	jmp	 .L15
 	ALIGN_3
+
+.L14:
+	movq     M, I
+	subq    IS, I
+	subq    $2, I
+	testq   $2, I
+	jle     .L16
+
+	MOVDDUP(6 * SIZE - (4 * SIZE), A2, a2)
 
 .L15:
 	movq	 M, I
@@ -639,6 +655,12 @@
 	testq	$2, I
 	jle	.L16
 
+	movsd   0 * SIZE(YY), yy1
+	movhpd  1 * SIZE(YY), yy1
+	movsd   2 * SIZE(YY), yy2
+	movhpd  3 * SIZE(YY), yy2
+
+.L15_pastcheck:
 	movapd	  xtemp1, xt1
 	mulpd	  a1,     xt1
 	mulpd	  atemp1, a1
@@ -693,8 +715,6 @@
 
 	movlpd	 yy2, 2 * SIZE(YY)
 	movhpd	 yy2, 3 * SIZE(YY)
-	movsd	 6 * SIZE(YY), yy2
-	movhpd	 7 * SIZE(YY), yy2
 
 	movapd	  xtemp2, xt1
 	movapd	10 * SIZE(XX), xtemp2
@@ -705,8 +725,6 @@
 
 	movlpd	 yy1, 0 * SIZE(YY)
 	movhpd	 yy1, 1 * SIZE(YY)
-	movsd	 4 * SIZE(YY), yy1
-	movhpd	 5 * SIZE(YY), yy1
 
 	addq	 $4 * SIZE, YY
 	addq	 $4 * SIZE, A1
@@ -718,6 +736,9 @@
 	jle	.L18
 
 	MOVDDUP(1 * SIZE, A1, a2)
+
+	movsd    0 * SIZE(YY), yy1
+	movhpd   1 * SIZE(YY), yy1
 
 	movapd	  xtemp1, xt1
 	mulpd	  a1,     xt1

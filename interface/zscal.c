@@ -42,6 +42,8 @@
 #include "functable.h"
 #endif
 
+OPENBLAS_EXPORT
+
 #ifndef CBLAS
 
 void NAME(blasint *N, FLOAT *ALPHA, FLOAT *x, blasint *INCX){
@@ -98,7 +100,7 @@ void CNAME(blasint n, FLOAT alpha_r, void *vx, blasint incx){
   if (nthreads == 1) {
 #endif
 
-  SCAL_K(n, 0, 0, alpha[0], alpha[1], x, incx, NULL, 0, NULL, 0);
+  SCAL_K(n, 0, 0, alpha[0], alpha[1], x, incx, NULL, 0, NULL, 1);
 
 #ifdef SMP
   } else {
@@ -108,7 +110,7 @@ void CNAME(blasint n, FLOAT alpha_r, void *vx, blasint incx){
     mode  =  BLAS_SINGLE | BLAS_COMPLEX;
 #endif
 
-    blas_level1_thread(mode, n, 0, 0,  alpha, x, incx, NULL, 0, NULL, 0, (void *)SCAL_K, nthreads);
+    blas_level1_thread(mode, n, 0, 0,  alpha, x, incx, NULL, 0, NULL, 1, (int (*)(void))SCAL_K, nthreads);
 
   }
 #endif

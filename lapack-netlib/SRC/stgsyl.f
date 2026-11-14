@@ -261,9 +261,7 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
-*> \ingroup realSYcomputational
+*> \ingroup tgsyl
 *
 *> \par Contributors:
 *  ==================
@@ -299,10 +297,9 @@
      $                   LDD, E, LDE, F, LDF, SCALE, DIF, WORK, LWORK,
      $                   IWORK, INFO )
 *
-*  -- LAPACK computational routine (version 3.7.0) --
+*  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER          TRANS
@@ -334,7 +331,8 @@
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            ILAENV
-      EXTERNAL           LSAME, ILAENV
+      REAL               SROUNDUP_LWORK
+      EXTERNAL           LSAME, ILAENV, SROUNDUP_LWORK
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           SGEMM, SLACPY, SLASET, SSCAL, STGSY2, XERBLA
@@ -387,7 +385,7 @@
          ELSE
             LWMIN = 1
          END IF
-         WORK( 1 ) = LWMIN
+         WORK( 1 ) = SROUNDUP_LWORK(LWMIN)
 *
          IF( LWORK.LT.LWMIN .AND. .NOT.LQUERY ) THEN
             INFO = -20
@@ -673,7 +671,7 @@
 *
       END IF
 *
-      WORK( 1 ) = LWMIN
+      WORK( 1 ) = SROUNDUP_LWORK(LWMIN)
 *
       RETURN
 *

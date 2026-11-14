@@ -84,17 +84,15 @@
 *> \author Univ. of Colorado Denver
 *> \author NAG Ltd.
 *
-*> \date December 2016
-*
 *> \ingroup complex_lin
 *
 *  =====================================================================
       SUBROUTINE CQRT13( SCALE, M, N, A, LDA, NORMA, ISEED )
+      IMPLICIT NONE
 *
-*  -- LAPACK test routine (version 3.7.0) --
+*  -- LAPACK test routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     December 2016
 *
 *     .. Scalar Arguments ..
       INTEGER            LDA, M, N, SCALE
@@ -113,14 +111,14 @@
 *     ..
 *     .. Local Scalars ..
       INTEGER            INFO, J
-      REAL               BIGNUM, SMLNUM
+      REAL               BIGNUM, BIGUP, SMLNUM
 *     ..
 *     .. External Functions ..
       REAL               CLANGE, SCASUM, SLAMCH
       EXTERNAL           CLANGE, SCASUM, SLAMCH
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           CLARNV, CLASCL, SLABAD
+      EXTERNAL           CLARNV, CLASCL
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          CMPLX, REAL, SIGN
@@ -149,15 +147,20 @@
          NORMA = CLANGE( 'Max', M, N, A, LDA, DUMMY )
          SMLNUM = SLAMCH( 'Safe minimum' )
          BIGNUM = ONE / SMLNUM
-         CALL SLABAD( SMLNUM, BIGNUM )
          SMLNUM = SMLNUM / SLAMCH( 'Epsilon' )
          BIGNUM = ONE / SMLNUM
+*
+*        The least squares drivers scale a matrix whose largest
+*        entry lies outside [SMLNUM, BIGNUM].  Scale up past
+*        that bound, so that their scaling is exercised.
+*
+         BIGUP = SLAMCH( 'Overflow' ) / 256
 *
          IF( SCALE.EQ.2 ) THEN
 *
 *           matrix scaled up
 *
-            CALL CLASCL( 'General', 0, 0, NORMA, BIGNUM, M, N, A, LDA,
+            CALL CLASCL( 'General', 0, 0, NORMA, BIGUP, M, N, A, LDA,
      $                   INFO )
          ELSE IF( SCALE.EQ.3 ) THEN
 *

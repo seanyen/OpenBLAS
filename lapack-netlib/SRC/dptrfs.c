@@ -1,0 +1,663 @@
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <complex.h>
+#ifdef complex
+#undef complex
+#endif
+#ifdef I
+#undef I
+#endif
+
+#if defined(_WIN64)
+typedef long long BLASLONG;
+typedef unsigned long long BLASULONG;
+#else
+typedef long BLASLONG;
+typedef unsigned long BLASULONG;
+#endif
+
+#ifdef LAPACK_ILP64
+typedef BLASLONG blasint;
+#if defined(_WIN64)
+#define blasabs(x) llabs(x)
+#else
+#define blasabs(x) labs(x)
+#endif
+#else
+typedef int blasint;
+#define blasabs(x) abs(x)
+#endif
+
+typedef blasint integer;
+
+typedef unsigned int uinteger;
+typedef char *address;
+typedef short int shortint;
+typedef float real;
+typedef double doublereal;
+typedef struct { real r, i; } complex;
+typedef struct { doublereal r, i; } doublecomplex;
+typedef blasint logical;
+
+typedef char logical1;
+typedef char integer1;
+
+#define TRUE_ (1)
+#define FALSE_ (0)
+
+/* Extern is for use with -E */
+#ifndef Extern
+#define Extern extern
+#endif
+
+/* I/O stuff */
+
+typedef int flag;
+typedef int ftnlen;
+typedef int ftnint;
+
+/*external read, write*/
+typedef struct
+{	flag cierr;
+	ftnint ciunit;
+	flag ciend;
+	char *cifmt;
+	ftnint cirec;
+} cilist;
+
+/*internal read, write*/
+typedef struct
+{	flag icierr;
+	char *iciunit;
+	flag iciend;
+	char *icifmt;
+	ftnint icirlen;
+	ftnint icirnum;
+} icilist;
+
+/*open*/
+typedef struct
+{	flag oerr;
+	ftnint ounit;
+	char *ofnm;
+	ftnlen ofnmlen;
+	char *osta;
+	char *oacc;
+	char *ofm;
+	ftnint orl;
+	char *oblnk;
+} olist;
+
+/*close*/
+typedef struct
+{	flag cerr;
+	ftnint cunit;
+	char *csta;
+} cllist;
+
+/*rewind, backspace, endfile*/
+typedef struct
+{	flag aerr;
+	ftnint aunit;
+} alist;
+
+/* inquire */
+typedef struct
+{	flag inerr;
+	ftnint inunit;
+	char *infile;
+	ftnlen infilen;
+	ftnint	*inex;	/*parameters in standard's order*/
+	ftnint	*inopen;
+	ftnint	*innum;
+	ftnint	*innamed;
+	char	*inname;
+	ftnlen	innamlen;
+	char	*inacc;
+	ftnlen	inacclen;
+	char	*inseq;
+	ftnlen	inseqlen;
+	char 	*indir;
+	ftnlen	indirlen;
+	char	*infmt;
+	ftnlen	infmtlen;
+	char	*inform;
+	ftnint	informlen;
+	char	*inunf;
+	ftnlen	inunflen;
+	ftnint	*inrecl;
+	ftnint	*innrec;
+	char	*inblank;
+	ftnlen	inblanklen;
+} inlist;
+
+#define VOID void
+
+union Multitype {	/* for multiple entry points */
+	integer1 g;
+	shortint h;
+	integer i;
+	/* longint j; */
+	real r;
+	doublereal d;
+	complex c;
+	doublecomplex z;
+	};
+
+typedef union Multitype Multitype;
+
+struct Vardesc {	/* for Namelist */
+	char *name;
+	char *addr;
+	ftnlen *dims;
+	int  type;
+	};
+typedef struct Vardesc Vardesc;
+
+struct Namelist {
+	char *name;
+	Vardesc **vars;
+	int nvars;
+	};
+typedef struct Namelist Namelist;
+
+#define abs(x) ((x) >= 0 ? (x) : -(x))
+#define dabs(x) (fabs(x))
+#define f2cmin(a,b) ((a) <= (b) ? (a) : (b))
+#define f2cmax(a,b) ((a) >= (b) ? (a) : (b))
+#define dmin(a,b) (f2cmin(a,b))
+#define dmax(a,b) (f2cmax(a,b))
+#define bit_test(a,b)	((a) >> (b) & 1)
+#define bit_clear(a,b)	((a) & ~((uinteger)1 << (b)))
+#define bit_set(a,b)	((a) |  ((uinteger)1 << (b)))
+
+#define abort_() { sig_die("Fortran abort routine called", 1); }
+#define d_abs(x) (fabs(*(x)))
+#define d_acos(x) (acos(*(x)))
+#define d_asin(x) (asin(*(x)))
+#define d_atan(x) (atan(*(x)))
+#define d_atn2(x, y) (atan2(*(x),*(y)))
+#define d_cos(x) (cos(*(x)))
+#define d_cosh(x) (cosh(*(x)))
+#define d_dim(__a, __b) ( *(__a) > *(__b) ? *(__a) - *(__b) : 0.0 )
+#define d_exp(x) (exp(*(x)))
+#define d_int(__x) (*(__x)>0 ? floor(*(__x)) : -floor(- *(__x)))
+#define r_int(__x) (*(__x)>0 ? floor(*(__x)) : -floor(- *(__x)))
+#define d_lg10(x) ( 0.43429448190325182765 * log(*(x)) )
+#define r_lg10(x) ( 0.43429448190325182765 * log(*(x)) )
+#define d_log(x) (log(*(x)))
+#define d_mod(x, y) (fmod(*(x), *(y)))
+#define u_nint(__x) ((__x)>=0 ? floor((__x) + .5) : -floor(.5 - (__x)))
+#define d_nint(x) u_nint(*(x))
+#define u_sign(__a,__b) ((__b) >= 0 ? ((__a) >= 0 ? (__a) : -(__a)) : -((__a) >= 0 ? (__a) : -(__a)))
+#define d_sign(a,b) u_sign(*(a),*(b))
+#define r_sign(a,b) u_sign(*(a),*(b))
+#define d_sin(x) (sin(*(x)))
+#define d_sinh(x) (sinh(*(x)))
+#define d_sqrt(x) (sqrt(*(x)))
+#define d_tan(x) (tan(*(x)))
+#define d_tanh(x) (tanh(*(x)))
+#define i_abs(x) abs(*(x))
+#define i_dnnt(x) ((integer)u_nint(*(x)))
+#define i_len(s, n) (n)
+#define i_nint(x) ((integer)u_nint(*(x)))
+#define i_sign(a,b) ((integer)u_sign((integer)*(a),(integer)*(b)))
+#define pow_dd(ap, bp) ( pow(*(ap), *(bp)))
+#define pow_si(B,E) spow_ui(*(B),*(E))
+#define pow_ri(B,E) spow_ui(*(B),*(E))
+#define pow_di(B,E) dpow_ui(*(B),*(E))
+#define s_cat(lpp, rpp, rnp, np, llp) { 	ftnlen i, nc, ll; char *f__rp, *lp; 	ll = (llp); lp = (lpp); 	for(i=0; i < (int)*(np); ++i) {         	nc = ll; 	        if((rnp)[i] < nc) nc = (rnp)[i]; 	        ll -= nc;         	f__rp = (rpp)[i]; 	        while(--nc >= 0) *lp++ = *(f__rp)++;         } 	while(--ll >= 0) *lp++ = ' '; }
+#define s_cmp(a,b,c,d) ((integer)strncmp((a),(b),f2cmin((c),(d))))
+#define s_copy(A,B,C,D) { int __i,__m; for (__i=0, __m=f2cmin((C),(D)); __i<__m && (B)[__i] != 0; ++__i) (A)[__i] = (B)[__i]; }
+#define sig_die(s, kill) { exit(1); }
+#define s_stop(s, n) {exit(0);}
+#define myexit_() break;
+#define mycycle() continue;
+#define myceiling(w) {ceil(w)}
+#define myhuge(w) {HUGE_VAL}
+//#define mymaxloc_(w,s,e,n) {if (sizeof(*(w)) == sizeof(double)) dmaxloc_((w),*(s),*(e),n); else dmaxloc_((w),*(s),*(e),n);}
+#define mymaxloc(w,s,e,n) {dmaxloc_(w,*(s),*(e),n)}
+
+/*  -- translated by f2c (version 20000121).
+   You must link the resulting object file with the libraries:
+	-lf2c -lm   (in that order)
+*/
+
+
+
+
+/* Table of constant values */
+
+static integer c__1 = 1;
+static doublereal c_b11 = 1.;
+
+/* > \brief \b DPTRFS */
+
+/*  =========== DOCUMENTATION =========== */
+
+/* Online html documentation available at */
+/*            http://www.netlib.org/lapack/explore-html/ */
+
+/* > \htmlonly */
+/* > Download DPTRFS + dependencies */
+/* > <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dptrfs.
+f"> */
+/* > [TGZ]</a> */
+/* > <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dptrfs.
+f"> */
+/* > [ZIP]</a> */
+/* > <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dptrfs.
+f"> */
+/* > [TXT]</a> */
+/* > \endhtmlonly */
+
+/*  Definition: */
+/*  =========== */
+
+/*       SUBROUTINE DPTRFS( N, NRHS, D, E, DF, EF, B, LDB, X, LDX, FERR, */
+/*                          BERR, WORK, INFO ) */
+
+/*       INTEGER            INFO, LDB, LDX, N, NRHS */
+/*       DOUBLE PRECISION   B( LDB, * ), BERR( * ), D( * ), DF( * ), */
+/*      $                   E( * ), EF( * ), FERR( * ), WORK( * ), */
+/*      $                   X( LDX, * ) */
+
+
+/* > \par Purpose: */
+/*  ============= */
+/* > */
+/* > \verbatim */
+/* > */
+/* > DPTRFS improves the computed solution to a system of linear */
+/* > equations when the coefficient matrix is symmetric positive definite */
+/* > and tridiagonal, and provides error bounds and backward error */
+/* > estimates for the solution. */
+/* > \endverbatim */
+
+/*  Arguments: */
+/*  ========== */
+
+/* > \param[in] N */
+/* > \verbatim */
+/* >          N is INTEGER */
+/* >          The order of the matrix A.  N >= 0. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] NRHS */
+/* > \verbatim */
+/* >          NRHS is INTEGER */
+/* >          The number of right hand sides, i.e., the number of columns */
+/* >          of the matrix B.  NRHS >= 0. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] D */
+/* > \verbatim */
+/* >          D is DOUBLE PRECISION array, dimension (N) */
+/* >          The n diagonal elements of the tridiagonal matrix A. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] E */
+/* > \verbatim */
+/* >          E is DOUBLE PRECISION array, dimension (N-1) */
+/* >          The (n-1) subdiagonal elements of the tridiagonal matrix A. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] DF */
+/* > \verbatim */
+/* >          DF is DOUBLE PRECISION array, dimension (N) */
+/* >          The n diagonal elements of the diagonal matrix D from the */
+/* >          factorization computed by DPTTRF. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] EF */
+/* > \verbatim */
+/* >          EF is DOUBLE PRECISION array, dimension (N-1) */
+/* >          The (n-1) subdiagonal elements of the unit bidiagonal factor */
+/* >          L from the factorization computed by DPTTRF. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] B */
+/* > \verbatim */
+/* >          B is DOUBLE PRECISION array, dimension (LDB,NRHS) */
+/* >          The right hand side matrix B. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] LDB */
+/* > \verbatim */
+/* >          LDB is INTEGER */
+/* >          The leading dimension of the array B.  LDB >= f2cmax(1,N). */
+/* > \endverbatim */
+/* > */
+/* > \param[in,out] X */
+/* > \verbatim */
+/* >          X is DOUBLE PRECISION array, dimension (LDX,NRHS) */
+/* >          On entry, the solution matrix X, as computed by DPTTRS. */
+/* >          On exit, the improved solution matrix X. */
+/* > \endverbatim */
+/* > */
+/* > \param[in] LDX */
+/* > \verbatim */
+/* >          LDX is INTEGER */
+/* >          The leading dimension of the array X.  LDX >= f2cmax(1,N). */
+/* > \endverbatim */
+/* > */
+/* > \param[out] FERR */
+/* > \verbatim */
+/* >          FERR is DOUBLE PRECISION array, dimension (NRHS) */
+/* >          The forward error bound for each solution vector */
+/* >          X(j) (the j-th column of the solution matrix X). */
+/* >          If XTRUE is the true solution corresponding to X(j), FERR(j) */
+/* >          is an estimated upper bound for the magnitude of the largest */
+/* >          element in (X(j) - XTRUE) divided by the magnitude of the */
+/* >          largest element in X(j). */
+/* > \endverbatim */
+/* > */
+/* > \param[out] BERR */
+/* > \verbatim */
+/* >          BERR is DOUBLE PRECISION array, dimension (NRHS) */
+/* >          The componentwise relative backward error of each solution */
+/* >          vector X(j) (i.e., the smallest relative change in */
+/* >          any element of A or B that makes X(j) an exact solution). */
+/* > \endverbatim */
+/* > */
+/* > \param[out] WORK */
+/* > \verbatim */
+/* >          WORK is DOUBLE PRECISION array, dimension (2*N) */
+/* > \endverbatim */
+/* > */
+/* > \param[out] INFO */
+/* > \verbatim */
+/* >          INFO is INTEGER */
+/* >          = 0:  successful exit */
+/* >          < 0:  if INFO = -i, the i-th argument had an illegal value */
+/* > \endverbatim */
+
+/* > \par Internal Parameters: */
+/*  ========================= */
+/* > */
+/* > \verbatim */
+/* >  ITMAX is the maximum number of steps of iterative refinement. */
+/* > \endverbatim */
+
+/*  Authors: */
+/*  ======== */
+
+/* > \author Univ. of Tennessee */
+/* > \author Univ. of California Berkeley */
+/* > \author Univ. of Colorado Denver */
+/* > \author NAG Ltd. */
+
+/* > \date December 2016 */
+
+/* > \ingroup doublePTcomputational */
+
+/*  ===================================================================== */
+/* Subroutine */ void dptrfs_(integer *n, integer *nrhs, doublereal *d__, 
+	doublereal *e, doublereal *df, doublereal *ef, doublereal *b, integer 
+	*ldb, doublereal *x, integer *ldx, doublereal *ferr, doublereal *berr,
+	 doublereal *work, integer *info)
+{
+    /* System generated locals */
+    integer b_dim1, b_offset, x_dim1, x_offset, i__1, i__2;
+    doublereal d__1, d__2, d__3;
+
+    /* Local variables */
+    doublereal safe1, safe2;
+    integer i__, j;
+    doublereal s;
+    extern /* Subroutine */ void daxpy_(integer *, doublereal *, doublereal *, 
+	    integer *, doublereal *, integer *);
+    integer count;
+    doublereal bi;
+    extern doublereal dlamch_(char *);
+    doublereal cx, dx, ex;
+    integer ix;
+    extern integer idamax_(integer *, doublereal *, integer *);
+    integer nz;
+    doublereal safmin;
+    extern /* Subroutine */ void xerbla_(char *, integer *, ftnlen);
+    doublereal lstres;
+    extern /* Subroutine */ void dpttrs_(integer *, integer *, doublereal *, 
+	    doublereal *, doublereal *, integer *, integer *);
+    doublereal eps;
+
+
+/*  -- LAPACK computational routine (version 3.7.0) -- */
+/*  -- LAPACK is a software package provided by Univ. of Tennessee,    -- */
+/*  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..-- */
+/*     December 2016 */
+
+
+/*  ===================================================================== */
+
+
+/*     Test the input parameters. */
+
+    /* Parameter adjustments */
+    --d__;
+    --e;
+    --df;
+    --ef;
+    b_dim1 = *ldb;
+    b_offset = 1 + b_dim1 * 1;
+    b -= b_offset;
+    x_dim1 = *ldx;
+    x_offset = 1 + x_dim1 * 1;
+    x -= x_offset;
+    --ferr;
+    --berr;
+    --work;
+
+    /* Function Body */
+    *info = 0;
+    if (*n < 0) {
+	*info = -1;
+    } else if (*nrhs < 0) {
+	*info = -2;
+    } else if (*ldb < f2cmax(1,*n)) {
+	*info = -8;
+    } else if (*ldx < f2cmax(1,*n)) {
+	*info = -10;
+    }
+    if (*info != 0) {
+	i__1 = -(*info);
+	xerbla_("DPTRFS", &i__1, (ftnlen)6);
+	return;
+    }
+
+/*     Quick return if possible */
+
+    if (*n == 0 || *nrhs == 0) {
+	i__1 = *nrhs;
+	for (j = 1; j <= i__1; ++j) {
+	    ferr[j] = 0.;
+	    berr[j] = 0.;
+/* L10: */
+	}
+	return;
+    }
+
+/*     NZ = maximum number of nonzero elements in each row of A, plus 1 */
+
+    nz = 4;
+    eps = dlamch_("Epsilon");
+    safmin = dlamch_("Safe minimum");
+    safe1 = nz * safmin;
+    safe2 = safe1 / eps;
+
+/*     Do for each right hand side */
+
+    i__1 = *nrhs;
+    for (j = 1; j <= i__1; ++j) {
+
+	count = 1;
+	lstres = 3.;
+L20:
+
+/*        Loop until stopping criterion is satisfied. */
+
+/*        Compute residual R = B - A * X.  Also compute */
+/*        abs(A)*abs(x) + abs(b) for use in the backward error bound. */
+
+	if (*n == 1) {
+	    bi = b[j * b_dim1 + 1];
+	    dx = d__[1] * x[j * x_dim1 + 1];
+	    work[*n + 1] = bi - dx;
+	    work[1] = abs(bi) + abs(dx);
+	} else {
+	    bi = b[j * b_dim1 + 1];
+	    dx = d__[1] * x[j * x_dim1 + 1];
+	    ex = e[1] * x[j * x_dim1 + 2];
+	    work[*n + 1] = bi - dx - ex;
+	    work[1] = abs(bi) + abs(dx) + abs(ex);
+	    i__2 = *n - 1;
+	    for (i__ = 2; i__ <= i__2; ++i__) {
+		bi = b[i__ + j * b_dim1];
+		cx = e[i__ - 1] * x[i__ - 1 + j * x_dim1];
+		dx = d__[i__] * x[i__ + j * x_dim1];
+		ex = e[i__] * x[i__ + 1 + j * x_dim1];
+		work[*n + i__] = bi - cx - dx - ex;
+		work[i__] = abs(bi) + abs(cx) + abs(dx) + abs(ex);
+/* L30: */
+	    }
+	    bi = b[*n + j * b_dim1];
+	    cx = e[*n - 1] * x[*n - 1 + j * x_dim1];
+	    dx = d__[*n] * x[*n + j * x_dim1];
+	    work[*n + *n] = bi - cx - dx;
+	    work[*n] = abs(bi) + abs(cx) + abs(dx);
+	}
+
+/*        Compute componentwise relative backward error from formula */
+
+/*        f2cmax(i) ( abs(R(i)) / ( abs(A)*abs(X) + abs(B) )(i) ) */
+
+/*        where abs(Z) is the componentwise absolute value of the matrix */
+/*        or vector Z.  If the i-th component of the denominator is less */
+/*        than SAFE2, then SAFE1 is added to the i-th components of the */
+/*        numerator and denominator before dividing. */
+
+	s = 0.;
+	i__2 = *n;
+	for (i__ = 1; i__ <= i__2; ++i__) {
+	    if (work[i__] > safe2) {
+/* Computing MAX */
+		d__2 = s, d__3 = (d__1 = work[*n + i__], abs(d__1)) / work[
+			i__];
+		s = f2cmax(d__2,d__3);
+	    } else {
+/* Computing MAX */
+		d__2 = s, d__3 = ((d__1 = work[*n + i__], abs(d__1)) + safe1) 
+			/ (work[i__] + safe1);
+		s = f2cmax(d__2,d__3);
+	    }
+/* L40: */
+	}
+	berr[j] = s;
+
+/*        Test stopping criterion. Continue iterating if */
+/*           1) The residual BERR(J) is larger than machine epsilon, and */
+/*           2) BERR(J) decreased by at least a factor of 2 during the */
+/*              last iteration, and */
+/*           3) At most ITMAX iterations tried. */
+
+	if (berr[j] > eps && berr[j] * 2. <= lstres && count <= 5) {
+
+/*           Update solution and try again. */
+
+	    dpttrs_(n, &c__1, &df[1], &ef[1], &work[*n + 1], n, info);
+	    daxpy_(n, &c_b11, &work[*n + 1], &c__1, &x[j * x_dim1 + 1], &c__1)
+		    ;
+	    lstres = berr[j];
+	    ++count;
+	    goto L20;
+	}
+
+/*        Bound error from formula */
+
+/*        norm(X - XTRUE) / norm(X) .le. FERR = */
+/*        norm( abs(inv(A))* */
+/*           ( abs(R) + NZ*EPS*( abs(A)*abs(X)+abs(B) ))) / norm(X) */
+
+/*        where */
+/*          norm(Z) is the magnitude of the largest component of Z */
+/*          inv(A) is the inverse of A */
+/*          abs(Z) is the componentwise absolute value of the matrix or */
+/*             vector Z */
+/*          NZ is the maximum number of nonzeros in any row of A, plus 1 */
+/*          EPS is machine epsilon */
+
+/*        The i-th component of abs(R)+NZ*EPS*(abs(A)*abs(X)+abs(B)) */
+/*        is incremented by SAFE1 if the i-th component of */
+/*        abs(A)*abs(X) + abs(B) is less than SAFE2. */
+
+	i__2 = *n;
+	for (i__ = 1; i__ <= i__2; ++i__) {
+	    if (work[i__] > safe2) {
+		work[i__] = (d__1 = work[*n + i__], abs(d__1)) + nz * eps * 
+			work[i__];
+	    } else {
+		work[i__] = (d__1 = work[*n + i__], abs(d__1)) + nz * eps * 
+			work[i__] + safe1;
+	    }
+/* L50: */
+	}
+	ix = idamax_(n, &work[1], &c__1);
+	ferr[j] = work[ix];
+
+/*        Estimate the norm of inv(A). */
+
+/*        Solve M(A) * x = e, where M(A) = (m(i,j)) is given by */
+
+/*           m(i,j) =  abs(A(i,j)), i = j, */
+/*           m(i,j) = -abs(A(i,j)), i .ne. j, */
+
+/*        and e = [ 1, 1, ..., 1 ]**T.  Note M(A) = M(L)*D*M(L)**T. */
+
+/*        Solve M(L) * x = e. */
+
+	work[1] = 1.;
+	i__2 = *n;
+	for (i__ = 2; i__ <= i__2; ++i__) {
+	    work[i__] = work[i__ - 1] * (d__1 = ef[i__ - 1], abs(d__1)) + 1.;
+/* L60: */
+	}
+
+/*        Solve D * M(L)**T * x = b. */
+
+	work[*n] /= df[*n];
+	for (i__ = *n - 1; i__ >= 1; --i__) {
+	    work[i__] = work[i__] / df[i__] + work[i__ + 1] * (d__1 = ef[i__],
+		     abs(d__1));
+/* L70: */
+	}
+
+/*        Compute norm(inv(A)) = f2cmax(x(i)), 1<=i<=n. */
+
+	ix = idamax_(n, &work[1], &c__1);
+	ferr[j] *= (d__1 = work[ix], abs(d__1));
+
+/*        Normalize error. */
+
+	lstres = 0.;
+	i__2 = *n;
+	for (i__ = 1; i__ <= i__2; ++i__) {
+/* Computing MAX */
+	    d__2 = lstres, d__3 = (d__1 = x[i__ + j * x_dim1], abs(d__1));
+	    lstres = f2cmax(d__2,d__3);
+/* L80: */
+	}
+	if (lstres != 0.) {
+	    ferr[j] /= lstres;
+	}
+
+/* L90: */
+    }
+
+    return;
+
+/*     End of DPTRFS */
+
+} /* dptrfs_ */
+

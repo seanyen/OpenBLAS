@@ -89,14 +89,14 @@
 *>
 *> \param[in] NBI
 *> \verbatim
-*>          NBI is INTEGER which is the used in the reduciton, 
+*>          NBI is INTEGER which is the used in the reduction, 
 *>          (e.g., the size of the band), needed to compute workspace
 *>          and LHOUS2.
 *> \endverbatim
 *>
 *> \param[in] IBI
 *> \verbatim
-*>          IBI is INTEGER which represent the IB of the reduciton,
+*>          IBI is INTEGER which represent the IB of the reduction,
 *>          needed to compute workspace and LHOUS2.
 *> \endverbatim
 *>
@@ -112,8 +112,6 @@
 *> \author Univ. of California Berkeley 
 *> \author Univ. of Colorado Denver 
 *> \author NAG Ltd. 
-*
-*> \date June 2016
 *
 *> \ingroup auxOTHERauxiliary
 *
@@ -159,10 +157,9 @@
 #endif
       IMPLICIT NONE
 *
-*  -- LAPACK auxiliary routine (version 3.8.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     June 2016
 *
 *     .. Scalar Arguments ..
       CHARACTER*( * )    NAME, OPTS
@@ -181,7 +178,8 @@
 *     ..
 *     .. External Functions ..
       INTEGER            ILAENV
-      EXTERNAL           ILAENV
+      LOGICAL            LSAME
+      EXTERNAL           ILAENV, LSAME
 *     ..
 *     .. Executable Statements ..
 *
@@ -313,7 +311,7 @@
 *
 *     Will add the VECT OPTION HERE next release
          VECT  = OPTS(1:1)
-         IF( VECT.EQ.'N' ) THEN
+         IF( LSAME( VECT, 'N' ) ) THEN
             LHOUS = MAX( 1, 4*NI )
          ELSE
 *           This is not correct, it need to call the ALGO and the stage2
